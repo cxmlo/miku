@@ -32,6 +32,15 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
   - **Bloqueo de Instancia Única (Mutex Global)**: Implementado tanto en Rust (`Global\MikuDynamicIslandSingleInstanceMutex`) como en Python (`start_ui.py`) para impedir la apertura de múltiples instancias simultáneas. Al intentar abrir Miku nuevamente, enfoca y restaura la ventana activa existente.
   - `start_ui.py`: Utiliza `pywebview` sin bordes y transparente (`frameless=True`, `transparent=True`, `on_top=True`), redimensionando dinámicamente y recentrando la ventana en pantalla.
   - `miku_ui/` (Tauri 2): Binario nativo ultraligero en Rust con WebView2, menú de bandeja del sistema limpio (`Configuración` y `Salir`), y ventana de configuración optimizada (980x740).
+- **Rediseño Apple Dark Glass & Efecto Lente**:
+  - Acabado translúcido con efecto lente (`backdrop-filter: blur(36px-40px) saturate(210%)`), bisel especular superior de 1px (`rgba(255, 255, 255, 0.22)`), y gradientes radiales sutiles.
+  - **Cierre universal al hacer clic afuera**: Cierre instantáneo a `compact` al perder foco o pulsar en cualquier ventana o monitor (`window-blur`, `tauri://blur`, `onFocusChanged`).
+  - **Animación "Pensando" compacta**: Al enviar un mensaje, la isla se minimiza inmediatamente mostrando el cronómetro y la animación de Miku pensando, expandiéndose directamente al chat (`result`) al llegar la respuesta.
+  - **Chat ampliado verticalmente con Liquid Create Menu**: Panel de respuesta ampliado (580px ancho, min-height 230px, hasta 380px de lectura) para una visualización holgada y cómoda; se eliminó el modal de opciones de mensaje y se incorporó el **Liquid Create Menu** en el botón `+` del chat, con animación elástica de resorte y esquinas concéntricas para adjuntar archivos, analizar pantalla (visión), pegar del portapapeles y alternar agentes.
+  - **Componentes unificados con `HoldButton` por defecto**: Todos los botones de acción crítica en la configuración (crear agente, eliminar agente, guardar/eliminar claves API, añadir/quitar servidores MCP, activar alertas y restablecer) utilizan `HoldButton` con retroalimentación háptica visual progresiva.
+  - **Paleta de colores fríos y bloqueo de tema**: Colores de halo y acento actualizados a tonos fríos, opacos y mate (Nordic slate, ámbar frío, lavanda helada, esmeralda nórdico, carmesí apagado, etc.) que se fijan y bloquean como tema activo de toda la ventana de ajustes (`--ac`).
+  - **Control de volumen `SmoothSlider` cápsula**: Barra de volumen horizontal refinada con arrastre continuo (`pointerdown` + `pointermove`), salto inmediato al clic y sincronización visual sin errores.
+  - **Preguntas interactivas flotantes**: Soporte de eventos bidireccionales WebSocket y HTTP (`/api/ui_event`) para selección instantánea en `hacer_pregunta_opciones`.
 
 ---
 👉 **Volver al Menú Principal:** [[Home]]

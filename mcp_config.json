@@ -28,6 +28,13 @@
         "-y",
         "@modelcontextprotocol/server-github"
       ]
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ]
     }
   }
 }

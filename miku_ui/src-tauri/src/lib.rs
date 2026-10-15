@@ -56,6 +56,20 @@ fn get_cursor_position() -> (f64, f64) {
 }
 
 #[tauri::command]
+fn close_settings(app: tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("settings") {
+        let _ = win.hide();
+    }
+}
+
+#[tauri::command]
+fn minimize_settings(app: tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("settings") {
+        let _ = win.minimize();
+    }
+}
+
+#[tauri::command]
 fn open_settings_window(app: tauri::AppHandle) {
     if let Some(existing) = app.get_webview_window("settings") {
         let _ = existing.show();
@@ -68,7 +82,11 @@ fn open_settings_window(app: tauri::AppHandle) {
         tauri::WebviewUrl::App("miku_settings.html".into())
     )
     .title("Configuración · Miku")
-    .inner_size(920.0, 720.0)
+    .inner_size(960.0, 740.0)
+    .min_inner_size(760.0, 600.0)
+    .decorations(false)
+    .transparent(true)
+    .shadow(true)
     .resizable(true)
     .center();
 
@@ -91,7 +109,7 @@ fn open_settings(app: tauri::AppHandle) {
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Manager,
+    Emitter, Manager,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -163,6 +181,13 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            if window.label() == "main" {
+                if let tauri::WindowEvent::Focused(focused) = event {
+                    if !focused {
+                        let _ = window.emit("window-blur", ());
+                    }
+                }
+            }
             if window.label() == "settings" {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                     let _ = window.hide();
@@ -176,7 +201,9 @@ pub fn run() {
             resize_window,
             get_cursor_position,
             open_settings_window,
-            open_settings
+            open_settings,
+            close_settings,
+            minimize_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

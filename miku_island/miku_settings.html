@@ -8,13 +8,65 @@
 html,body{background:var(--bg);color:#fff;font:14px/1.45 'Segoe UI Variable','Segoe UI',system-ui,sans-serif}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-header{position:sticky;top:0;z-index:5;padding:20px clamp(14px,3vw,28px) 14px;background:linear-gradient(var(--bg) 72%,#0000)}
-h1{font-size:20px;font-weight:650;letter-spacing:-.01em}
-header p{color:var(--mut);font-size:13px;margin-top:2px}
-.shell{max-width:920px;margin:0 auto;padding:0 clamp(12px,3vw,28px) 48px;display:grid;grid-template-columns:176px minmax(0,1fr);gap:clamp(12px,2.5vw,22px);align-items:start}
 
-/* ── riel de personajes ── */
-.rail{position:sticky;top:84px;display:flex;flex-direction:column;gap:4px}
+html,body{background:transparent!important;margin:0;padding:0;overflow:hidden;height:100%;user-select:none}
+.app-window{display:flex;flex-direction:column;height:100vh;max-height:100vh;background:#0d0e12;border:1px solid #23252d;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.92)}
+.top-chrome{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:38px;padding:0 16px;background:rgba(14,15,18,0.95);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.05);user-select:none;cursor:grab;flex:none}
+.top-chrome:active{cursor:grabbing}
+.chrome-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:550;color:var(--mut);pointer-events:none}
+.chrome-dot{width:6px;height:6px;border-radius:50%;background:var(--ac);box-shadow:0 0 8px var(--ac);transition:background .2s,box-shadow .2s}
+.chrome-actions{display:flex;align-items:center;gap:6px;opacity:0;transform:translateY(-4px);transition:opacity .22s cubic-bezier(.32,.72,0,1),transform .22s cubic-bezier(.32,.72,0,1)}
+.top-chrome:hover .chrome-actions{opacity:1;transform:translateY(0)}
+.chrome-btn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.06);color:#c7c9d0;cursor:pointer;border:0;transition:background .18s,color .18s,transform .15s}
+.chrome-btn:hover{background:rgba(255,255,255,0.15);color:#fff}
+.chrome-btn.cls:hover{background:#ff5c66;color:#fff}
+.chrome-btn:active{transform:scale(0.92)}
+.app-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#2b2d35 transparent}
+.app-scroll::-webkit-scrollbar{width:6px}
+.app-scroll::-webkit-scrollbar-thumb{background:#2b2d35;border-radius:99px}
+
+/* ── Encabezado centrado limpio con efecto Apple Glass ── */
+.app-scroll{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.app-top-header{text-align:center;padding:16px 0 12px;flex:none}
+.app-top-header h1{font-size:19px;font-weight:650;letter-spacing:-.01em;color:#fff;margin:0;text-shadow:0 2px 12px rgba(255,255,255,0.15)}
+
+/* ── Barra lateral izquierda (100% FIJA e inamovible) ── */
+.shell{flex:1;min-height:0;max-width:980px;width:100%;margin:0 auto;padding:0 24px 20px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:24px;align-items:start;overflow:hidden}
+.sidebar{width:210px;flex:none;display:flex;flex-direction:column;gap:12px;height:100%;overflow-y:auto;overflow-x:hidden;z-index:10}
+.sidebar-avatar-card{display:flex;justify-content:center;align-items:center;padding:16px 10px;border-radius:20px;background:#14151b;border:1px solid #23252e;box-shadow:0 4px 18px rgba(0,0,0,0.4)}
+.sidebar-avatar-mw{width:120px;height:120px;flex:none;display:grid;place-items:center;margin:0 auto}
+.sidebar-avatar-mw .hl{width:120px;height:120px;display:block;filter:drop-shadow(0 0 16px rgba(255,255,255,0.42))}
+
+.pane{height:100%;overflow-y:auto;overflow-x:hidden;padding-right:6px;padding-bottom:28px;display:flex;flex-direction:column;gap:16px;min-width:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.18) transparent}
+.pane::-webkit-scrollbar{width:5px}
+.pane::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18);border-radius:99px}
+
+.rail{display:flex;flex-direction:column;gap:3px;background:#131418;border:1px solid #23252d;border-radius:18px;padding:6px;user-select:none}
+.rail .cat{display:flex;align-items:center;width:100%;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:500;color:#9ea0a8;text-align:left;transition:all .16s ease;cursor:pointer;border:0;background:transparent}
+.rail .cat:hover:not(.on){color:#fff;background:#2b2d35;transform:translateX(3px)}
+.rail .cat:active{transform:scale(0.97)}
+.rail .cat.on{background:var(--ac);color:var(--acx);font-weight:600;box-shadow:0 4px 16px color-mix(in srgb,var(--ac) 40%,transparent)}
+
+/* ── Barra de progreso / slider fino estilo reproductor (Foto 5) ── */
+.so-slider{display:flex;align-items:center;gap:10px;width:100%;user-select:none}
+.so-spk{width:16px;height:16px;flex:none;fill:none;stroke:#8e919a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+.so-slider-track{position:relative;flex:1;height:3px;background:#2a2c33;border-radius:99px;cursor:pointer;touch-action:none;transition:height .18s ease;overflow:visible}
+.so-slider-track:before{content:"";position:absolute;inset:-10px 0}
+.so-slider-track:hover,.so-slider-track:active{height:5px}
+.so-slider-fill{position:absolute;left:0;top:0;bottom:0;background:#ffffff;border-radius:99px;pointer-events:none}
+.so-slider-thumb{display:none}
+.so-slider-val{width:36px;text-align:right;font-size:12px;font-weight:550;font-variant-numeric:tabular-nums;color:var(--mut);flex:none}
+
+/* ── Carousel horizontal de apps abiertas en Alertas ── */
+.app-scroll-row{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 14px;scrollbar-width:thin;scrollbar-color:#2b2d35 transparent;user-select:none}
+.app-scroll-row::-webkit-scrollbar{height:5px}
+.app-scroll-row::-webkit-scrollbar-thumb{background:#2b2d35;border-radius:99px}
+.app-pick-card{flex:0 0 190px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:14px 12px;background:#111216;border:1px solid var(--line);border-radius:14px;transition:transform .2s,border-color .2s}
+.app-pick-card:hover{transform:translateY(-2px);border-color:#3b3e48}
+.app-pick-icon{width:36px;height:36px;display:grid;place-items:center}
+.app-pick-info b{font-size:13px;color:#fff;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:165px}
+.app-pick-info small{font-size:11px;color:var(--mut);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:165px}
+
 .rail h3{font-size:12px;font-weight:600;color:var(--mut);padding:0 10px 6px}
 .who{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;text-align:left;width:100%;transition:background .2s,transform .2s var(--e)}
 .who:hover{background:#17181c}.who:active{transform:scale(.97)}
@@ -28,13 +80,19 @@ header p{color:var(--mut);font-size:13px;margin-top:2px}
 .mi .hat{position:absolute;left:50%;top:0;translate:-50% -62%;font-size:26px;line-height:1;pointer-events:none}
 .mi:not(.xl) .hat{display:none}
 
+
+/* ── Apple Dark Glass para tarjetas y componentes ── */
+.mcp-card{background:rgba(20,23,30,0.65)!important;border:1px solid rgba(255,255,255,0.08)!important;box-shadow:inset 0 1px 0 0 rgba(255,255,255,0.08),0 4px 16px rgba(0,0,0,0.3)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+.app-pick-card{background:rgba(20,23,30,0.65)!important;border:1px solid rgba(255,255,255,0.08)!important;box-shadow:inset 0 1px 0 0 rgba(255,255,255,0.08),0 4px 16px rgba(0,0,0,0.3)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+.alert-item-card{background:rgba(20,23,30,0.65)!important;border:1px solid rgba(255,255,255,0.08)!important;box-shadow:inset 0 1px 0 0 rgba(255,255,255,0.08),0 4px 16px rgba(0,0,0,0.3)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+
 /* ── contenido ── */
 .pane{display:flex;flex-direction:column;gap:16px;min-width:0}
-.hero{display:flex;align-items:center;gap:22px;padding:22px 24px;border-radius:22px;background:radial-gradient(70% 140% at 0% 60%,color-mix(in srgb,var(--ac) 16%,transparent),transparent 70%),var(--card);border:1px solid var(--line)}
+.hero{display:flex;align-items:center;gap:22px;padding:22px 24px;border-radius:22px;background:#15161c;border:1px solid #23252d}
 .hero .mw{width:108px;flex:none;display:grid;place-items:center;padding-top:16px}
 .hero h2{font-size:19px;font-weight:650;letter-spacing:-.01em;padding:0;color:#fff}
 .hero p{color:var(--mut);font-size:13px;margin-top:2px}
-section{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 20px 8px}
+section{background:#15161c;border:1px solid #23252d;border-radius:20px;padding:8px 22px 14px;box-shadow:0 4px 18px rgba(0,0,0,0.35)}
 section>h2{font-size:13px;font-weight:600;color:var(--mut);padding:14px 0 6px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px 18px;padding:12px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border:0}
@@ -434,9 +492,119 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(30px);background:#23262c;color:#fff;padding:8px 18px;border-radius:99px;font-size:12.5px;font-weight:550;box-shadow:0 8px 24px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:all .25s cubic-bezier(.32,.72,0,1);z-index:9999}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+
+/* ── Slider Horizontal Pill (Foto 5) ── */
+.so-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.so-slider-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  background: #202228;
+  border-radius: 999px;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+  transition: height .15s ease;
+}
+.so-slider-track:hover {
+  height: 8px;
+}
+.so-slider-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(255,255,255,0.4);
+}
+.so-spk {
+  width: 17px;
+  height: 17px;
+  stroke: var(--mut);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.so-slider-val {
+  width: 40px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  flex: none;
+}
+
+/* ── Color Chips con bloqueo visual y tonos fríos ── */
+.sw8 {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--c);
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+  cursor: pointer;
+  position: relative;
+  transition: transform .2s cubic-bezier(.3,1.6,.5,1), border-color .2s;
+}
+.sw8:hover {
+  transform: scale(1.14);
+}
+.sw8.on {
+  border-color: #ffffff;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c) 80%, transparent);
+}
+.sw8.on::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
 </style></head><body>
-<header><h1>Configuración de Miku</h1><p>Los cambios se aplican al instante en la isla. El color y la ropa de cada agente se cambian con clic derecho en la isla.</p></header>
-<div class="shell"><nav class="rail" id="rail" aria-label="Personajes"></nav><main class="pane" id="pane"></main></div>
+<div class="app-window">
+  <div class="top-chrome" data-tauri-drag-region>
+    <div class="chrome-title" data-tauri-drag-region>
+      <span class="chrome-dot"></span>
+      <span class="chrome-text">Configuración · Miku</span>
+    </div>
+    <div class="chrome-actions">
+      <button class="chrome-btn min" id="win-min" title="Minimizar">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/></svg>
+      </button>
+      <button class="chrome-btn cls" id="win-cls" title="Cerrar">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M6 18L18 6"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="app-scroll">
+    <header class="app-top-header"><h1>Configuración de Miku</h1></header>
+    <div class="shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-avatar-card">
+          <div class="sidebar-avatar-mw">
+            <canvas id="sidebar-hl" class="hl" data-who="miku" width="120" height="120"></canvas>
+          </div>
+        </div>
+        <nav class="rail" id="rail" aria-label="Secciones de configuración"></nav>
+      </aside>
+      <main class="pane" id="pane"></main>
+    </div>
+  </div>
+</div>
 
 <script>
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -447,7 +615,7 @@ const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.par
 
 /* ───── estado ───── */
 const CFG=Object.assign({voice:1,autoclose:15,voice_volume:80,sfx_volume:60,barge_in:1,wake_paused:0,mic:'default',personality:'calm'},ls.get('miku_cfg',{}));
-let ACC='#f5f5f5';
+let ACC=ls.get('miku_accent','#3EA896');
 let AG=[{id:'claude',name:'Claude Code',c:'#F2A765',hooks:1,active:1,outfit:'none'},{id:'antigravity',name:'Antigravity',c:'#F06CF0',hooks:0,outfit:'crown'},{id:'vercel',name:'Vercel',c:'#6C63FF',hooks:1,outfit:'none'},{id:'github',name:'GitHub',c:'#FF5C66',hooks:1,outfit:'shades'}];
 const sa=ls.get('miku_agents',null);if(Array.isArray(sa)&&sa.length)AG=sa;
 let STOP2=null,SELID='miku',IMG={},PROUT='none',STOP=null;try{PROUT=localStorage.getItem('miku_outfit')||'none'}catch{}
@@ -456,12 +624,23 @@ let EMO='';
 // Capturar el ratón para el smooth tracking
 let mx = 0, my = 0, smx = 0, smy = 0, PX = -1e4, PY = -1e4, PT = 0;
 document.addEventListener('pointermove', e => { PX = e.clientX; PY = e.clientY; PT = performance.now(); }, {passive:true});
-document.documentElement.addEventListener('pointerleave', () => { PX = PY = -1e4; });
+// Seguimiento global del cursor aunque esté fuera de la ventana
+async function trackGlobalCursor() {
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      const [gx, gy] = await window.__TAURI__.core.invoke('get_cursor_position');
+      PX = gx - window.screenX;
+      PY = gy - window.screenY;
+      PT = performance.now();
+    } catch (_) {}
+  }
+}
+setInterval(trackGlobalCursor, 30);
 
 const WARDROBE=[['none','Ninguno','⌀'],['beanie','Gorro','🧢'],['crown','Corona','👑'],['party','Fiesta','🎉'],['santa','Santa','🎅'],['witch','Bruja','🧙'],['shades','Gafas de sol','🕶️'],['round','Gafas','👓'],['bow','Moño','🎀'],['scarf','Bufanda','🧣'],['pumpkin','Calabaza','🎃'],['bunny','Orejas','🐰']];
 const HAT=Object.fromEntries(WARDROBE.map(([k,,e])=>[k,k=='none'?'':e]));
 const GAL=['idle','listening','thinking','talking','searching','working','happy','proud','wink','love','surprised','question','annoyed','sleeping','error','dizzy','look_up','look_down','look_left','look_right','squash','swallow','wave'];
-const PRESET=['#F2A765','#F06CF0','#6C63FF','#FF5C66','#4FD3B1','#3B9EFF','#FFD84D','#9BE15D'];
+const PRESET=['#C98A60','#A86CA8','#6D75C0','#C25B64','#3EA896','#3B82C4','#C4A750','#5E9E68'];
 const lum=h=>{const n=parseInt(h.slice(1),16);return(.299*(n>>16)+.587*((n>>8)&255)+.114*(n&255))/255};
 const mix=(h,t=.4)=>{const n=parseInt(h.slice(1),16),f=s=>Math.round(((n>>s)&255)*(1-t)+255*t);return`rgb(${f(16)},${f(8)},${f(0)})`};
 function theme(){const r=document.documentElement.style;r.setProperty('--ac',ACC);r.setProperty('--acx',lum(ACC)>.6?'#111':'#fff');r.setProperty('--acs',mix(ACC))}
@@ -1347,6 +1526,70 @@ function railHtml() {
 
 const V = {};
 
+
+/* ── Componente de Slider Suave (Click normal + sostenido/arrastre continuo) ── */
+/* ── Componente de Slider Suave (Click normal + sostenido/arrastre continuo) ── */
+/* ── Componente de Slider Suave (Click normal + sostenido/arrastre continuo) ── */
+function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '%', onChange }) {
+  let cur = Math.max(min, Math.min(max, value));
+  let dragging = false;
+
+  host.innerHTML = `
+    <div class="so-slider" tabindex="0" role="slider" aria-valuenow="${cur}" aria-valuemin="${min}" aria-valuemax="${max}">
+      <svg class="so-spk" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      <div class="so-slider-track">
+        <div class="so-slider-fill" style="width: ${((cur - min) / (max - min) * 100).toFixed(1)}%"></div>
+      </div>
+      <svg class="so-spk" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <span class="so-slider-val">${Math.round(cur)}${unit}</span>
+    </div>
+  `;
+
+  const track = host.querySelector('.so-slider-track');
+  const fill = host.querySelector('.so-slider-fill');
+  const valText = host.querySelector('.so-slider-val');
+
+  const update = (clientX) => {
+    const rect = track.getBoundingClientRect();
+    if (!rect.width) return;
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    let raw = min + ratio * (max - min);
+    if (step > 0) raw = Math.round(raw / step) * step;
+    cur = Math.max(min, Math.min(max, raw));
+    const pct = ((cur - min) / (max - min) * 100).toFixed(1);
+    fill.style.width = pct + '%';
+    valText.textContent = Math.round(cur) + unit;
+    onChange?.(cur);
+  };
+
+  track.addEventListener('pointerdown', e => {
+    dragging = true;
+    try { track.setPointerCapture(e.pointerId); } catch (_) {}
+    update(e.clientX);
+    e.preventDefault();
+  });
+  track.addEventListener('pointermove', e => {
+    if (dragging) update(e.clientX);
+  });
+  const stop = e => {
+    if (dragging) {
+      dragging = false;
+      try { track.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+  };
+  track.addEventListener('pointerup', stop);
+  track.addEventListener('pointercancel', stop);
+
+  return {
+    set(v) {
+      cur = Math.max(min, Math.min(max, v));
+      const pct = ((cur - min) / (max - min) * 100).toFixed(1);
+      fill.style.width = pct + '%';
+      valText.textContent = Math.round(cur) + unit;
+    }
+  };
+}
+
 // 1. GENERAL
 V.general = () => `
 <section>
@@ -1363,14 +1606,12 @@ V.general = () => `
 </section>
 `;
 
-// 2. VOZ Y SONIDO (Con WheelDial interactivo con ondas de líquido)
+// 2. VOZ Y SONIDO (Barras con click sostenido y normal)
 V.voz = () => `
 <section>
   <h2>${t('voice_dials_title')}</h2>
-  <div style="display:flex;align-items:center;justify-content:center;gap:24px;padding:14px 0 18px;flex-wrap:wrap">
-    <div id="dial-voice"></div>
-    <div id="dial-sfx"></div>
-  </div>
+  ${row(t('voice_vol_title'), t('voice_vol_desc'), `<div id="slider-voice" style="width:240px"></div>`, 1)}
+  ${row(t('sfx_vol_title'), t('sfx_vol_desc'), `<div id="slider-sfx" style="width:240px"></div>`, 1)}
 </section>
 <section>
   <h2>${t('voice_title')}</h2>
@@ -1381,19 +1622,16 @@ V.voz = () => `
 </section>
 `;
 
-// 3. AGENTES (Hero horizontal ancho, 3 slots en paralelo, Miku blanco siempre visible)
+// 3. AGENTES (Agentes secundarios/personalizados; Miku Blanco es el avatar principal fijo en el sidebar)
 V.agentes = () => {
-  const isMiku = (SELID === 'miku');
-  const sel = isMiku ? null : AG.find(a => a.id == SELID);
-  const PR = { id: 'miku', name: 'Miku', c: '#f5f5f5', outfit: PROUT };
-  const A = sel || PR;
-  const bodyOf = g => g.id == 'miku' ? '#fff' : g.c;
-  const outOf = g => g.id == 'miku' ? PROUT : (g.outfit || 'none');
-  const face = (g, big, idx = 0) => big ? `<canvas class="hl" data-who="${esc(g.id)}"></canvas>` : `<span class="apw" data-av="${bodyOf(g)}|${outOf(g)}|full|${idx}|"><canvas class="apimg" width="84" height="84"></canvas></span>`;
-
+  if ((SELID === 'miku' || !SELID) && AG.length) {
+    SELID = AG[0].id;
+    ACC = AG[0].c;
+    theme();
+  }
+  const sel = AG.find(a => a.id == SELID) || AG[0] || { id: 'custom', name: 'Agente', c: '#F2A765' };
   const ids = islIds();
-  const full = ids.length >= ISLMAX;
-  const inI = !!sel && ids.includes(sel.id);
+  const inI = ids.includes(sel.id);
 
   const chip = (g, k) => `<button class="dk" data-dk="${esc(g.id)}" style="--pc:${g.c}" title="${esc(g.name)}"><span class="apw" data-av="${g.c}|${g.outfit || 'none'}|full|${k}|"><canvas class="apimg" width="84" height="84"></canvas></span><em>${esc(g.name)}</em><i class="dkx" data-rm="${esc(g.id)}" title="Quitar de la isla">×</i></button>`;
   const dock = () => `<div class="dock" id="dock"><small class="dkt">En la isla · ${ids.length}/${ISLMAX}</small><div class="dks">${[0, 1, 2].map(k => { const g = AG.find(x => x.id == ids[k]); return g ? chip(g, k) : `<span class="dk e"></span>`; }).join('')}</div></div>`;
@@ -1401,12 +1639,12 @@ V.agentes = () => {
   return `
 <div class="hero">
   <div class="hero-main">
-    <div class="mw">${face(A, 1)}</div>
+    <div class="mw"><canvas class="hl" data-who="${esc(sel.id)}"></canvas></div>
     <div class="ht">
-      <h2>${esc(A.name)}<em>${sel ? t('ag_custom') : t('ag_principal')}</em></h2>
-      <p><i class="sd on"></i><span class="nt" style="padding:0">${sel ? (inI ? 'En la isla' : 'Disponible') : 'Miku Core (Activo)'}</span></p>
+      <h2>${esc(sel.name)}<em>${t('ag_custom')}</em></h2>
+      <p><i class="sd on"></i><span class="nt" style="padding:0">${inI ? 'En la isla' : 'Disponible'}</span></p>
       <div style="margin-top:8px;display:flex;gap:8px;">
-        ${sel ? `<button class="sec-btn sm ${inI ? '' : 'pri'}" data-act="${inI ? 'islDel' : 'islAdd'}">${inI ? t('ag_rem_isl') : t('ag_add_isl')}</button>` : ''}
+        <button class="sec-btn sm ${inI ? '' : 'pri'}" data-act="${inI ? 'islDel' : 'islAdd'}">${inI ? t('ag_rem_isl') : t('ag_add_isl')}</button>
       </div>
     </div>
   </div>
@@ -1414,14 +1652,8 @@ V.agentes = () => {
 </div>
 
 <section>
-  <h2>Seleccionar Personaje o Agente Activo</h2>
+  <h2>Seleccionar Agente Personalizado</h2>
   <div class="apg">
-    <!-- PILL 0: SIEMPRE MIKU ORIGINAL (BLANCO) -->
-    <button class="ap ${SELID === 'miku' ? 'on swp' : ''}" data-sel="miku" style="--pc:#f5f5f5" title="${t('miku_original')}">
-      <span class="apw" data-av="#fff|${PROUT}|full|0|"><canvas class="apimg" width="84" height="84"></canvas></span>
-      <span>${t('miku_original')}</span>
-    </button>
-    <!-- PILLS 1..N: AGENTES -->
     ${AG.map((a, idx) => `
       <button class="ap ${SELID === a.id ? 'on swp' : ''} ${ids.includes(a.id) ? ' isl' : ''}" data-sel="${esc(a.id)}" style="--pc:${a.c}" title="${esc(a.name)}">
         <span class="apw" data-av="${a.c}|${a.outfit || 'none'}|full|${idx + 1}|"><canvas class="apimg" width="84" height="84"></canvas></span>
@@ -1429,7 +1661,7 @@ V.agentes = () => {
       </button>
     `).join('')}
   </div>
-  ${note('Toca cualquier agente para activarlo. Miku Blanco siempre está disponible como primer personaje.')}
+  ${note('Toca cualquier agente para editarlo o colocarlo en la isla. Miku Blanco es el personaje principal.')}
 </section>
 
 ${sel ? `
@@ -1451,7 +1683,7 @@ ${sel ? `
   ${row('Rol inicial', 'Plantilla o especialidad', `<span id="gs-tool"></span>`)}
   ${row('Nombre', '', inp('ag-name', 'Mi agente', 'text', '220px'), 1)}
   ${row('Instrucciones / Contexto', 'Prompt del sistema o personalidad específica para este agente', `<textarea class="tx-in" id="ag-prompt" placeholder="Ej: Eres un asistente especializado en análisis de código..." style="width:100%;height:60px;resize:vertical;border-radius:10px;padding:8px 10px;font-size:12px;margin-top:4px"></textarea>`, 1)}
-  ${row('', '', `<button class="sec-btn pri" id="ag-add">Crear agente</button>`)}
+  ${row('Crear agente', 'Mantén pulsado para confirmar y añadir agente', `<span id="hb-ag-add"></span>`)}
 </section>
 `;
 };
@@ -1484,7 +1716,7 @@ V.modelos = () => {
   </section>
   <section>
     <h2>Aplicar cambios</h2>
-    ${row('Guardar configuración', 'Aplica inmediatamente los modelos al Gateway.', `<span id="hb-models"></span>`)}
+    ${row('Guardar configuración', 'Mantén presionado para aplicar los modelos al Gateway.', `<span id="hb-models"></span>`)}
   </section>
   `;
 };
@@ -1500,10 +1732,11 @@ V.keys = () => {
         <b>${label}</b>
         <small>${desc}${item.is_set ? ` · Actual: <code>${item.value_masked}</code>` : ''}</small>
       </div>
-      <div class="ctl">
+      <div class="ctl" style="display:flex;align-items:center;gap:10px">
         ${stat('st-' + id, item.is_set, item.is_set ? 'Configurada' : 'Sin clave')}
-        ${inp('k-' + id, item.is_set ? '••••••••••••••••' : 'Introduce tu clave...', isPassword ? 'password' : 'text', '200px')}
-        <button class="sec-btn" data-savekey="${id}">Guardar</button>
+        ${inp('k-' + id, item.is_set ? '••••••••••••••••' : 'Introduce tu clave...', isPassword ? 'password' : 'text', '180px')}
+        <span class="hb-savekey" data-savekey="${id}"></span>
+        ${item.is_set ? `<span class="hb-delkey" data-delkey="${id}"></span>` : ''}
       </div>
     </div>`;
   };
@@ -1536,7 +1769,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Permite a Miku explorar carpetas, buscar documentos, leer código y gestionar archivos de tu equipo.',
     cmd: 'npx',
     args: ['-y', '@modelcontextprotocol/server-filesystem', 'C:\\Users\\cxmluwu\\Desktop', 'C:\\Users\\cxmluwu\\Downloads'],
-    icon: '<svg viewBox="0 0 24 24" fill="#3B9EFF" width="22" height="22"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" fill="var(--ac)" width="22" height="22"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>'
   },
   {
     id: 'memory',
@@ -1544,7 +1777,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Grafo de conocimiento persistente para que Miku recuerde proyectos, preferencias y decisiones pasadas.',
     cmd: 'npx',
     args: ['-y', '@modelcontextprotocol/server-memory'],
-    icon: '<svg viewBox="0 0 24 24" fill="#A855F7" width="22" height="22"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" fill="var(--ac)" width="22" height="22"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
   },
   {
     id: 'sqlite',
@@ -1552,7 +1785,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Conexión a bases de datos SQLite locales para análisis de datos, consultas SQL e informes.',
     cmd: 'npx',
     args: ['-y', '@modelcontextprotocol/server-sqlite'],
-    icon: '<svg viewBox="0 0 24 24" fill="#10B981" width="22" height="22"><path d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zm0 3c3.86 0 7 1.12 7 2.5S15.86 10 12 10s-7-1.12-7-2.5S8.14 5 12 5zm0 14c-3.86 0-7-1.12-7-2.5V14.7c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5zm0-4.5c-3.86 0-7-1.12-7-2.5V10.2c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" fill="var(--ac)" width="22" height="22"><path d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zm0 3c3.86 0 7 1.12 7 2.5S15.86 10 12 10s-7-1.12-7-2.5S8.14 5 12 5zm0 14c-3.86 0-7-1.12-7-2.5V14.7c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5zm0-4.5c-3.86 0-7-1.12-7-2.5V10.2c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5z"/></svg>'
   },
   {
     id: 'github',
@@ -1560,7 +1793,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Exploración de repositorios de código, commits, ramas, pull requests y issues de GitHub.',
     cmd: 'npx',
     args: ['-y', '@modelcontextprotocol/server-github'],
-    icon: '<svg viewBox="0 0 24 24" fill="#F43F5E" width="22" height="22"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" fill="var(--ac)" width="22" height="22"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>'
   },
   {
     id: 'google-drive',
@@ -1568,7 +1801,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Búsqueda y consulta de documentos, hojas de cálculo y archivos de tu cuenta de Google Drive.',
     cmd: 'npx',
     args: ['-y', '@piotr-agier/google-drive-mcp'],
-    icon: '<svg viewBox="0 0 24 24" fill="#EAB308" width="22" height="22"><path d="M7.71 3.5L1.15 15l3.43 6l6.55-11.5L7.71 3.5zm4.86 1.5l6.55 11.5h6.88L19.44 5H12.57zM8.7 16.5l3.43 6h13.72l-3.43-6H8.7z"/></svg>'
+    icon: '<svg viewBox="0 -13.5 256 256" width="22" height="22"><g><path d="M19.3542312,196.033928 L30.644172,215.534816 C32.9900287,219.64014 36.3622164,222.86588 40.3210929,225.211737 C51.6602421,210.818376 59.5534225,199.772864 64.000634,192.075201 C68.5137119,184.263529 74.0609657,172.045039 80.6423954,155.41973 C62.9064315,153.085282 49.4659974,151.918058 40.3210929,151.918058 C31.545465,151.918058 18.1051007,153.085282 0,155.41973 C0,159.964996 1.17298825,164.510261 3.51893479,168.615586 L19.3542312,196.033928 Z" fill="#0066DA"></path><path d="M215.681443,225.211737 C219.64032,222.86588 223.012507,219.64014 225.358364,215.534816 L230.050377,207.470615 L252.483511,168.615586 C254.829368,164.510261 256.002446,159.964996 256.002446,155.41973 C237.79254,153.085282 224.376613,151.918058 215.754667,151.918058 C206.488712,151.918058 193.072785,153.085282 175.506888,155.41973 C182.010479,172.136093 187.484394,184.354584 191.928633,192.075201 C196.412073,199.863919 204.329677,210.909431 215.681443,225.211737 Z" fill="#EA4335"></path><path d="M128.001268,73.3111515 C141.121182,57.4655263 150.162898,45.2470011 155.126415,36.6555757 C159.123121,29.7376196 163.521739,18.6920726 168.322271,3.51893479 C164.363395,1.1729583 159.818129,0 155.126415,0 L100.876121,0 C96.1841079,0 91.638842,1.31958557 87.6799655,3.51893479 C93.7861943,20.9210065 98.9675428,33.3058067 103.224011,40.6733354 C107.927832,48.8151881 116.186918,59.6944602 128.001268,73.3111515 Z" fill="#00832D"></path><path d="M175.360141,155.41973 L80.6420959,155.41973 L40.3210929,225.211737 C44.2799694,227.557893 48.8252352,228.730672 53.5172481,228.730672 L202.485288,228.730672 C207.177301,228.730672 211.722567,227.411146 215.681443,225.211737 L175.360141,155.41973 Z" fill="#2684FC"></path><path d="M128.001268,73.3111515 L87.680265,3.51893479 C83.7213885,5.86488134 80.3489013,9.09044179 78.0030446,13.1960654 L3.51893479,142.223575 C1.17298825,146.329198 0,150.874464 0,155.41973 L80.6423954,155.41973 L128.001268,73.3111515 Z" fill="#00AC47"></path><path d="M215.241501,77.7099697 L177.999492,13.1960654 C175.653635,9.09044179 172.281148,5.86488134 168.322271,3.51893479 L128.001268,73.3111515 L175.360141,155.41973 L255.855999,155.41973 C255.855999,150.874464 254.682921,146.329198 252.337064,142.223575 L215.241501,77.7099697 Z" fill="#FFBA00"></path></g></svg>'
   }
 ];
 
@@ -1614,7 +1847,7 @@ V.mcp = () => {
             <small style="color:var(--mut);margin-top:4px;display:block;">${s.tools_count || 0} herramientas conectadas</small>
           </div>
           <div>
-            <button class="sec-btn del" data-delmcp="${esc(s.name)}">Eliminar</button>
+            <span class="hb-del-mcp" data-delmcp="${esc(s.name)}"></span>
           </div>
         </div>
       `).join('') : '<p class="nt">No hay servidores MCP configurados.</p>'}
@@ -1626,76 +1859,82 @@ V.mcp = () => {
     ${row('Nombre', 'Identificador del servidor (ej. memory, sqlite, custom-mcp)', inp('mcp-name', 'mi-servidor', 'text', '200px'), 1)}
     ${row('Comando', 'Ejecutable base (npx, uvx, python)', inp('mcp-cmd', 'npx', 'text', '200px'), 1)}
     ${row('Argumentos', 'Separados por espacio (ej. -y @modelcontextprotocol/server-memory)', inp('mcp-args', '-y @modelcontextprotocol/server-memory', 'text', '320px'), 1)}
-    ${row('', '', `<button class="sec-btn pri" id="btn-add-mcp">Añadir Servidor</button>`)}
+    ${row('Añadir Servidor', 'Mantén pulsado para registrar el servidor MCP', `<span id="hb-add-mcp"></span>`)}
   </section>
   `;
 };
 
-// 7. ALERTAS PROACTIVAS POR APLICACIÓN (con iconos de apps detectables)
+// 7. ALERTAS PROACTIVAS POR APLICACIÓN (Carousel horizontal limpio estilo Discord)
 V.alertas = () => {
   const A = STATE.alerts || {};
   const alertKeys = Object.keys(A);
-  const detectable = STATE.detectableApps || [];
+  const running = STATE.runningApps || [];
 
   return `
+  <section>
+    <h2>Aplicaciones Abiertas en tu PC</h2>
+    ${note('Desplaza horizontalmente para seleccionar y añadir alertas a las apps que estás usando:')}
+    <div class="app-scroll-row" id="app-scroll-row">
+      ${running.length ? running.map(app => {
+        const isMonitored = !!A[app.id] || !!A[app.process.toLowerCase()];
+        const iconHtml = app.icon ? `<img src="${app.icon}" width="28" height="28" style="border-radius:6px;object-fit:contain" alt="${esc(app.name)}">` : '<svg viewBox="0 0 24 24" fill="var(--ac)" width="24" height="24"><rect width="18" height="18" x="3" y="3" rx="4"/></svg>';
+        return `
+        <div class="app-pick-card">
+          <span class="app-pick-icon">${iconHtml}</span>
+          <div class="app-pick-info">
+            <b>${esc(app.name)}</b>
+            <small>${esc(app.process)}</small>
+          </div>
+          ${isMonitored ? `
+            <span class="pill on" style="font-size:11px">✓ Activa</span>
+          ` : `
+            <span class="hb-add-running" data-add-running="${esc(app.id)}" data-name="${esc(app.name)}" data-proc="${esc(app.process)}" data-icon="${esc(app.icon || '')}"></span>
+          `}
+        </div>`;
+      }).join('') : '<p class="nt" style="padding:10px 0">Escaneando aplicaciones activas en tu equipo...</p>'}
+    </div>
+  </section>
+
   <section>
     <h2>${t('alerts_title')}</h2>
     ${note(t('alerts_note'))}
     <div id="active-alerts-list" style="margin-top:12px;">
       ${alertKeys.length ? alertKeys.map(k => {
         const item = A[k] || { enabled: true, threshold: 120, label: k };
-        const foundApp = detectable.find(d => d.id === k);
-        const iconHtml = item.icon || (foundApp ? foundApp.icon : '<svg viewBox="0 0 24 24" fill="#a1a1aa"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>');
+        const iconHtml = item.icon && item.icon.startsWith('data:image') 
+          ? `<img src="${item.icon}" width="26" height="26" style="border-radius:6px;object-fit:contain">`
+          : (item.icon || '<svg viewBox="0 0 24 24" fill="var(--ac)" width="22" height="22"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>');
         return `
-        <div class="alert-item-card">
-          <div class="alert-item-info">
-            <span class="app-badge-icon">${iconHtml}</span>
+        <div class="alert-item-card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#111216;border:1px solid #24262c;border-radius:14px;margin-bottom:8px">
+          <div class="alert-item-info" style="display:flex;align-items:center;gap:12px;min-width:0">
+            <span class="app-badge-icon" style="flex:none;display:grid;place-items:center;width:28px;height:28px">${iconHtml}</span>
             <div>
               <b style="color:#fff;font-size:13.5px">${esc(item.label || k)}</b>
-              <small style="color:var(--mut);display:block;font-size:11.5px">Avisar tras <b>${item.threshold || 120}</b> ${t('alerts_mins')} continuos</small>
+              <small style="color:var(--mut);display:block;font-size:11.5px">Avisar tras <b>${item.threshold || 120}</b> min continuos</small>
             </div>
           </div>
-          <div class="ctl">
-            <input type="range" min="15" max="360" step="15" value="${item.threshold || 120}" data-alert-range="${esc(k)}" style="width:130px">
-            <output id="out-alert-${esc(k)}">${item.threshold || 120}m</output>
+          <div class="ctl" style="display:flex;align-items:center;gap:14px;flex:none">
+            <div id="slider-alert-${esc(k)}" style="width:160px"></div>
             <label class="sq"><input type="checkbox" data-alert-en="${esc(k)}" ${item.enabled ? 'checked' : ''}><i></i></label>
-            <button class="sec-btn del sm" data-del-alert="${esc(k)}" style="padding:4px 10px;font-size:11px">×</button>
+            <span class="hb-del-alert" data-del-alert="${esc(k)}"></span>
           </div>
         </div>`;
-      }).join('') : '<p class="nt">No tienes alertas configuradas.</p>'}
+      }).join('') : '<p class="nt">No tienes alertas configuradas actualmente.</p>'}
     </div>
   </section>
 
   <section>
-    <h2>${t('alerts_detectable')}</h2>
-    ${note('Haz clic en "+ Añadir" para crear una alerta proactiva para esa aplicación con su icono oficial:')}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px">
-      ${detectable.map(app => {
-        const alreadyAdded = !!A[app.id];
-        return `
-        <div class="detectable-app-card">
-          <div style="display:flex;align-items:center;gap:10px;min-width:0">
-            <span class="app-badge-icon">${app.icon}</span>
-            <span style="font-size:12.5px;font-weight:550;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(app.name)}</span>
-          </div>
-          <button class="sec-btn sm ${alreadyAdded ? '' : 'pri'}" data-add-app-alert="${esc(app.id)}" ${alreadyAdded ? 'disabled' : ''}>
-            ${alreadyAdded ? 'Activa' : '+ Añadir'}
-          </button>
-        </div>`;
-      }).join('')}
-    </div>
-    
-    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
-      <div class="row fx">
-        <div>
-          <b>Aplicación personalizada</b>
-          <small>Escribe el nombre de otra aplicación o juego (ej. Photoshop, Blender, Roblox)</small>
-        </div>
-        <div class="ctl">
-          ${inp('custom-app-name', 'Nombre de la aplicación...', 'text', '170px')}
-          ${inp('custom-app-mins', '120', 'number', '80px')}
-          <button class="sec-btn pri" id="btn-add-custom-alert">+ Añadir</button>
-        </div>
+    <h2>Aplicación Personalizada</h2>
+    ${note('Escribe el nombre o ejecutable de cualquier otra aplicación para monitorear:')}
+    <div class="row fx">
+      <div>
+        <b>Añadir por nombre de proceso</b>
+        <small>Ej: Photoshop.exe, RobloxPlayerBeta.exe, Figma.exe</small>
+      </div>
+      <div class="ctl">
+        ${inp('custom-app-name', 'Nombre de la aplicación...', 'text', '180px')}
+        ${inp('custom-app-mins', '120', 'number', '70px')}
+        <button class="sec-btn pri" id="btn-add-custom-alert">+ Añadir</button>
       </div>
     </div>
   </section>
@@ -1731,12 +1970,29 @@ function render() {
 const holdReset = () => { Object.assign(CFG, DEF); saveCfg(); setTimeout(render, 700); };
 function miniLive() { STOP2?.(); STOP2 = null; const cv = document.querySelector('canvas.hm'); if (!cv) return; const id = cv.dataset.who; STOP2 = MK.live(cv, () => { const g = AG.find(x => x.id == id) || { id: 'miku', c: '#fff', outfit: PROUT }; return { color: bodyOf(g), outfit: outOf(g) }; }); }
 function holdify() { $$('[data-key],[data-act="relay"],[data-conn],[data-act="keyreset"],#ag-add').forEach(b => { if (b.dataset.hold) return; b.dataset.hold = 1; const h = document.createElement('span'); h.className = 'hbh'; b.after(h); b.style.display = 'none'; HoldButton(h, { label: b.textContent.trim(), doneLabel: 'Hecho', hold: b.matches('[data-key],[data-conn]') ? 700 : b.matches('#ag-add') ? 900 : 1200, small: 1, onHold: () => b.click() }); }); }
-function heroLive() { STOP?.(); STOP = null; const cv = document.querySelector('canvas.hl'); if (!cv) return; const id = cv.dataset.who; STOP = MK.live(cv, () => { const g = AG.find(x => x.id == id) || { id: 'miku', c: '#fff', outfit: PROUT }; return { color: bodyOf(g), outfit: outOf(g) }; }); }
+let STOP_SIDEBAR = null;
+function sidebarLive() {
+  if (STOP_SIDEBAR) return;
+  const cv = document.getElementById('sidebar-hl');
+  if (!cv) return;
+  STOP_SIDEBAR = MK.live(cv, () => ({ color: '#fff', outfit: PROUT }));
+}
+function heroLive() {
+  STOP?.(); STOP = null;
+  const cv = document.querySelector('#pane canvas.hl');
+  if (!cv) return;
+  const id = cv.dataset.who;
+  STOP = MK.live(cv, () => {
+    const g = AG.find(x => x.id == id) || { id: 'custom', c: '#F2A765', outfit: 'none' };
+    return { color: bodyOf(g), outfit: outOf(g) };
+  });
+}
 const bodyOf = g => g.id == 'miku' ? '#fff' : g.c, outOf = g => g.id == 'miku' ? PROUT : (g.outfit || 'none');
 
 let activeVoiceDial = null, activeSfxDial = null;
 
 function mount() {
+  sidebarLive();
   heroLive();
   miniLive();
   setTimeout(holdify, 0);
@@ -1756,19 +2012,17 @@ function mount() {
         render();
       }
     });
-    HoldButton($('#hb-reset'), { label: t('reset_btn'), doneLabel: 'Restablecido', hold: 2000, small: 1, onHold: holdReset });
+    HoldButton($('#hb-reset'), { label: t('reset_btn'), doneLabel: 'Restablecido', hold: 1800, small: 1, onHold: holdReset });
   }
 
   if (CAT === 'voz') {
     G('gs-mic', { options: window.__mics || [{ value: 'default', label: 'Predeterminado' }], value: CFG.mic, label: t('mic_title'), onChange: v => { CFG.mic = v; saveCfg(); } });
 
-    // Montar los WheelDials
-    const vHost = $('#dial-voice');
+    const vHost = $('#slider-voice');
     if (vHost) {
-      activeVoiceDial = WheelDial(vHost, {
+      SmoothSlider(vHost, {
         value: CFG.voice_volume || 80,
-        title: t('voice_vol_title'),
-        subtitle: t('voice_vol_desc'),
+        unit: '%',
         onChange: val => {
           CFG.voice_volume = val;
           saveCfg();
@@ -1776,12 +2030,11 @@ function mount() {
         }
       });
     }
-    const sHost = $('#dial-sfx');
+    const sHost = $('#slider-sfx');
     if (sHost) {
-      activeSfxDial = WheelDial(sHost, {
+      SmoothSlider(sHost, {
         value: CFG.sfx_volume || 60,
-        title: t('sfx_vol_title'),
-        subtitle: t('sfx_vol_desc'),
+        unit: '%',
         onChange: val => {
           CFG.sfx_volume = val;
           saveCfg();
@@ -1803,27 +2056,32 @@ function mount() {
       }
     });
 
-    const add = $('#ag-add');
+    const add = $('#hb-ag-add');
     if (add) {
-      add.onclick = () => {
-        if (AG.length >= 8) { add.textContent = 'Máximo 8 agentes'; return; }
-        const t = TOOLS.find(x => x[0] == tool),
-              name = ($('#ag-name').value.trim()) || (t && t[0] != 'custom' ? t[1] : 'Agente ' + (AG.length + 1));
-        const used = new Set(AG.map(a => a.c.toLowerCase())),
-              c = PRESET.find(h => !used.has(h.toLowerCase())) || PRESET[AG.length % PRESET.length];
-        const na = {
-          id: tool + '-' + Date.now().toString(36),
-          name,
-          c,
-          outfit: 'none',
-          tool,
-          prompt: ($('#ag-prompt')?.value || '').trim()
-        };
-        AG.push(na);
-        saveAgents();
-        selAgent(na.id);
-        render();
-      };
+      HoldButton(add, {
+        label: 'Crear agente',
+        doneLabel: 'Agente creado',
+        hold: 850,
+        onHold: () => {
+          if (AG.length >= 8) { showToast('Máximo 8 agentes'); return; }
+          const t = TOOLS.find(x => x[0] == tool),
+                name = ($('#ag-name')?.value.trim()) || (t && t[0] != 'custom' ? t[1] : 'Agente ' + (AG.length + 1));
+          const used = new Set(AG.map(a => a.c.toLowerCase())),
+                c = PRESET.find(h => !used.has(h.toLowerCase())) || PRESET[AG.length % PRESET.length];
+          const na = {
+            id: tool + '-' + Date.now().toString(36),
+            name,
+            c,
+            outfit: 'none',
+            tool,
+            prompt: ($('#ag-prompt')?.value || '').trim()
+          };
+          AG.push(na);
+          saveAgents();
+          selAgent(na.id);
+          render();
+        }
+      });
     }
 
     // Edición de agente seleccionado
@@ -1856,6 +2114,8 @@ function mount() {
         if (sel) {
           sel.c = btn.dataset.color;
           ACC = sel.c;
+          ls.set('miku_accent', ACC);
+          window.Bridge?.setSetting?.('accent_color', ACC);
           saveAgents();
           theme();
           render();
@@ -1874,6 +2134,7 @@ function mount() {
           AG = AG.filter(a => a.id != SELID);
           selAgent('miku');
           saveAgents();
+          showToast('Agente eliminado');
           setTimeout(render, 300);
         }
       });
@@ -1908,119 +2169,141 @@ function mount() {
     });
     HoldButton($('#hb-models'), {
       label: 'Guardar modelos',
-      doneLabel: 'Guardado',
+      doneLabel: 'Modelos guardados',
       hold: 1400,
       onHold: async () => {
         const ok = await window.Bridge?.saveModelsConfig?.(cur);
-        showToast(ok ? 'Modelos actualizados' : 'Error al guardar modelos');
+        showToast(ok ? 'Modelos de IA actualizados' : 'Error al guardar modelos');
+        loadBackendData();
       }
     });
   }
 
   if (CAT === 'keys') {
-    $$('[data-savekey]').forEach(btn => {
-      btn.onclick = async () => {
-        const keyId = btn.dataset.savekey;
-        const input = document.getElementById('k-' + keyId);
-        const val = input ? input.value.trim() : '';
-        if (!val) { showToast('Introduce un valor'); return; }
-        btn.disabled = true;
-        btn.textContent = 'Guardando...';
-        const ok = await window.Bridge?.saveConfigKeys?.({ [keyId]: val });
-        if (ok) {
-          showToast(`Clave ${keyId} guardada`);
-          input.value = '';
-          const res = await window.Bridge?.getConfigKeys?.();
-          STATE.keys = res.keys || {};
-          render();
-        } else {
-          showToast('Error al guardar clave');
-          btn.disabled = false;
-          btn.textContent = 'Guardar';
+    $$('.hb-savekey').forEach(host => {
+      const keyId = host.dataset.savekey;
+      HoldButton(host, {
+        label: 'Guardar',
+        doneLabel: 'Guardada',
+        hold: 700,
+        small: 1,
+        onHold: async () => {
+          const input = document.getElementById('k-' + keyId);
+          const val = input ? input.value.trim() : '';
+          if (!val) { showToast('Introduce un valor'); return; }
+          const ok = await window.Bridge?.saveConfigKeys?.({ [keyId]: val });
+          if (ok) {
+            showToast(`Clave ${keyId} guardada`);
+            input.value = '';
+            const res = await window.Bridge?.getConfigKeys?.();
+            STATE.keys = res.keys || {};
+            render();
+          } else {
+            showToast('Error al guardar clave');
+          }
         }
-      };
+      });
+    });
+
+    $$('.hb-delkey').forEach(host => {
+      const keyId = host.dataset.delkey;
+      HoldButton(host, {
+        label: 'Eliminar',
+        doneLabel: 'Eliminada',
+        hold: 1100,
+        small: 1,
+        onHold: async () => {
+          const res = await window.Bridge?.deleteConfigKey?.(keyId);
+          if (!res?.error) {
+            showToast(`Clave ${keyId} eliminada`);
+            const keysRes = await window.Bridge?.getConfigKeys?.();
+            STATE.keys = keysRes.keys || {};
+            render();
+          } else {
+            showToast('Error al eliminar clave: ' + (res?.error || ''));
+          }
+        }
+      });
     });
   }
 
   if (CAT === 'mcp') {
-    $$('[data-quick-mcp]').forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.quickMcp;
-        const rec = RECOMMENDED_MCPS.find(r => r.id === id);
-        if (!rec) return;
-        btn.disabled = true;
-        btn.textContent = 'Instalando...';
-        const ok = await window.Bridge?.addMcpServer?.(rec.id, rec.cmd, rec.args);
-        if (ok) {
-          showToast(`Servidor ${rec.name} instalado correctamente`);
-          const data = await window.Bridge?.getMcpServers?.();
-          STATE.mcp = data.servers || [];
-          render();
-        } else {
-          showToast(`Error al instalar ${rec.name}`);
-          btn.disabled = false;
-          btn.textContent = '+ Instalar';
-        }
-      };
-    });
-
-    const btnAdd = $('#btn-add-mcp');
+    const btnAdd = $('#hb-add-mcp');
     if (btnAdd) {
-      btnAdd.onclick = async () => {
-        const name = $('#mcp-name')?.value.trim();
-        const cmd = $('#mcp-cmd')?.value.trim();
-        const argsStr = $('#mcp-args')?.value.trim() || '';
-        const args = argsStr ? argsStr.split(/\s+/) : [];
-        if (!name || !cmd) { alert('Introduce al menos el nombre y el comando del servidor MCP.'); return; }
-        btnAdd.disabled = true; btnAdd.textContent = 'Añadiendo...';
-        const ok = await window.Bridge?.addMcpServer?.(name, cmd, args);
-        if (ok) {
-          showToast(`Servidor ${name} añadido`);
-          const data = await window.Bridge?.getMcpServers?.();
-          STATE.mcp = data.servers || [];
-          render();
-        } else {
-          showToast('Error al añadir servidor MCP');
-          btnAdd.disabled = false; btnAdd.textContent = 'Añadir Servidor';
+      HoldButton(btnAdd, {
+        label: 'Añadir Servidor',
+        doneLabel: 'Añadido',
+        hold: 800,
+        onHold: async () => {
+          const name = $('#mcp-name')?.value.trim();
+          const cmd = $('#mcp-cmd')?.value.trim();
+          const argsStr = $('#mcp-args')?.value.trim() || '';
+          const args = argsStr ? argsStr.split(/\s+/) : [];
+          if (!name || !cmd) { showToast('Introduce nombre y comando'); return; }
+          const ok = await window.Bridge?.addMcpServer?.(name, cmd, args);
+          if (ok) {
+            showToast(`Servidor ${name} añadido`);
+            const data = await window.Bridge?.getMcpServers?.();
+            STATE.mcp = data.servers || [];
+            render();
+          } else {
+            showToast('Error al añadir servidor MCP');
+          }
         }
-      };
+      });
     }
-    $$('[data-delmcp]').forEach(btn => {
-      btn.onclick = async () => {
-        const name = btn.dataset.delmcp;
-        if (!confirm(`¿Eliminar el servidor MCP "${name}"?`)) return;
-        btn.disabled = true;
-        const ok = await window.Bridge?.deleteMcpServer?.(name);
-        if (ok) {
-          showToast(`Servidor ${name} eliminado`);
-          const data = await window.Bridge?.getMcpServers?.();
-          STATE.mcp = data.servers || [];
-          render();
-        } else {
-          showToast('Error al eliminar servidor MCP');
-          btn.disabled = false;
+
+    $$('.hb-del-mcp').forEach(host => {
+      const name = host.dataset.delmcp;
+      HoldButton(host, {
+        label: 'Eliminar',
+        doneLabel: 'Eliminado',
+        hold: 1000,
+        small: 1,
+        onHold: async () => {
+          const ok = await window.Bridge?.deleteMcpServer?.(name);
+          if (ok) {
+            showToast(`Servidor ${name} eliminado`);
+            const data = await window.Bridge?.getMcpServers?.();
+            STATE.mcp = data.servers || [];
+            render();
+          } else {
+            showToast('Error al eliminar servidor MCP');
+          }
         }
-      };
+      });
     });
   }
 
   if (CAT === 'alertas') {
-    // Sliders de umbral
-    $$('[data-alert-range]').forEach(range => {
-      range.oninput = () => {
-        const key = range.dataset.alertRange;
-        const val = +range.value;
-        const out = document.getElementById('out-alert-' + key);
-        if (out) out.textContent = val + 'm';
-      };
-      range.onchange = () => {
-        const key = range.dataset.alertRange;
-        const val = +range.value;
-        if (!STATE.alerts[key]) STATE.alerts[key] = { enabled: true, threshold: val };
-        STATE.alerts[key].threshold = val;
-        window.Bridge?.saveAlertsConfig?.(STATE.alerts);
-        showToast(`Umbral para ${key}: ${val} minutos`);
-      };
+    // Scroll horizontal con la rueda del ratón en la fila de apps
+    const appRow = document.getElementById('app-scroll-row');
+    if (appRow) {
+      appRow.addEventListener('wheel', e => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          appRow.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+    }
+
+    // Sliders de umbral con click sostenido y normal
+    Object.keys(STATE.alerts || {}).forEach(k => {
+      const sHost = document.getElementById('slider-alert-' + k);
+      if (sHost) {
+        SmoothSlider(sHost, {
+          value: STATE.alerts[k].threshold || 120,
+          min: 15,
+          max: 360,
+          step: 15,
+          unit: 'm',
+          onChange: val => {
+            if (!STATE.alerts[k]) STATE.alerts[k] = { enabled: true, threshold: val };
+            STATE.alerts[k].threshold = val;
+            window.Bridge?.saveAlertsConfig?.(STATE.alerts);
+          }
+        });
+      }
     });
 
     // Switches ON/OFF
@@ -2044,21 +2327,21 @@ function mount() {
       };
     });
 
-    // Añadir alerta desde detectable
-    $$('[data-add-app-alert]').forEach(btn => {
+    // Añadir alerta desde aplicaciones en ejecución
+    $$('[data-add-running]').forEach(btn => {
       btn.onclick = () => {
-        const appId = btn.dataset.addAppAlert;
-        const app = (STATE.detectableApps || []).find(d => d.id === appId);
-        if (!app) return;
-        STATE.alerts[appId] = {
+        const id = btn.dataset.addRunning;
+        const name = btn.dataset.name;
+        const icon = btn.dataset.icon;
+        STATE.alerts[id] = {
           enabled: true,
           threshold: 120,
-          label: app.name,
-          icon: app.icon
+          label: name,
+          icon: icon
         };
         window.Bridge?.saveAlertsConfig?.(STATE.alerts);
         render();
-        showToast(`Alerta añadida para ${app.name}`);
+        showToast(`Alerta añadida para ${name}`);
       };
     });
 
@@ -2165,11 +2448,48 @@ async function loadBackendData() {
       const res = await window.Bridge.getDetectableApps();
       STATE.detectableApps = res.apps || [];
     }
+    if (window.Bridge?.getRunningApps) {
+      const res = await window.Bridge.getRunningApps();
+      STATE.runningApps = res.apps || [];
+    }
   } catch (err) {
     console.warn("Error loading backend data in settings:", err);
   }
   render();
 }
+
+// Controles de ventana minimalista
+function initWindowChrome() {
+  const minBtn = document.getElementById('win-min');
+  const clsBtn = document.getElementById('win-cls');
+  if (clsBtn) {
+    clsBtn.onclick = () => {
+      if (window.__TAURI__?.core?.invoke) {
+        window.__TAURI__.core.invoke('close_settings');
+      } else {
+        window.close();
+      }
+    };
+  }
+  if (minBtn) {
+    minBtn.onclick = () => {
+      if (window.__TAURI__?.core?.invoke) {
+        window.__TAURI__.core.invoke('minimize_settings');
+      }
+    };
+  }
+  const railEl = document.getElementById('rail');
+  if (railEl) {
+    railEl.addEventListener('wheel', e => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        railEl.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
+  }
+}
+setTimeout(initWindowChrome, 50);
+window.__lang = l => { CFG.lang = l; saveCfg(); renderRail(); render(); };
 
 (async () => {
   try {

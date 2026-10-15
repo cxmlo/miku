@@ -696,6 +696,43 @@ async def update_config_keys(req: UpdateKeysRequest, api_key: str = Security(get
     
     return {"status": "ok", "message": "Configuración de claves actualizada."}
 
+@app.delete("/api/config/keys/{key_name}")
+async def delete_config_key(key_name: str, api_key: str = Security(get_api_key)):
+    """Elimina una API key del archivo .env y del entorno de ejecución con confirmación."""
+    if key_name not in MANAGED_KEYS:
+        raise HTTPException(status_code=400, detail="Clave no gestionada")
+    
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    existing_lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            existing_lines = f.readlines()
+            
+    new_lines = []
+    for line in existing_lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            k = stripped.split("=", 1)[0].strip()
+            if k == key_name:
+                continue
+        new_lines.append(line)
+        
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.writelines(new_lines)
+        
+    if key_name in os.environ:
+        del os.environ[key_name]
+        
+    try:
+        import importlib
+        import config
+        importlib.reload(config)
+    except Exception:
+        pass
+        
+    logger.info(f"API key eliminada: {key_name}")
+    return {"status": "ok", "deleted": key_name, "message": f"Clave {key_name} eliminada con éxito."}
+
 @app.get("/api/elevenlabs/voices")
 async def get_elevenlabs_voices():
     """Obtiene la lista de voces disponibles en ElevenLabs si hay API Key."""
@@ -953,7 +990,28 @@ async def control_media_endpoint(req: MediaControlRequest):
                 key = VK_MEDIA_NEXT_TRACK
             elif action in ["previous", "prev", "back"]:
                 key = VK_MEDIA_PREV_TRACK
-            if key:
+            if action in ["vol", "volume"] and req.param is not None:
+                try:
+                    vol_val = max(0, min(100, int(req.param)))
+                    from pycaw.pycaw import AudioUtilities, ISimpleAudioVolume, IAudioEndpointVolume
+                    from ctypes import cast, POINTER
+                    from comtypes import CLSCTX_ALL
+                    sessions = AudioUtilities.GetAllSessions()
+                    found = False
+                    for s in sessions:
+                        if s.Process and "spotify" in s.Process.name().lower():
+                            v = s._ctl.QueryInterface(ISimpleAudioVolume)
+                            v.SetMasterVolume(vol_val / 100.0, None)
+                            found = True
+                    if not found:
+                        devices = AudioUtilities.GetSpeakers()
+                        interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+                        master_vol = cast(interface, POINTER(IAudioEndpointVolume))
+                        master_vol.SetMasterVolumeLevelScalar(vol_val / 100.0, None)
+                    logger.info(f"[Media] Volumen ajustado a {vol_val}% vía pycaw")
+                except Exception as ex:
+                    logger.warning(f"[Media] Falló ajuste de volumen pycaw: {ex}")
+            elif key:
                 ctypes.windll.user32.keybd_event(key, 0, 0, 0)
                 ctypes.windll.user32.keybd_event(key, 0, 2, 0)
                 logger.info(f"[Media] Simulado atajo multimedia Windows para acción '{action}'")
@@ -1232,6 +1290,151 @@ async def get_detectable_apps():
     """Devuelve las aplicaciones populares e instaladas con sus iconos y categorías."""
     return {"apps": KNOWN_DETECTABLE_APPS}
 
+_EXE_ICON_CACHE = {}
+
+def get_exe_icon_base64(exe_path: str) -> str:
+    if not exe_path or not os.path.exists(exe_path):
+        return ""
+    if exe_path in _EXE_ICON_CACHE:
+        return _EXE_ICON_CACHE[exe_path]
+    try:
+        import ctypes
+        import win32ui
+        import win32gui
+        from PIL import Image
+        import io
+        import base64
+
+        shell32 = ctypes.windll.shell32
+        user32 = ctypes.windll.user32
+        hicon = shell32.ExtractIconW(0, exe_path, 0)
+        if hicon and hicon > 1:
+            hdc = win32ui.CreateDCFromHandle(win32gui.GetDC(0))
+            hbmp = win32ui.CreateBitmap()
+            hbmp.CreateCompatibleBitmap(hdc, 32, 32)
+            hdc_mem = hdc.CreateCompatibleDC()
+            hdc_mem.SelectObject(hbmp)
+            win32gui.DrawIconEx(hdc_mem.GetHandleOutput(), 0, 0, hicon, 32, 32, 0, 0, 3)
+            bmpinfo = hbmp.GetInfo()
+            bmpstr = hbmp.GetBitmapBits(True)
+            img = Image.frombuffer('RGBA', (bmpinfo['bmWidth'], bmpinfo['bmHeight']), bmpstr, 'raw', 'BGRA', 0, 1)
+            buf = io.BytesIO()
+            img.save(buf, format='PNG')
+            b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+            user32.DestroyIcon(hicon)
+            _EXE_ICON_CACHE[exe_path] = b64
+            return b64
+    except Exception:
+        pass
+    return ""
+
+KNOWN_APP_INFO = {
+    "spotify.exe": ("Spotify", "musica"),
+    "zen.exe": ("Zen Browser", "navegador"),
+    "chrome.exe": ("Google Chrome", "navegador"),
+    "msedge.exe": ("Microsoft Edge", "navegador"),
+    "firefox.exe": ("Mozilla Firefox", "navegador"),
+    "brave.exe": ("Brave Browser", "navegador"),
+    "antigravity ide.exe": ("Antigravity IDE", "desarrollo"),
+    "code.exe": ("Visual Studio Code", "desarrollo"),
+    "cursor.exe": ("Cursor AI", "desarrollo"),
+    "discord.exe": ("Discord", "comunicacion"),
+    "steam.exe": ("Steam", "juego"),
+    "steamwebhelper.exe": ("Steam", "juego"),
+    "valorant.exe": ("Valorant", "juego"),
+    "league of legends.exe": ("League of Legends", "juego"),
+    "javaw.exe": ("Minecraft", "juego"),
+    "robloxplayerbeta.exe": ("Roblox", "juego"),
+    "obs64.exe": ("OBS Studio", "multimedia"),
+    "vlc.exe": ("VLC Media Player", "multimedia"),
+    "figma.exe": ("Figma", "diseño"),
+    "notion.exe": ("Notion", "productividad"),
+    "telegram.exe": ("Telegram", "comunicacion"),
+    "slack.exe": ("Slack", "comunicacion"),
+    "ghelper.exe": ("G-Helper", "sistema"),
+    "wallpaper64.exe": ("Wallpaper Engine", "personalizacion"),
+    "photoshop.exe": ("Adobe Photoshop", "diseño"),
+    "illustrator.exe": ("Adobe Illustrator", "diseño"),
+    "premiere.exe": ("Adobe Premiere", "diseño"),
+    "blender.exe": ("Blender", "diseño")
+}
+
+EXCLUDE_PROC_PATTERNS = [
+    "service", "helper", "updater", "agent", "tray", "host", "broker", "container",
+    "daemon", "server", "sync", "crash", "overlay", "install", "node", "python",
+    "cargo", "rustup", "bash", "git", "pyrefly", "smartscreen", "compression",
+    "vctip", "presentmon", "psiservice", "search", "runtime", "miku", "session",
+    "package", "manager", "crossdevice", "appaction", "appvsh", "registry",
+    "shellexperience", "cortana", "ctfmon", "sihost", "conhost", "cmd", "powershell",
+    "msmpeng", "nissrv", "monotification", "microsoftedgeupdate", "explorer",
+    "msedgewebview", "officeclicktorun"
+]
+
+@app.get("/api/apps/running")
+async def get_running_apps():
+    """Devuelve las aplicaciones de usuario actualmente en ejecución en la PC (filtrando servicios y demonios del sistema)."""
+    import psutil
+    apps = []
+    seen_names = set()
+
+    for p in psutil.process_iter(['name', 'exe']):
+        try:
+            name = (p.info['name'] or '').strip()
+            exe = (p.info['exe'] or '').strip()
+            if not name or not exe:
+                continue
+            name_lower = name.lower()
+            if name_lower in seen_names:
+                continue
+            if "windows\\system32" in exe.lower() or "windows\\syswow64" in exe.lower():
+                continue
+            
+            # 1. Comprobar si es una aplicación conocida
+            matched_known = None
+            for kname, kinfo in KNOWN_APP_INFO.items():
+                if kname in name_lower:
+                    matched_known = kinfo
+                    break
+
+            if matched_known:
+                # Evitar duplicados (ej: Steam vs steamwebhelper)
+                if any(a["name"] == matched_known[0] for a in apps):
+                    continue
+                seen_names.add(name_lower)
+                icon_b64 = get_exe_icon_base64(exe)
+                apps.append({
+                    "id": name_lower.replace(".exe", ""),
+                    "name": matched_known[0],
+                    "process": name,
+                    "exe": exe,
+                    "category": matched_known[1],
+                    "icon": icon_b64
+                })
+                continue
+
+            # 2. Si no es conocida, excluir demonios, servicios y herramientas CLI
+            clean_token = name_lower.replace(".exe", "")
+            if any(bad in clean_token for bad in EXCLUDE_PROC_PATTERNS):
+                continue
+
+            seen_names.add(name_lower)
+            friendly_name = os.path.splitext(name)[0].replace("_", " ").replace("-", " ").title()
+            icon_b64 = get_exe_icon_base64(exe)
+            
+            apps.append({
+                "id": name_lower.replace(".exe", ""),
+                "name": friendly_name,
+                "process": name,
+                "exe": exe,
+                "category": "aplicacion",
+                "icon": icon_b64
+            })
+        except Exception:
+            continue
+
+    apps.sort(key=lambda a: (0 if a["icon"] else 1, a["name"]))
+    return {"apps": apps}
+
 
 import re
 
@@ -1473,6 +1676,21 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         manager.disconnect(websocket)
         logger.info("Cliente Móvil desconectado")
+
+@app.post("/api/ui_event")
+async def handle_ui_event(request: Request):
+    try:
+        data = await request.json()
+        if data.get("type") == "ui_event" and data.get("action") == "button_clicked":
+            from ui_events import set_ui_event
+            val = data.get("data")
+            logger.info(f"Received UI event via HTTP: {val}")
+            set_ui_event(val)
+            return {"status": "ok", "received": val}
+    except Exception as e:
+        logger.error(f"Error handling /api/ui_event: {e}")
+        return {"status": "error", "error": str(e)}
+    return {"status": "ignored"}
 
 LAST_CLIPBOARD = ""
 

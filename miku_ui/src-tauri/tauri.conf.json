@@ -26,13 +26,15 @@
         "label": "settings",
         "title": "Configuración · Miku",
         "url": "miku_settings.html",
-        "width": 520,
-        "height": 760,
+        "width": 960,
+        "height": 740,
         "resizable": true,
-        "minWidth": 480,
-        "maxWidth": 640,
+        "minWidth": 760,
         "visible": false,
-        "center": true
+        "center": true,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true
       }
     ],
     "security": {
@@ -51,6 +53,7 @@
     ],
     "windows": {
       "nsis": {
+        "installMode": "currentUser",
         "headerImage": "installer_header.bmp",
         "sidebarImage": "installer_sidebar.bmp",
         "installerIcon": "icons/icon.ico"

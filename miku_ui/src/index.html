@@ -3,13 +3,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Miku · Dynamic Island</title>
 <style>
-:root{--ac:#3B9EFF;--sky:#80C4FF;--mut:#8e919a;--card:#17181c;--fld:#212227;--line:#24262c;--coral:#FF7A70;--spr:cubic-bezier(.3,1.35,.5,1);--ease:cubic-bezier(.16,1,.3,1)}
+:root{--ac:#3B9EFF;--sky:#80C4FF;--mut:#8e919a;--card:#14151b;--fld:#1c1d24;--line:#252732;--coral:#FF7A70;--spr:cubic-bezier(.3,1.35,.5,1);--ease:cubic-bezier(.16,1,.3,1)}
 *{box-sizing:border-box;margin:0;-webkit-user-select:none;user-select:none}
 html,body{height:100%;background:transparent;overflow:hidden;font:14px/1.4 'Segoe UI Variable','Segoe UI',system-ui,sans-serif;color:#fff}
-.island{position:fixed;top:0;left:50%;translate:-50% 0;width:340px;height:44px;border-radius:0 0 22px 22px;background:#000;overflow:hidden;
+.island{position:fixed;top:0;left:50%;translate:-50% 0;width:340px;height:44px;border-radius:0 0 24px 24px;
+ background:#0d0e12;
+ border:1px solid #23252d;border-top:0;
+ box-shadow:0 18px 45px rgba(0,0,0,0.85);
+ overflow:hidden;
  transition:width .42s cubic-bezier(.32,.72,0,1),height .42s cubic-bezier(.32,.72,0,1),border-radius .35s}
-.island.vz{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--vc) 55%,transparent),0 5px 14px color-mix(in srgb,var(--vc) 30%,transparent);animation:vp 1.6s ease-in-out infinite}
-@keyframes vp{50%{box-shadow:0 0 0 2.5px color-mix(in srgb,var(--vc) 80%,transparent),0 6px 14px color-mix(in srgb,var(--vc) 48%,transparent)}}
+.island.vz{box-shadow:0 0 0 2px color-mix(in srgb,var(--vc,#a88cff) 80%,transparent),0 0 24px color-mix(in srgb,var(--vc,#a88cff) 60%,transparent),0 14px 45px rgba(0,0,0,0.92);animation:vp 1.6s ease-in-out infinite}
+@keyframes vp{50%{box-shadow:0 0 0 3.5px color-mix(in srgb,var(--vc,#a88cff) 95%,transparent),0 0 38px color-mix(in srgb,var(--vc,#a88cff) 80%,transparent),0 16px 50px rgba(0,0,0,0.98)}}
+.island.vz #mk{filter:drop-shadow(0 0 16px var(--vc,#a88cff)) drop-shadow(0 0 6px #fff);transition:filter .3s ease}
 #in{position:absolute;left:0;top:0;width:max-content;min-width:340px;max-width:680px;display:flex;align-items:center;gap:10px;padding:10px 18px 18px 12px;transition:opacity .15s ease}
 #in.m{align-items:center;height:44px;padding:0 14px 0 8px}
 .mkw{position:relative;flex:none;cursor:pointer}
@@ -28,7 +33,7 @@ html,body{height:100%;background:transparent;overflow:hidden;font:14px/1.4 'Sego
 .hd{height:42px;margin-bottom:6px}.hd .tabs{display:flex;gap:6px}.hd .r small{color:var(--mut);font-size:13px;margin-right:8px}
 .tb{width:34px;height:34px}.tb.on{background:#202226;color:#fff}
 .row{display:flex;align-items:stretch}
-.card.mk{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:14px 20px 14px 8px;border-radius:24px;background:radial-gradient(90% 120% at 0% 65%,var(--g),transparent 72%),var(--card)}
+.card.mk{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:14px 20px 14px 18px;border-radius:24px;background:radial-gradient(90% 120% at 0% 65%,var(--g),transparent 72%),var(--card);border:1px solid var(--line);box-shadow:0 4px 16px rgba(0,0,0,0.3)}
 .cp{flex:1;min-width:0}.cp .card{background:none;border:0;padding:0;border-radius:0}.cp .card.dz{min-height:0}
 .minis{display:flex;flex-direction:column;gap:11px;justify-content:center;width:44px;margin-left:8px}
 .mi{display:block;width:34px;height:26px;margin:0 auto;border-radius:50% 50% 46% 46%;position:relative;background:radial-gradient(circle at 34% 68%,#14141c 1.6px,#0000 2.1px),radial-gradient(circle at 66% 68%,#14141c 1.6px,#0000 2.1px),linear-gradient(#fff5,#0000 60%),var(--c)}
@@ -36,7 +41,7 @@ html,body{height:100%;background:transparent;overflow:hidden;font:14px/1.4 'Sego
 .island.closing{transition:width .36s cubic-bezier(.32,.72,0,1),height .36s cubic-bezier(.32,.72,0,1),border-radius .32s}
 #warp{z-index:2}#in{z-index:1}
 #in.hc{padding:6px 10px 10px}.hd{padding:0 6px}
-.card.mk{padding:12px 16px 12px 6px}
+.card.mk{padding:12px 18px 12px 18px}
 #in.stg{padding:10px;align-items:stretch}
 #in.stg #col{background:radial-gradient(70% 80% at 50% 38%,rgba(255,255,255,.12),transparent 72%),var(--card);border-radius:20px;padding:22px 0 18px}
 .hubc{display:block;padding:14px 14px 12px;background:radial-gradient(55% 80% at 50% 35%,rgba(255,255,255,.1),transparent 72%),var(--card)}
@@ -108,11 +113,11 @@ button.p{background:#f4f5f7;color:#111}button.ok{background:#1f9a40}
 .rb{width:38px;height:38px;padding:0;justify-content:center}
 .rip{position:absolute;border-radius:50%;background:currentColor;opacity:.28;transform:scale(0);pointer-events:none;animation:rip .6s ease-out forwards}
 @keyframes rip{to{transform:scale(1);opacity:0}}
-.card{background:linear-gradient(to top,var(--g,#0000),#0000 50%),var(--card);border:1px solid var(--line);border-radius:22px;padding:14px 16px}
+.card{background:#15161c;border:1px solid var(--line);border-radius:22px;padding:14px 16px;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
 .scr{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#3a3c42 transparent}
 .ans,.ql{font-size:15px;line-height:1.5;color:#e6e7ea;white-space:pre-wrap;user-select:text}.ans{max-height:190px}.ql{max-height:170px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.chips i{font-style:normal;background:#26282d;color:#aaa;border-radius:99px;padding:4px 12px;font-size:13px}
-.fld{display:flex;align-items:center;gap:6px;background:var(--fld);border-radius:99px;padding:5px 6px 5px 18px}
+.fld{display:flex;align-items:center;gap:6px;background:var(--fld);border:1px solid #262933;border-radius:99px;padding:5px 6px 5px 14px}
 .fld input{flex:1;min-width:180px;background:none;border:0;outline:0;color:#fff;font:inherit;font-size:15px;user-select:text}
 .fld input::placeholder{color:#777}
 .two{display:flex;gap:10px}.two>.card{flex:1;min-width:0}.acts{display:flex;flex-direction:column;gap:8px}.acts button{justify-content:flex-start}
@@ -281,9 +286,13 @@ canvas.star{display:block;flex:none;width:34px;height:34px;cursor:pointer;margin
 .two.h2 .ht.hb{margin-top:0}
 .so-track{height:32px}.sr .so-track{height:24px}
 .vlh.thin .so-track{height:3px}.vlh.thin .so-track:hover,.vlh.thin .so-track:active{height:5px}
-.fld{margin:12px 2px 8px;padding:3px 4px 3px 15px;border:1px solid color-mix(in srgb,var(--ac) 38%,transparent);transition:border-color .2s}
-.fld:focus-within{border-color:color-mix(in srgb,var(--ac) 62%,transparent)}
-.fld input{font-size:13.5px;padding:5px 0}
+.fld{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);box-shadow:inset 0 1px 2px rgba(0,0,0,0.3);border-radius:99px;padding:3px 5px 3px 5px;transition:border-color .2s,box-shadow .2s,background .2s}
+.fld:focus-within{border-color:rgba(255,255,255,0.28);background:rgba(255,255,255,0.1);box-shadow:inset 0 1px 2px rgba(0,0,0,0.2),0 0 16px rgba(255,255,255,0.06)}
+.fld input{flex:1;min-width:180px;background:none;border:0;outline:0;color:#fff;font:inherit;font-size:14px;padding:5px 6px;user-select:text}
+.fld input::placeholder{color:#8e919a}
+.fld .pls{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.09);color:#e0e2ec;font-size:18px;font-weight:400;line-height:1;display:grid;place-items:center;flex:none;transition:transform .18s,background .18s,color .18s;cursor:pointer}
+.fld .pls:hover{background:rgba(255,255,255,0.2);color:#fff;transform:scale(1.08)}
+.fld .pls:active{transform:scale(0.92)}
 .fld .rb{width:28px;height:28px}.fld .rb .i,.fld .rb svg{width:14px;height:14px}
 .chips{display:flex}.chips>button{flex:1 1 auto;justify-content:center}
 
@@ -296,7 +305,7 @@ canvas.star{display:block;flex:none;width:34px;height:34px;cursor:pointer;margin
 .ovp .pd{position:relative;width:7px;height:7px;cursor:pointer;background:rgba(235,235,245,.3);transition:background .25s,transform .25s var(--spr)}
 .ovp .pd:after{content:"";position:absolute;inset:-9px -5px}
 .ovp .pd.on{width:7px;background:#fff;transform:scale(1.08)}
-.card.mk:has(.fld){align-items:stretch;min-height:112px;padding:10px 14px 7px 6px}
+.card.mk:has(.fld){align-items:stretch;min-height:220px;padding:20px 22px 18px 22px}
 .card.mk:has(.fld) .cs{align-self:center}
 .cp:has(>.fld){display:flex;flex-direction:column;justify-content:flex-end}
 .cp>.fld{margin:0}
@@ -340,6 +349,103 @@ canvas.star{display:block;flex:none;width:34px;height:34px;cursor:pointer;margin
 /* ── v6.7 ── */
 .lkg{align-items:stretch}.card.lkd{height:auto;min-height:132px}
 .sw,.sq{--w:38px;--h:22px;--p:3px;--str:8px}
+
+/* ── Liquid Create Menu (+ Button) ── */
+.crt-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-right: 6px;
+  flex: none;
+}
+.crt-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1c1d22;
+  color: #c9ccd6;
+  border: 1px solid #2d3039;
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.35, 0, 0.5, 1), background 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+.crt-pill:hover {
+  background: #272a33;
+  color: #fff;
+  border-color: #444855;
+  transform: scale(1.08);
+}
+.crt-stage[data-sink="true"] .crt-pill {
+  transform: scale(0.92);
+}
+.crt-stage[data-open="true"] .crt-pill {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+  transform: rotate(45deg);
+}
+
+.crt-panel {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: 220px;
+  background: #121317;
+  border: 1px solid #282a32;
+  box-shadow: 0 18px 40px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06);
+  border-radius: 18px;
+  padding: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: bottom left;
+  transform: translateY(10px) scale(0.94);
+  transition: opacity 160ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1000;
+}
+.crt-stage[data-open="true"] .crt-panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.crt-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.crt-item button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: #c9ccd6;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+}
+.crt-item button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  transform: translateX(3px);
+}
+.crt-item svg {
+  flex: none;
+  stroke: var(--ac, #4fd3b1);
+}
+
 </style></head><body>
 <svg width="0" height="0" style="position:absolute"><defs>
 <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></symbol>
@@ -877,10 +983,74 @@ const S=(k,o)=>`<select data-k="${k}">${o.map(x=>`<option value="${x[0]}" ${CFG[
 
 const SC={
  compact:{m:1,st:'idle',x:()=>`<div class="mini">${MINIH()}</div>`},
- prompt:{w:440,st:'idle',after:()=>setTimeout(()=>$('#q')?.focus(),200),
-  x:()=>`${HD('Preguntar')}<div class="fld"><input id="q" placeholder="Escribe tu pregunta…" autocomplete="off"><button class="rb" data-a="dictate" title="Dictar" aria-label="Dictar">${ic('mic')}</button><button class="rb p" data-a="send" title="Enviar" aria-label="Enviar">${ic('send')}</button></div>`},
- result:{w:470,st:'idle',em:'happy',
-  x:()=>`${HD('Miku')}<div class="card"><div class="ans scr">${esc(RES)}</div></div><div class="chips">${B('Copiar','copy','','copy')}${B('Enviar al celular','phone','','phone')}${B('Resumir','sum','','spark')}${B('Reintentar','retry','','retry')}</div>`},
+ prompt:{w:580,hc:1,st:'idle',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
+   x:()=>`${HD('Preguntar')}<div class="row"><div class="card mk" style="--g:var(--gl);padding:22px 24px 18px 22px;min-height:230px"><i class="cs" data-k=".85" style="width:88px;height:72px;margin:0 6px"></i><div class="cp" style="display:flex;flex-direction:column;gap:14px;flex:1"><div class="ans scr" style="font-size:15px;line-height:1.6;color:#f0f2f5;min-height:120px;max-height:360px">${lastQ?`Preguntaste: «${esc(lastQ)}»`:'¡Hola! ¿En qué puedo ayudarte hoy?'}</div><div class="fld" style="margin:6px 0 0;position:relative"><div class="crt-stage" id="crtStage">
+  <button class="crt-pill" id="crtPill" type="button" aria-expanded="false" title="Acciones">
+    <svg class="crt-glyph" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <div class="crt-panel" id="crtPanel">
+    <ul class="crt-menu">
+      <li class="crt-item">
+        <button type="button" data-crt="file">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Adjuntar archivo</span>
+        </button>
+      </li>
+      <li class="crt-item">
+        <button type="button" data-crt="vision">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          <span>Analizar pantalla</span>
+        </button>
+      </li>
+      <li class="crt-item">
+        <button type="button" data-crt="clip">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <span>Pegar portapapeles</span>
+        </button>
+      </li>
+      <li class="crt-item">
+        <button type="button" data-crt="agents">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="4"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
+          <span>Agentes y herramientas</span>
+        </button>
+      </li>
+    </ul>
+  </div>
+</div><input id="q" placeholder="Escribe tu mensaje…" autocomplete="off"><button class="rb" data-a="dictate" title="Dictar" aria-label="Dictar">${ic('mic')}</button><button class="rb p" data-a="send" title="Enviar" aria-label="Enviar">${ic('send')}</button></div></div></div></div>`},
+ result:{w:580,hc:1,st:'idle',em:'happy',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
+   x:()=>`${HD('Miku')}<div class="row"><div class="card mk" style="--g:var(--gl);padding:22px 24px 18px 22px;min-height:230px"><i class="cs" data-k=".85" style="width:88px;height:72px;margin:0 6px"></i><div class="cp" style="display:flex;flex-direction:column;gap:14px;flex:1"><div class="ans scr" style="font-size:15px;line-height:1.6;color:#f0f2f5;min-height:130px;max-height:380px">${esc(RES)}</div><div class="fld" style="margin:6px 0 0;position:relative"><div class="crt-stage" id="crtStage">
+  <button class="crt-pill" id="crtPill" type="button" aria-expanded="false" title="Acciones">
+    <svg class="crt-glyph" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <div class="crt-panel" id="crtPanel">
+    <ul class="crt-menu">
+      <li class="crt-item">
+        <button type="button" data-crt="file">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Adjuntar archivo</span>
+        </button>
+      </li>
+      <li class="crt-item">
+        <button type="button" data-crt="vision">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          <span>Analizar pantalla</span>
+        </button>
+      </li>
+      <li class="crt-item">
+        <button type="button" data-crt="clip">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+          <span>Pegar portapapeles</span>
+        </button>
+      </li>
+      <li class="crt-item">
+        <button type="button" data-crt="agents">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="4"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
+          <span>Agentes y herramientas</span>
+        </button>
+      </li>
+    </ul>
+  </div>
+</div><input id="q" placeholder="Escribe un mensaje a Miku…" autocomplete="off"><button class="rb" data-a="dictate" title="Dictar" aria-label="Dictar">${ic('mic')}</button><button class="rb p" data-a="send" title="Enviar" aria-label="Enviar">${ic('send')}</button></div></div></div></div>`},
  intro:{w:400,stg:1,hc:1,st:'idle',x:()=>`<i class="cs" data-k="1.1" style="width:123px;height:92px"></i>`,after:()=>{burst();P.jv=-80;P.sq=.2;setTimeout(()=>scene=='intro'&&buddy.emote('happy',800,9),550);setTimeout(()=>scene=='intro'&&buddy.emote('wave',1500,9),1350);tm=setTimeout(()=>go('overview',{__i:1}),3300)}},
  overview:{hc:1,st:'idle',after:()=>{
   const IX=ISLN();
@@ -933,7 +1103,7 @@ function go(n='compact',a={}){if(LOCKI&&!a.__i)return;if(a.__i)LOCKI=0;if(n=='ov
  inn.classList.toggle('m',!!s.m);inn.classList.toggle('stg',!!s.stg);inn.classList.toggle('hc',!!s.hc||wr);if(!s.m)lastExp=Date.now();
  const k=s.k||(s.m?.34:.85);mkw.dataset.k=k;mkw.style.width=112*k+'px';mkw.style.height=84*k+'px';
  inn.style.width=inn.style.minWidth=inn.style.maxWidth=(s.m?cW():640)+'px';col.innerHTML=h;stagger();fit();
- buddy.setState(n=='tool_use'&&/cursor|mov/i.test(a.label||'')?'working':s.st);
+ const targetSt = a.st || (THK.on ? 'thinking' : (n=='tool_use'&&/cursor|mov/i.test(a.label||'')?'working':s.st)); buddy.setState(targetSt);
  const em=a.emote||s.em;if(em)buddy.emote(em,n=='notify'?2400:1600,2);
  s.after?.();armAC();
  if(n=='notify'&&!a.ask)notT=setTimeout(()=>go('compact'),a.ms||5000);
@@ -993,9 +1163,15 @@ function tap(){if(LOCKI)return;clearTimeout(tt);taps++;tt=setTimeout(()=>taps=0,
  else buddy.emote(taps>=2?'surprised':'wink',taps>=2?900:700,0)}
 function look(e){if(drag.on){drag.x=e.clientX;drag.y=e.clientY}const r=$('#mk').getBoundingClientRect(),gx=drag.on?70:260,gy=drag.on?55:180;mx=clamp((e.clientX-r.left-r.width/2)/gx);my=clamp((e.clientY-r.top-r.height/2)/gy)}
 addEventListener('pointermove',look);
-const KEEP=['compact','drop','uploading','tool_use','intro'],collapse=()=>{if(!KEEP.includes(scene))go('compact')};
-addEventListener('pointerdown',e=>{wake();if(!isl.contains(e.target))collapse()});addEventListener('blur',collapse);
-addEventListener('keydown',e=>{wake();if(e.key=='Escape')scene=='tool_use'||scene=='drop'?ACT.cancel():collapse();if(e.target.id=='q'&&e.key=='Enter')send()});
+const KEEP=['compact','drop','uploading','tool_use','intro','prompt','result'],collapse=()=>{if(!KEEP.includes(scene))go('compact')};
+addEventListener('pointerdown',e=>{wake();if(!isl.contains(e.target)&&scene!='compact')go('compact')});
+addEventListener('blur',()=>{if(scene!='compact')go('compact')});
+try{
+ window.__TAURI__?.event?.listen?.('window-blur',()=>{if(scene!='compact')go('compact')});
+ window.__TAURI__?.event?.listen?.('tauri://blur',()=>{if(scene!='compact')go('compact')});
+ window.__TAURI__?.window?.getCurrentWindow?.()?.onFocusChanged?.(({payload:f})=>{if(!f&&scene!='compact')go('compact')});
+}catch(_){}
+addEventListener('keydown',e=>{wake();if(e.key=='Escape')scene=='tool_use'||scene=='drop'?ACT.cancel():go('compact');if(e.target.id=='q'&&e.key=='Enter')send()});
 isl.addEventListener('wheel',e=>{wake();if(e.target.closest('.scr'))return;
  if(scene=='overview'){e.preventDefault();setVol(MUS.vol-Math.sign(e.deltaY)*5)}
  else if(scene=='compact'){e.preventDefault();e.deltaY>0?go('overview'):buddy.emote('look','up')}},{passive:false});
@@ -1090,17 +1266,19 @@ function mkSound(host,o={}){
  const away=e=>{if(!host.isConnected){document.removeEventListener('pointerdown',away);return}if(open&&e.isTrusted&&!box.contains(e.target))flip()};document.addEventListener('pointerdown',away);
  const iv=setInterval(()=>{if(!host.isConnected){clearInterval(iv);return}if(going){at=at>=TOTAL?0:at+1;prog()}},1000);
  layout();mark();prog();sync();lead.setAttribute('aria-label',going?'Pausa':'Reproducir');return{sync}}
-function setVol(v){MUS.vol=clamp(v,0,100);const f=$('#vf'),p=$('#vp');if(f)f.style.width=MUS.vol+'%';if(p)p.textContent=Math.round(MUS.vol)+'%';window.Bridge?.setVolume?.(MUS.vol);PLV?.set?.(MUS.vol)}
+function setVol(v){MUS.vol=clamp(v,0,100);const f=$('#vf'),p=$('#vp');if(f)f.style.width=MUS.vol+'%';if(p)p.textContent=Math.round(MUS.vol)+'%';window.Bridge?.media?.('vol', Math.round(MUS.vol));PLV?.set?.(MUS.vol)}
 function music(m){Object.assign(MUS,m);PLY?.sync?.();if(m.volume!=null)MUS.vol=m.volume;const e=$('#pmt');if(e&&scene=='overview')e.textContent=MUS.playing?MUS.title:'Música';label()}
 isl.addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.matches('.sw'))return;const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,o=document.createElement('span');
  o.className='rip';o.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(o);o.addEventListener('animationend',()=>o.remove())});
 
 const flash=(b,t)=>{const o=b.innerHTML;b.innerHTML=ic('check')+t;b.classList.add('ok');setTimeout(()=>{b.innerHTML=o;b.classList.remove('ok')},1200)};
 const copy=async(x,b)=>{try{await navigator.clipboard.writeText(x)}catch{const a=document.createElement('textarea');a.value=x;document.body.append(a);a.select();document.execCommand('copy');a.remove()}flash(b,'Copiado')};
-function send(){const q=$('#q'),v=q?.value.trim();if(!v)return;lastQ=v;
- if(window.Bridge?.sendChat)window.Bridge.sendChat(q.value);
+function send(){const q=$('#q'),v=q?.value.trim();if(!v)return;lastQ=v;if(q)q.value='';
+ tlTrack('thinking');
+ if(window.Bridge?.sendChat)window.Bridge.sendChat(v);
  else setTimeout(()=>go('result',{text:'(demo) Recibí: «'+v+'». Conecta window.Bridge.sendChat para respuestas reales.'}),1400);
- go('compact');buddy.setState('thinking')}
+ go('compact',{st:'thinking'});
+}
 const ACT={
  emo:x=>{if(x=='approve'){approve({title:'¿Permitir a Claude Code ejecutar un comando?',text:'npm run build'});return}if(x=='ask'){ask({title:'¿Cómo te sientes hoy?',text:'Puedo ajustar mi tono contigo.',options:['Con energía','Tranquilo','Enfocado']});return}$$('.gal button').forEach(b=>b.classList.toggle('on',b.dataset.a=='emo:'+x));x.startsWith('look_')?buddy.look(x.slice(5),2200):buddy.emote(x,2200)},
  playall:()=>{clearInterval(gi);let i=0;const t=()=>{if(scene!='gallery'||i>=GAL.length){clearInterval(gi);return}ACT.emo(GAL[i++])};t();gi=setInterval(t,2300)},
@@ -1109,8 +1287,9 @@ const ACT={
  dictate:()=>{ST.mic=!ST.mic;window.Bridge?.dictate?.(ST.mic);buddy.setState(ST.mic?'listening':'idle')},
  copy:(x,b)=>copy(RES,b),qcopy:(x,b)=>copy(QL.text,b),
  phone:(x,b)=>{window.Bridge?.sendToPhone?.(RES);flash(b,'Enviado')},phone2:(x,b)=>{window.Bridge?.sendToPhone?.(QL.text);flash(b,'Enviado')},
- sum:()=>{window.Bridge?.chipAction?.('summarize',RES);buddy.setState('thinking');go('compact')},
- retry:()=>{window.Bridge?.sendChat?.(lastQ);buddy.setState('thinking');go('compact')},
+ sum:()=>{window.Bridge?.chipAction?.('summarize',RES);buddy.setState('thinking');go('compact');},
+ retry:()=>{if(!lastQ)return;if(window.Bridge?.sendChat)window.Bridge.sendChat(lastQ);buddy.setState('thinking');go('compact');},
+ 
  m:x=>{if(window.Bridge?.media)window.Bridge.media(x);else if(x=='toggle')music({playing:!MUS.playing})},
  vision:()=>go('tool_use',{label:'Analizando pantalla'}),cancel:()=>{window.Bridge?.cancel?.();go('compact')},
  unpair:(x,b)=>{window.Bridge?.unpairDevices?.();link(false);flash(b,'Listo')},
@@ -1204,6 +1383,7 @@ window.feed=(a,b)=>{if(typeof a=='number'){const wx=window.screenX??window.scree
   case'api':ST.api=!!m.ok;break;
   case'tasks':ST.tasks=+m.n||0;break;
   case'agents':onMsg({k:'agents',list:m.list});break;
+  case'ui_command':if(m.action==='show_scene'&&m.scene==='question'){const p=m.params||{};ask({title:p.title||'Pregunta de Miku',text:p.q||'',options:p.options||[]})}break;
   case'notify':go('notify',m)}};
 
 const WARDROBE=[['none','Ninguno'],['beanie','Gorro'],['crown','Corona'],['party','Fiesta'],['santa','Santa'],['witch','Bruja'],['shades','Gafas sol'],['round','Gafas'],['bow','Moño'],['scarf','Bufanda'],['pumpkin','Calabaza'],['bunny','Orejas'],['halo','Aureola'],['propeller','Hélice'],['phones','Audífonos']];

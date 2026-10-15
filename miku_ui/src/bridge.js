@@ -110,6 +110,19 @@ const Bridge = (() => {
     }, delay);
   }
 
+  function sendWS(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(typeof data === "string" ? data : JSON.stringify(data));
+        return true;
+      } catch (err) {
+        console.warn("[Bridge] ws.send error:", err);
+      }
+    }
+    console.warn("[Bridge] Cannot send WS message (state: " + ws?.readyState + "):", data);
+    return false;
+  }
+
   /* ---------------- INCOMING MESSAGE ROUTER ---------------- */
   function handleIncomingMessage(data) {
     if (!data) return;
@@ -132,6 +145,29 @@ const Bridge = (() => {
       return;
     }
 
+    // Handle ui_command from backend tools (e.g. hacer_pregunta_opciones)
+    if (data.type === "ui_command") {
+      if (data.action === "show_scene" && data.scene === "question") {
+        const params = data.params || {};
+        window.feed?.({
+          type: "ask",
+          title: params.title || "Pregunta de Miku",
+          text: params.q || params.pregunta || "",
+          options: params.options || []
+        });
+        return;
+      } else if (data.action === "show_scene" && data.scene === "mail") {
+        const params = data.params || {};
+        window.feed?.({
+          type: "ask",
+          title: params.subject || "Borrador de Correo",
+          text: `Para: ${params.to}\n\n${params.message}`,
+          options: ["enviar_correo", "cancelar"]
+        });
+        return;
+      }
+    }
+
     // 2. Direct feed forward
     if (data.type) {
       if (data.type === "state" && window.buddy?.emote) {
@@ -145,6 +181,13 @@ const Bridge = (() => {
     if (data.audio_url) {
       console.log("[Bridge] Playing backend TTS audio:", data.audio_url);
       const audio = new Audio(`${BASE_URL}${data.audio_url}`);
+      let vVol = 80;
+      try {
+        const cfg = JSON.parse(localStorage.getItem("miku_cfg") || "{}");
+        if (cfg.voice_volume != null) vVol = Number(cfg.voice_volume);
+      } catch (_) {}
+      audio.volume = Math.max(0, Math.min(1, vVol / 100));
+      window.__miku_tts_audio = audio;
       audio.play().catch(e => console.warn("[Bridge] Audio playback blocked:", e));
       window.feed?.({ type: "state", name: "talking" });
       audio.onended = () => {
@@ -365,6 +408,21 @@ const Bridge = (() => {
       method: "POST"
     }).catch(err => console.warn("[Bridge] Stop error:", err));
     window.feed?.({ type: "state", name: "idle" });
+  }
+
+  // 5b. Floating question choice
+  function choice(id, value) {
+    const payload = {
+      type: "ui_event",
+      action: "button_clicked",
+      data: value
+    };
+    sendWS(payload);
+    apiFetch("/api/ui_event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).catch(e => console.warn("[Bridge] HTTP ui_event fallback error:", e));
   }
 
   // 6. Media / Music controls
@@ -609,11 +667,37 @@ const Bridge = (() => {
     } catch (_) {}
   }
 
-  // 12. Volume Control
+  // 12. Volume Control (Solo voz de Miku, sin afectar volumen de música ni Windows)
   function setVolume(val) {
     const v = Math.max(0, Math.min(100, Math.round(Number(val))));
-    media("vol", v);
     setSetting("voice_volume", v);
+    if (window.__miku_tts_audio) {
+      window.__miku_tts_audio.volume = v / 100;
+    }
+  }
+
+  // 13. Eliminar Clave de API
+  async function deleteConfigKey(keyName) {
+    try {
+      const res = await apiFetch(`/api/config/keys/${keyName}`, {
+        method: "DELETE"
+      });
+      return res.ok ? await res.json() : { error: "Error al eliminar clave" };
+    } catch (e) {
+      console.warn("[Bridge] deleteConfigKey error:", e);
+      return { error: String(e) };
+    }
+  }
+
+  // 14. Aplicaciones en ejecución (Estilo Discord)
+  async function getRunningApps() {
+    try {
+      const res = await apiFetch("/api/apps/running");
+      return res.ok ? await res.json() : { apps: [] };
+    } catch (e) {
+      console.warn("[Bridge] getRunningApps error:", e);
+      return { apps: [] };
+    }
   }
 
   function initSettingsSync() {
@@ -643,6 +727,7 @@ const Bridge = (() => {
     sendToPhone,
     chipAction,
     cancel,
+    choice,
     media,
     setKey,
     sendFile,
@@ -654,6 +739,7 @@ const Bridge = (() => {
     generatePairingUrl,
     getConfigKeys,
     saveConfigKeys,
+    deleteConfigKey,
     getModelsConfig,
     saveModelsConfig,
     getMcpServers,
@@ -662,6 +748,7 @@ const Bridge = (() => {
     getAlertsConfig,
     saveAlertsConfig,
     getDetectableApps,
+    getRunningApps,
     getDesktopStatus,
     getElevenLabsVoices
   };

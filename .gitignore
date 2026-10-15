@@ -79,3 +79,4 @@ cloudflared.exe
 *.msi
 *.whl
 *.zip
+*.wav
