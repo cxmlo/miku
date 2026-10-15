@@ -56,8 +56,14 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
   - **Escena de Permisos y Atajos de Teclado**:
     - Al requerir aprobación para comandos (`SC.approve`), la mascota luce un halo ámbar con insignia de advertencia `(!)`.
     - Botones estilizados `Deny [N]`, `Allow [Y]` y `Always`, con atajos nativos directos de teclado (`Y` para permitir, `N` para denegar).
-  - **Protección Antifuga de Audio**:
-    - Endpoint `/api/speech/stop` invocado en `beforeunload`, `tauri WindowEvent::Destroyed` y salida de bandeja, garantizando que el sintetizador de voz se corte de raíz al cerrar la aplicación.
+  - **Sistema de Actualización Automática (Tauri v2 Updater)**:
+    - Integración de `tauri-plugin-updater = "2"` en `Cargo.toml`, `tauri.conf.json`, `capabilities/default.json` y `lib.rs`.
+    - Claves criptográficas Minisign / Ed25519 (`miku_updater.key.pub`) configuradas para validación de integridad y autenticidad del binario.
+    - Comandos nativos en Rust (`check_update`, `install_update`) expuestos a través de `Bridge.checkUpdate()` y `Bridge.installUpdate()`.
+    - Detección y gestión tolerante a fallos: respuesta 404 de GitHub tratada como sistema al día en lugar de arrojar error.
+    - Interfaz gráfica en Configuración (`miku_settings.html`): tarjeta en la sección General con botón interactivo, spinner de búsqueda, aviso de versión y botón de instalación con reinicio asistido.
+    - CI/CD en GitHub Actions (`.github/workflows/release.yml`): generación de `latest.json`, firma automática del instalador y creación del alias `Miku_Setup.exe` para descarga directa desde la landing page al empujar etiquetas `v*`.
 
 ---
 👉 **Volver al Menú Principal:** [[Home]]
+

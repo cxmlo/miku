@@ -773,7 +773,29 @@ const Bridge = (() => {
     getRunningApps,
     getDesktopStatus,
     getElevenLabsVoices,
-    stopSpeech
+    stopSpeech,
+    async checkUpdate() {
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          return await window.__TAURI__.core.invoke("check_update");
+        } catch (err) {
+          console.warn("[Bridge] check_update error:", err);
+          return { available: false, error: err.toString() };
+        }
+      }
+      return { available: false, error: "Tauri no disponible" };
+    },
+    async installUpdate() {
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          return await window.__TAURI__.core.invoke("install_update");
+        } catch (err) {
+          console.warn("[Bridge] install_update error:", err);
+          return { error: err.toString() };
+        }
+      }
+      return { error: "Tauri no disponible" };
+    }
   };
 })();
 

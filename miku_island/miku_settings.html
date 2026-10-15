@@ -1607,6 +1607,11 @@ V.general = () => `
   ${row(t('pers_title'), t('pers_desc'), `<span id="gs-pers"></span>`)}
 </section>
 <section>
+  <h2>Actualizaciones de Software</h2>
+  ${row('Miku Desktop v0.1.0', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
+  <div id="update-status" style="margin-top:6px;font-size:12.5px;color:var(--mut)"></div>
+</section>
+<section>
   <h2>${t('reset_title')}</h2>
   ${row(t('reset_btn'), t('reset_desc'), `<span id="hb-reset"></span>`)}
   ${note(t('reset_note'))}
@@ -2023,6 +2028,46 @@ function mount() {
       }
     });
     HoldButton($('#hb-reset'), { label: t('reset_btn'), doneLabel: 'Restablecido', hold: 1800, small: 1, onHold: holdReset });
+
+    const btnUpdate = $('#btn-check-update');
+    const stUpdate = $('#update-status');
+    if (btnUpdate) {
+      btnUpdate.onclick = async () => {
+        btnUpdate.disabled = true;
+        btnUpdate.textContent = 'Buscando...';
+        if (stUpdate) stUpdate.textContent = 'Consultando GitHub Releases...';
+        try {
+          const res = await window.Bridge?.checkUpdate?.();
+          if (res?.available) {
+            btnUpdate.textContent = `Instalar v${res.version}`;
+            btnUpdate.disabled = false;
+            btnUpdate.style.background = 'var(--ac)';
+            btnUpdate.style.color = '#fff';
+            if (stUpdate) stUpdate.innerHTML = `<b style="color:#4ddb73">¡Nueva versión disponible: v${res.version}!</b> ${res.body ? `<br><small style="color:#cfd3dc">${res.body}</small>` : ''}`;
+            btnUpdate.onclick = async () => {
+              btnUpdate.disabled = true;
+              btnUpdate.textContent = 'Instalando...';
+              if (stUpdate) stUpdate.textContent = 'Descargando e instalando actualización en segundo plano. Miku se reiniciará sola al terminar...';
+              await window.Bridge?.installUpdate?.();
+            };
+          } else if (res?.error) {
+            btnUpdate.disabled = false;
+            btnUpdate.textContent = 'Buscar actualización';
+            if (stUpdate) stUpdate.textContent = res.error.includes('404') ? '✓ Tienes la versión más reciente instalada.' : `Info: ${res.error}`;
+            showToast('Al día: no hay versiones pendientes');
+          } else {
+            btnUpdate.disabled = false;
+            btnUpdate.textContent = 'Buscar actualización';
+            if (stUpdate) stUpdate.textContent = '✓ Miku está actualizada a la última versión (v0.1.0).';
+            showToast('✓ Miku está en la versión más reciente');
+          }
+        } catch (e) {
+          btnUpdate.disabled = false;
+          btnUpdate.textContent = 'Buscar actualización';
+          if (stUpdate) stUpdate.textContent = 'Error: ' + e.message;
+        }
+      };
+    }
   }
 
   if (CAT === 'voz') {

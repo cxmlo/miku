@@ -70,6 +70,45 @@ fn minimize_settings(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
+async fn check_update(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    match updater.check().await {
+        Ok(Some(update)) => Ok(serde_json::json!({
+            "available": true,
+            "version": update.version,
+            "body": update.body.clone().unwrap_or_default(),
+            "date": update.date.map(|d| d.to_string()).unwrap_or_default()
+        })),
+        Ok(None) => Ok(serde_json::json!({
+            "available": false
+        })),
+        Err(e) => {
+            let err_msg = e.to_string();
+            if err_msg.contains("404") || err_msg.to_lowercase().contains("not found") {
+                Ok(serde_json::json!({
+                    "available": false,
+                    "latest": true
+                }))
+            } else {
+                Err(err_msg)
+            }
+        }
+    }
+}
+
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<String, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    if let Some(update) = updater.check().await.map_err(|e| e.to_string())? {
+        update.download_and_install(|_chunk_length, _content_length| {}, || {}).await.map_err(|e| e.to_string())?;
+        app.restart();
+    }
+    Ok("no_update".into())
+}
+
+#[tauri::command]
 fn open_settings_window(app: tauri::AppHandle) {
     if let Some(existing) = app.get_webview_window("settings") {
         let _ = existing.show();
@@ -212,7 +251,9 @@ pub fn run() {
             open_settings_window,
             open_settings,
             close_settings,
-            minimize_settings
+            minimize_settings,
+            check_update,
+            install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

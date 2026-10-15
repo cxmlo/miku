@@ -1,15 +1,15 @@
 {
-  "lang": "es",
-  "personality": "casual",
+  "lang": "en",
+  "personality": "calm",
   "voice_volume": 80,
   "voice": 1,
-  "autoclose": 60,
-  "sfx_volume": 40,
+  "autoclose": 15,
+  "sfx_volume": 60,
   "mic": "mic0",
   "barge_in": 1,
   "wake_paused": 0,
-  "hover_open": false,
+  "hover_open": 0,
   "local_net": 1,
   "biometric": 1,
-  "accent_color": "#5E9E68"
+  "accent_color": "#C4A750"
 }
