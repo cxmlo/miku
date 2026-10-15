@@ -41,6 +41,11 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
   - **Paleta de colores fríos y bloqueo de tema**: Colores de halo y acento actualizados a tonos fríos, opacos y mate (Nordic slate, ámbar frío, lavanda helada, esmeralda nórdico, carmesí apagado, etc.) que se fijan y bloquean como tema activo de toda la ventana de ajustes (`--ac`).
   - **Control de volumen `SmoothSlider` cápsula**: Barra de volumen horizontal refinada con arrastre continuo (`pointerdown` + `pointermove`), salto inmediato al clic y sincronización visual sin errores.
   - **Preguntas interactivas flotantes**: Soporte de eventos bidireccionales WebSocket y HTTP (`/api/ui_event`) para selección instantánea en `hacer_pregunta_opciones`.
+  - **Botón `+` y Liquid Create Menu**: Botón `+` visible y estilizado en el input de chat con rotación a 45°, menú desplegable elástico (`initLiquidMenu`) con adjuntar archivo, visión de pantalla, portapapeles y agentes.
+  - **Alertas Proactivas Limpias y Personalizadas**: Eliminadas las apps por defecto (`DEFAULT_ALERTS = {}`); selección directa de apps en ejecución al pulsar sus tarjetas, botón para eliminar alertas existentes (`✕`), y selector de ruta ejecutable con botón `Examinar...` (`.exe`).
+  - **Separación visual de Sliders**: Sliders de minutos limpios sin iconos de bocina (los iconos de altavoz son exclusivos de volumen).
+  - **Arrastre Continuo de Volumen**: `SmoothSlider` y `Slosh` en la isla admiten clic sostenido y arrastre libre a nivel de ventana (`window.pointermove`/`pointerup`) con thumb visible y hitbox ampliado de 28px para fácil manipulación.
+  - **Exclusividad de Servidores MCP en Agentes**: Selector de servidor MCP en la edición de cada agente con bloqueo inteligente `[Nombre] 🔒 (En uso por [Agente])` que impide que dos agentes compartan el mismo servidor MCP simultáneamente.
 
 ---
 👉 **Volver al Menú Principal:** [[Home]]
