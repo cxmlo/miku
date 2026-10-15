@@ -46,6 +46,18 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
   - **Separación visual de Sliders**: Sliders de minutos limpios sin iconos de bocina (los iconos de altavoz son exclusivos de volumen).
   - **Arrastre Continuo de Volumen**: `SmoothSlider` y `Slosh` en la isla admiten clic sostenido y arrastre libre a nivel de ventana (`window.pointermove`/`pointerup`) con thumb visible y hitbox ampliado de 28px para fácil manipulación.
   - **Exclusividad de Servidores MCP en Agentes**: Selector de servidor MCP en la edición de cada agente con bloqueo inteligente `[Nombre] 🔒 (En uso por [Agente])` que impide que dos agentes compartan el mismo servidor MCP simultáneamente.
+  - **Chat Multagente con Contexto Aislado (`AGENT_CHATS`)**:
+    - Cada agente (GitHub, Claude, Coder, etc.) cuenta con su propia memoria persistente y buzón de conversación (`lastQ`, `lastA`, `history`).
+    - Al cambiar de agente en la isla o el menú, el chat recupera automáticamente la última pregunta y respuesta de ese agente específico.
+    - Ejecución silenciosa: Los agentes secundarios trabajan puramente en texto y llamadas a herramientas (MCP/sistema) sin emitir voz por altavoces (`silent: true`).
+  - **Insignia de Notificación en la Mascota (`MascotNotificationBadge`)**:
+    - Cuando un agente completa una tarea en segundo plano mientras el usuario atiende a otro agente o la isla está compacta, aparece una insignia circular púrpura `(...)` sobre la cabeza/oreja de la mascota y su pill brilla con animación de pulso.
+    - Al hacer clic en la mascota o en la pill, la isla salta instantáneamente al chat de ese agente y limpia la notificación.
+  - **Escena de Permisos y Atajos de Teclado**:
+    - Al requerir aprobación para comandos (`SC.approve`), la mascota luce un halo ámbar con insignia de advertencia `(!)`.
+    - Botones estilizados `Deny [N]`, `Allow [Y]` y `Always`, con atajos nativos directos de teclado (`Y` para permitir, `N` para denegar).
+  - **Protección Antifuga de Audio**:
+    - Endpoint `/api/speech/stop` invocado en `beforeunload`, `tauri WindowEvent::Destroyed` y salida de bandeja, garantizando que el sintetizador de voz se corte de raíz al cerrar la aplicación.
 
 ---
 👉 **Volver al Menú Principal:** [[Home]]

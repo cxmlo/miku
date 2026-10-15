@@ -174,6 +174,9 @@ pub fn run() {
                         open_settings_window(app.clone());
                     }
                     "quit" => {
+                        let _ = std::process::Command::new("powershell")
+                            .args(["-NoProfile", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/speech/stop -Method Post -TimeoutSec 1"])
+                            .spawn();
                         std::process::exit(0);
                     }
                     _ => {}
@@ -187,6 +190,11 @@ pub fn run() {
                     if !focused {
                         let _ = window.emit("window-blur", ());
                     }
+                }
+                if let tauri::WindowEvent::Destroyed = event {
+                    let _ = std::process::Command::new("powershell")
+                        .args(["-NoProfile", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/speech/stop -Method Post -TimeoutSec 1"])
+                        .spawn();
                 }
             }
             if window.label() == "settings" {

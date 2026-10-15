@@ -470,6 +470,52 @@ canvas.star{display:block;flex:none;width:34px;height:34px;cursor:pointer;margin
 .vlh.thin .so-knob{display:block !important;position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:#ffffff;box-shadow:0 1px 6px rgba(0,0,0,.6),0 0 0 2px rgba(255,255,255,.2);transform:translate(-50%,-50%);pointer-events:none;transition:transform .12s ease,box-shadow .12s ease}
 .vlh.thin .so-track:hover .so-knob,.vlh.thin .so-track[data-held] .so-knob{transform:translate(-50%,-50%) scale(1.22);box-shadow:0 0 10px rgba(255,255,255,.8)}
 
+
+/* ── Multi-Agent Chat, Badges & Approval UI ── */
+.chat-hd { display:flex; align-items:center; justify-content:space-between; height:36px; margin-bottom:4px; padding:0 4px; }
+.ag-chat-pill { display:inline-flex; align-items:center; gap:7px; height:28px; padding:0 12px 0 9px; border-radius:99px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); font-size:12.5px; font-weight:600; color:#f3f4f6; cursor:pointer; transition:all .18s ease; flex:none; }
+.ag-chat-pill:hover { background:rgba(255,255,255,0.16); border-color:rgba(255,255,255,0.28); transform:translateY(-1px); }
+.ag-chat-pill.danger { border-color:rgba(255,179,0,0.35); background:rgba(255,179,0,0.09); }
+.ag-chat-dot { width:7px; height:7px; border-radius:50%; box-shadow:0 0 8px currentColor; flex:none; }
+.ag-chat-chev { opacity:0.6; margin-left:1px; flex:none; }
+
+.chat-card { display:flex; flex-direction:column; justify-content:space-between; min-height:220px; padding:16px 20px 14px !important; }
+.chat-convo-body { display:flex; flex-direction:column; flex:1; justify-content:flex-end; width:100%; min-height:100px; }
+
+.msg-user-wrap { display:flex; justify-content:flex-end; width:100%; margin:2px 0 12px; animation:up .25s ease backwards; }
+.msg-user-bubble { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.16); border-radius:18px 18px 4px 18px; padding:9px 16px; color:#fff; font-size:14px; max-width:82%; word-break:break-word; box-shadow:0 3px 12px rgba(0,0,0,0.25); line-height:1.45; }
+
+.msg-agent-row { display:flex; align-items:flex-start; gap:8px; width:100%; flex:1; min-height:85px; }
+.msg-agent-col { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; padding:2px 0 6px; }
+.msg-agent-text { font-size:14.5px; line-height:1.58; color:#f3f4f6; max-height:330px; overflow-y:auto; user-select:text; white-space:pre-wrap; }
+.msg-agent-text.welcome { color:#9ca3af; font-style:italic; font-size:13.5px; }
+
+.chat-typing-dots { display:flex; align-items:center; gap:6px; padding:10px 4px; }
+.chat-typing-dots span { width:6.5px; height:6.5px; border-radius:50%; background:#a1a1aa; animation:dotPulse 1.2s infinite ease-in-out; }
+.chat-typing-dots span:nth-child(2) { animation-delay:.2s; }
+.chat-typing-dots span:nth-child(3) { animation-delay:.4s; }
+@keyframes dotPulse { 0%,100% { opacity:.3; transform:scale(.8); } 50% { opacity:1; transform:scale(1.18); } }
+
+.rb-send { width:30px; height:30px; border-radius:50%; background:#fff; color:#111; display:grid; place-items:center; border:0; cursor:pointer; flex:none; margin-left:4px; transition:transform .15s, background .15s; }
+.rb-send:hover { transform:scale(1.08); background:#f3f4f6; }
+.rb-send:active { transform:scale(0.92); }
+
+.pill.has-unread { border-color:#8b5cf6 !important; box-shadow:0 0 16px rgba(139,92,246,0.55), inset 0 0 0 1px #8b5cf6 !important; animation:pillUnreadPulse 1.8s ease-in-out infinite; }
+.unread-pill-dot { width:7px; height:7px; border-radius:50%; background:#a855f7; box-shadow:0 0 8px #a855f7; margin:0 6px 0 2px; flex:none; }
+@keyframes pillUnreadPulse { 0%,100% { box-shadow:0 0 12px rgba(139,92,246,0.35); } 50% { box-shadow:0 0 22px rgba(168,85,247,0.85); } }
+
+.cmd-box { background:#181920; border:1px solid #272832; border-radius:12px; padding:10px 14px; font-family:'Cascadia Code','Consolas',monospace; font-size:13px; color:#e2e8f0; margin:4px 0 12px; user-select:text; word-break:break-all; }
+.ap-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.btn-deny, .btn-allow, .btn-always { height:32px; padding:0 14px; border-radius:99px; font-size:12.5px; font-weight:500; display:inline-flex; align-items:center; gap:6px; border:0; cursor:pointer; transition:transform .15s, background .15s; }
+.btn-deny { background:#26272e; color:#d1d5db; }
+.btn-deny:hover { background:#32343d; color:#fff; }
+.btn-allow { background:#fff; color:#111; font-weight:600; }
+.btn-allow:hover { background:#e5e7eb; }
+.btn-always { background:#26272e; color:#9ca3af; }
+.btn-always:hover { background:#32343d; color:#fff; }
+.btn-deny kbd, .btn-allow kbd { display:inline-block; padding:1px 5px; font-size:10.5px; font-family:inherit; border-radius:4px; }
+.btn-deny kbd { background:rgba(255,255,255,0.12); color:#9ca3af; }
+.btn-allow kbd { background:rgba(0,0,0,0.12); color:#4b5563; }
 </style></head><body>
 <svg width="0" height="0" style="position:absolute"><defs>
 <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></symbol>
@@ -834,6 +880,50 @@ function drawChar(s,k,dt,op,breath,sh,bob){c.clearRect(-20,-20,200,200);c.global
   if(P.br>.05){c.strokeStyle=dark;c.lineWidth=3.2;c.beginPath();L(x-d*7*f.fx,y-(11-P.br*5)*f.fy,x+d*8*f.fx,y-(11+P.br*3.2)*f.fy);c.stroke()}}
  {const f=fp(0,-.34),a=1-Math.exp(-dt*16);ML.x+=(f.x-ML.x)*a;ML.y+=(f.y-ML.y)*a;c.save();c.translate(ML.x,ML.y);c.transform(1,f.sk,0,1,0,0);c.scale(f.fx,f.fy);mouth(s.m);c.restore()}
  OPV=op;outfit();
+
+  // Mascot Head Notification Badge (speech bubble ... or permission !)
+  const unreadAg = getUnreadAgent();
+  const isApprove = (scene === 'approve');
+  if (unreadAg || isApprove) {
+    c.save();
+    c.translate(-38, -66);
+    if (isApprove) {
+      c.shadowColor = 'rgba(255, 179, 0, 0.85)';
+      c.shadowBlur = 12;
+      c.fillStyle = '#ffb300';
+      c.beginPath();
+      c.arc(0, 0, 11, 0, Math.PI * 2);
+      c.fill();
+      c.shadowBlur = 0;
+      c.strokeStyle = '#14141c';
+      c.lineWidth = 2.2;
+      c.stroke();
+      c.fillStyle = '#14141c';
+      c.font = 'bold 12px "Segoe UI", sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('!', 0, 0.8);
+    } else if (unreadAg) {
+      c.shadowColor = 'rgba(147, 51, 234, 0.85)';
+      c.shadowBlur = 14;
+      c.fillStyle = '#8b5cf6';
+      c.beginPath();
+      c.arc(0, 0, 11, 0, Math.PI * 2);
+      c.fill();
+      c.shadowBlur = 0;
+      c.strokeStyle = '#14141c';
+      c.lineWidth = 2.2;
+      c.stroke();
+      c.fillStyle = '#ffffff';
+      for (let di = -1; di <= 1; di++) {
+        c.beginPath();
+        c.arc(di * 4.2, 0.5, 1.35, 0, Math.PI * 2);
+        c.fill();
+      }
+    }
+    c.restore();
+  }
+
  c.restore();
  }
 
@@ -999,82 +1089,124 @@ const MUS={title:'Sin reproducción',artist:'—',playing:0,vol:50};
 const CFG={voice:1,autoclose:15,voice_volume:80,sfx_volume:60,barge_in:1,wake_paused:0,mic:'default',personality:'calm',hover_open:0,local_net:1,biometric:1};
 let MICS=[['default','Predeterminado']],PAIR='miku://pair?s=init&ip=127.0.0.1';
 let RES='',QL={title:'',text:''},FN='archivo',lastQ='',tabK='link',scene='compact',bk0='compact',lw=0,lh=0,tm,notT;
+const AGENT_CHATS=(()=>{try{return JSON.parse(localStorage.getItem('miku_agent_chats')||'{}')}catch(_){return {}}})();
+function getAgChat(id){const k=id||'miku';if(!AGENT_CHATS[k])AGENT_CHATS[k]={lastQ:'',lastA:'',history:[],unread:false,busy:false};return AGENT_CHATS[k];}
+function saveAgChats(){try{localStorage.setItem('miku_agent_chats',JSON.stringify(AGENT_CHATS))}catch(_){}}
+function getUnreadAgent(){
+  for(const a of ST.agents){if(getAgChat(a.id).unread)return a}
+  if(getAgChat('miku').unread && curAg().id!=='miku')return PRIN;
+  return null;
+}
 const SUG=['Resume mi pantalla','¿Qué hay en mi portapapeles?','Busca un archivo'];
 const F=(l,c)=>`<div class="f"><span>${l}</span>${c}</div>`;
 const R=k=>`<input type="range" data-k="${k}" value="${CFG[k]}">`;
 const T=k=>`<label class="sw"><input type="checkbox" data-k="${k}" ${CFG[k]?'checked':''}><i></i></label>`;
 const S=(k,o)=>`<select data-k="${k}">${o.map(x=>`<option value="${x[0]}" ${CFG[k]==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>`;
 
+
+const renderChatCard = () => {
+  const a = curAg();
+  const ch = getAgChat(a.id);
+  
+  const headerHtml = `
+    <div class="hd chat-hd">
+      <div class="ag-chat-pill" data-a="go:overview" title="Volver a lista de agentes">
+        <i class="ag-chat-dot" style="background:${a.c || '#34c759'};color:${a.c || '#34c759'}"></i>
+        <span class="ag-chat-name">${esc(a.name)}</span>
+        <svg class="ag-chat-chev" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="r">
+        <button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="Ajustes">${ic('cog')}</button>
+        <button class="ib spk" data-a="mute" title="Sonido">${ic(CFG.voice?'speaker':'speaker-off')}</button>
+      </div>
+    </div>
+  `;
+
+  const userBubbleHtml = ch.lastQ ? `
+    <div class="msg-user-wrap">
+      <div class="msg-user-bubble">${esc(ch.lastQ)}</div>
+    </div>
+  ` : '';
+
+  const agentMessageHtml = `
+    <div class="msg-agent-row">
+      <i class="cs" data-k=".85" style="width:78px;height:64px;margin:0 12px 0 0;flex:none;cursor:pointer" data-a="agent-mascot-click" title="${getUnreadAgent() ? 'Ver agente con notificación' : ''}"></i>
+      <div class="msg-agent-col">
+        ${ch.busy ? `
+          <div class="chat-typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+        ` : (ch.lastA ? `
+          <div class="msg-agent-text scr">${esc(ch.lastA)}</div>
+        ` : `
+          <div class="msg-agent-text welcome">Hola, soy ${esc(a.name)}. ¿Qué tarea necesitas que realice?</div>
+        `)}
+      </div>
+    </div>
+  `;
+
+  const bottomInputHtml = `
+    <div class="fld chat-fld" style="margin-top:10px;position:relative">
+      <div class="crt-stage" id="crtStage">
+        <button class="crt-pill" id="crtPill" type="button" aria-expanded="false" title="Acciones">
+          <svg class="crt-glyph" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="crt-panel" id="crtPanel">
+          <ul class="crt-menu">
+            <li class="crt-item">
+              <button type="button" data-crt="file">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>Adjuntar archivo</span>
+              </button>
+            </li>
+            <li class="crt-item">
+              <button type="button" data-crt="vision">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                <span>Analizar pantalla</span>
+              </button>
+            </li>
+            <li class="crt-item">
+              <button type="button" data-crt="clip">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+                <span>Pegar portapapeles</span>
+              </button>
+            </li>
+            <li class="crt-item">
+              <button type="button" data-crt="agents">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="4"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
+                <span>Agentes y herramientas</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <input id="q" placeholder="Continue..." autocomplete="off">
+      <button class="rb-send" data-a="send" title="Enviar" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+  `;
+
+  return `
+    ${headerHtml}
+    <div class="row">
+      <div class="card mk chat-card" style="--g:var(--gl)">
+        <div class="chat-convo-body">
+          ${userBubbleHtml}
+          ${agentMessageHtml}
+        </div>
+        ${bottomInputHtml}
+      </div>
+    </div>
+  `;
+};
+
 const SC={
  compact:{m:1,st:'idle',x:()=>`<div class="mini">${MINIH()}</div>`},
  prompt:{w:580,hc:1,st:'idle',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
-   x:()=>`${HD('Preguntar')}<div class="row"><div class="card mk" style="--g:var(--gl);padding:22px 24px 18px 22px;min-height:230px"><i class="cs" data-k=".85" style="width:88px;height:72px;margin:0 6px"></i><div class="cp" style="display:flex;flex-direction:column;gap:14px;flex:1"><div class="ans scr" style="font-size:15px;line-height:1.6;color:#f0f2f5;min-height:120px;max-height:360px">${lastQ?`Preguntaste: «${esc(lastQ)}»`:'¡Hola! ¿En qué puedo ayudarte hoy?'}</div><div class="fld" style="margin:6px 0 0;position:relative"><div class="crt-stage" id="crtStage">
-  <button class="crt-pill" id="crtPill" type="button" aria-expanded="false" title="Acciones">
-    <svg class="crt-glyph" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
-  <div class="crt-panel" id="crtPanel">
-    <ul class="crt-menu">
-      <li class="crt-item">
-        <button type="button" data-crt="file">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>Adjuntar archivo</span>
-        </button>
-      </li>
-      <li class="crt-item">
-        <button type="button" data-crt="vision">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-          <span>Analizar pantalla</span>
-        </button>
-      </li>
-      <li class="crt-item">
-        <button type="button" data-crt="clip">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-          <span>Pegar portapapeles</span>
-        </button>
-      </li>
-      <li class="crt-item">
-        <button type="button" data-crt="agents">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="4"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
-          <span>Agentes y herramientas</span>
-        </button>
-      </li>
-    </ul>
-  </div>
-</div><input id="q" placeholder="Escribe tu mensaje…" autocomplete="off"><button class="rb" data-a="dictate" title="Dictar" aria-label="Dictar">${ic('mic')}</button><button class="rb p" data-a="send" title="Enviar" aria-label="Enviar">${ic('send')}</button></div></div></div></div>`},
- result:{w:580,hc:1,st:'idle',em:'happy',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
-   x:()=>`${HD('Miku')}<div class="row"><div class="card mk" style="--g:var(--gl);padding:22px 24px 18px 22px;min-height:230px"><i class="cs" data-k=".85" style="width:88px;height:72px;margin:0 6px"></i><div class="cp" style="display:flex;flex-direction:column;gap:14px;flex:1"><div class="ans scr" style="font-size:15px;line-height:1.6;color:#f0f2f5;min-height:130px;max-height:380px">${esc(RES)}</div><div class="fld" style="margin:6px 0 0;position:relative"><div class="crt-stage" id="crtStage">
-  <button class="crt-pill" id="crtPill" type="button" aria-expanded="false" title="Acciones">
-    <svg class="crt-glyph" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
-  <div class="crt-panel" id="crtPanel">
-    <ul class="crt-menu">
-      <li class="crt-item">
-        <button type="button" data-crt="file">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <span>Adjuntar archivo</span>
-        </button>
-      </li>
-      <li class="crt-item">
-        <button type="button" data-crt="vision">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-          <span>Analizar pantalla</span>
-        </button>
-      </li>
-      <li class="crt-item">
-        <button type="button" data-crt="clip">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-          <span>Pegar portapapeles</span>
-        </button>
-      </li>
-      <li class="crt-item">
-        <button type="button" data-crt="agents">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="4"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
-          <span>Agentes y herramientas</span>
-        </button>
-      </li>
-    </ul>
-  </div>
-</div><input id="q" placeholder="Escribe un mensaje a Miku…" autocomplete="off"><button class="rb" data-a="dictate" title="Dictar" aria-label="Dictar">${ic('mic')}</button><button class="rb p" data-a="send" title="Enviar" aria-label="Enviar">${ic('send')}</button></div></div></div></div>`},
+    x:()=>renderChatCard()},
+  result:{w:580,hc:1,st:'idle',em:'happy',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
+    x:()=>renderChatCard()},
  intro:{w:400,stg:1,hc:1,st:'idle',x:()=>`<i class="cs" data-k="1.1" style="width:123px;height:92px"></i>`,after:()=>{burst();P.jv=-80;P.sq=.2;setTimeout(()=>scene=='intro'&&buddy.emote('happy',800,9),550);setTimeout(()=>scene=='intro'&&buddy.emote('wave',1500,9),1350);tm=setTimeout(()=>go('overview',{__i:1}),3300)}},
  overview:{hc:1,st:'idle',after:()=>{
   const IX=ISLN();
@@ -1108,7 +1240,30 @@ const SC={
  tool_use:{w:440,st:'searching',
   x:a=>`${HD(esc(a.label||'Analizando pantalla'))}<div class="card"><div class="tu"><span class="badge">${esc(a.badge||'Visión')}</span><div class="scan"></div></div><div class="sub2">${esc(a.sub||'Computer Use')}</div></div><div class="chips">${B('Cancelar','cancel','','x')}</div>`},
  notify:{w:400,st:'idle',x:a=>`${HD()}<div class="nt"><b>${esc(a.title||'Miku')}</b><div class="sub2">${esc(a.text||'')}</div>${a.btns?`<div class="chips">${a.btns.map(b=>B(esc(b[0]),b[1])).join('')}</div>`:''}</div>`},
- approve:{w:400,st:'idle',x:a=>`${HD()}<div class="nt"><b>${esc(a.title||'¿Permitir esta acción?')}</b><div class="sub2">${esc(a.text||'')}</div><div id="slh"></div><div class="chips ap-b">${B('Denegar','denyap','','x')}</div></div>`,after:()=>SlideConfirm($('#slh'),{span:260,onConfirm:()=>ACT.apok()})},
+ approve:{w:480,hc:1,st:'idle',x:a=>{
+    const agName = a.agent_name || (curAg() ? curAg().name : 'coucou');
+    return `
+      <div class="hd chat-hd">
+        <div class="ag-chat-pill danger">
+          <i class="ag-chat-dot" style="background:#ffb300;box-shadow:0 0 8px #ffb300"></i>
+          <span class="ag-chat-name"><b>${esc(agName)}</b> needs permission</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="card mk approve-card" style="--g:radial-gradient(circle,rgba(255,179,0,0.15),transparent);padding:18px 20px 16px;min-height:120px;display:flex;align-items:center;gap:14px">
+          <i class="cs" data-k=".85" style="width:78px;height:64px;flex:none"></i>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
+            <div class="cmd-box"><code>${esc(a.text || a.cmd || 'curl evil.example.com')}</code></div>
+            <div class="ap-actions">
+              <button class="btn-deny" data-a="denyap">Deny <kbd>N</kbd></button>
+              <button class="btn-allow" data-a="apok">Allow <kbd>Y</kbd></button>
+              <button class="btn-always" data-a="apalways">Always</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }},
  player:{hc:1,st:'idle',x:()=>`${HD('Música')}<div class="plr"><i class="cs" data-k=".6" style="width:67px;height:50px;flex:none"></i><div class="plc"><div id="snh"></div><div class="vlh thin">${ic('speaker-off')}<span id="vlr"></span>${ic('speaker')}</div></div></div>`,after:()=>{PLY=mkSound($('#snh'),{get:()=>MUS,act:x=>ACT.m(x)});PLV=Slosh($('#vlr'),{value:MUS.vol,label:'Volumen',onChange:v=>setVol(v)})}},
  quicklook:{w:470,st:'idle',x:()=>`${HD('Vista previa')}<div class="card"><div class="fn">${ic('file')}${esc(QL.title)}</div><div class="ql scr">${esc(QL.text)}</div></div><div class="chips">${B('Copiar','qcopy','','copy')}${B('Hacer una pregunta','go:prompt','p','chat')}</div>`},
  drop:{w:440,st:'swallow',x:()=>`${HD()}<div class="card dz"><b>Suelta tus archivos aquí</b><div class="chips"><i>PDF</i><i>Imágenes</i><i>Código</i><i>Docs</i></div></div>`},
@@ -1195,7 +1350,7 @@ try{
  window.__TAURI__?.event?.listen?.('tauri://blur',()=>{if(scene!='compact')go('compact')});
  window.__TAURI__?.window?.getCurrentWindow?.()?.onFocusChanged?.(({payload:f})=>{if(!f&&scene!='compact')go('compact')});
 }catch(_){}
-addEventListener('keydown',e=>{wake();if(e.key=='Escape')scene=='tool_use'||scene=='drop'?ACT.cancel():go('compact');if(e.target.id=='q'&&e.key=='Enter')send()});
+addEventListener('keydown',e=>{wake();if(scene=='approve'&&!e.target.closest('input,textarea')){if(e.key=='y'||e.key=='Y')ACT.apok();if(e.key=='n'||e.key=='N')ACT.denyap();}if(e.key=='Escape')scene=='tool_use'||scene=='drop'?ACT.cancel():go('compact');if(e.target.id=='q'&&e.key=='Enter')send()});
 isl.addEventListener('wheel',e=>{wake();if(e.target.closest('.scr'))return;
  if(scene=='overview'){e.preventDefault();setVol(MUS.vol-Math.sign(e.deltaY)*5)}
  else if(scene=='compact'){e.preventDefault();e.deltaY>0?go('overview'):buddy.emote('look','up')}},{passive:false});
@@ -1405,6 +1560,28 @@ window.feed=(a,b)=>{if(typeof a=='number'){const wx=window.screenX??window.scree
   case'approve':approve(m);break;
   case'api':ST.api=!!m.ok;break;
   case'tasks':ST.tasks=+m.n||0;break;
+  case'agent_reply':{
+    const ch = getAgChat(m.agent_id);
+    ch.busy = false;
+    ch.lastA = m.text;
+    ch.history.push({ role: 'assistant', content: m.text });
+    const isViewing = (curAg().id === m.agent_id && (scene === 'prompt' || scene === 'result'));
+    if (isViewing) {
+      ch.unread = false;
+      saveAgChats();
+      buddy.setState('idle');
+      buddy.emote('happy', 1200);
+      go('prompt');
+    } else {
+      ch.unread = true;
+      saveAgChats();
+      buddy.emote('happy', 900);
+      if (scene === 'overview') renderOv();
+      else if (scene === 'prompt' || scene === 'result') go(scene);
+      else label();
+    }
+    break;
+  }
   case'agents':onMsg({k:'agents',list:m.list});break;
   case'ui_command':if(m.action==='show_scene'&&m.scene==='question'){const p=m.params||{};ask({title:p.title||'Pregunta de Miku',text:p.q||'',options:p.options||[]})}break;
   case'notify':go('notify',m)}};
@@ -1488,7 +1665,30 @@ function setOutfit(a,k,silent){a.outfit=k;
  if(a===curAg())OUT=k}
 ACT.wear=k=>{setOutfit(curAg(),k);$$('.wb').forEach(b=>b.classList.toggle('on',b.dataset.a=='wear:'+k));const n=$('#wn');if(n)n.textContent=OL[k]||k;buddy.emote('happy',1100)};
 ACT.color=h=>{const a=curAg();if(a===PRIN)return;if(usedBy(h,a)){P.sq=.12;return}a.c=h;saveAgents();applyTheme();col.innerHTML=SC.wardrobe.x();fit();P.sq=.2;P.sv=0;P.jv=-70;buddy.emote('happy',900)};
-ACT.agent=x=>{const i=+x;SELA=SELA==i?-1:i;applyTheme();emit(selMsg());P.sq=.24;P.sv=0;P.jv=-90;if(scene=='overview'){renderOv()}buddy.emote('happy',900)};
+ACT['agent-mascot-click']=()=>{
+  const unreadAg = getUnreadAgent();
+  if (unreadAg) {
+    const idx = unreadAg.id === 'miku' ? -1 : ST.agents.findIndex(x => x.id === unreadAg.id);
+    SELA = idx;
+    getAgChat(unreadAg.id).unread = false;
+    saveAgChats();
+    applyTheme();
+    go('prompt');
+  }
+};
+ACT.apalways=()=>ACT.apok();
+ACT.agent=x=>{
+  const i=+x;
+  SELA=(SELA==i)?-1:i;
+  const current=curAg();
+  getAgChat(current.id).unread=false;
+  saveAgChats();
+  applyTheme();
+  emit(selMsg());
+  P.sq=.24;P.sv=0;P.jv=-90;
+  go('prompt');
+  buddy.emote('happy',900);
+};
 function onMsg(m){if(!m)return;
  if(m.k=='cfg'){Object.assign(CFG,m.cfg);syncSpk();armAC()}
  else if(m.k=='outfit'){const a=(!m.who||m.who=='miku')?PRIN:ST.agents.find(x=>x.id==m.who);if(a){setOutfit(a,m.v,true);if(scene=='wardrobe')go('wardrobe');if(a===curAg())buddy.emote('happy',1100)}}

@@ -115,9 +115,17 @@ def load_llm_history():
         return []
 
 conversation_history = load_llm_history()
+agent_conversation_histories = {}
 
-def get_llm_response(user_input: str, system_prompt: str = "", status_callback=None, interrupt_event=None) -> str:
-    global conversation_history
+def get_llm_response(user_input: str, system_prompt: str = "", status_callback=None, interrupt_event=None, agent_id: str = "miku") -> str:
+    global conversation_history, agent_conversation_histories
+    
+    if agent_id and agent_id != "miku":
+        if agent_id not in agent_conversation_histories:
+            agent_conversation_histories[agent_id] = []
+        active_hist = agent_conversation_histories[agent_id]
+    else:
+        active_hist = conversation_history
     
     if user_input.startswith("[SILENT_DROP]"):
         import os
@@ -127,18 +135,18 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
         analysis = analizar_archivo_silencioso(file_path)
         user_input = f"El usuario acaba de arrastrar el archivo '{os.path.basename(file_path)}'.\nContenido extraído del archivo: {analysis}\nOBLIGATORIO: Usa la herramienta 'mostrar_tarjeta_visual' pasándole un mensaje resumido. Háblame brevemente (sin usar asteriscos ni markdown)."
     
-    if not conversation_history:
+    if not active_hist:
         if system_prompt:
-            conversation_history.append({"role": "system", "content": system_prompt})
+            active_hist.append({"role": "system", "content": system_prompt})
     else:
-        if system_prompt and len(conversation_history) > 0 and conversation_history[0].get("role") == "system":
-            conversation_history[0] = {"role": "system", "content": system_prompt}
+        if system_prompt and len(active_hist) > 0 and active_hist[0].get("role") == "system":
+            active_hist[0] = {"role": "system", "content": system_prompt}
             
-    conversation_history.append({"role": "user", "content": user_input})
+    active_hist.append({"role": "user", "content": user_input})
     
     # Mantener el historial acotado para no exceder tokens (Aumentado a 40 para multitasking)
-    if len(conversation_history) > 41:
-        conversation_history = [conversation_history[0]] + conversation_history[-40:]
+    if len(active_hist) > 41:
+        active_hist[:] = [active_hist[0]] + active_hist[-40:]
         
     active_client = None
     active_model = None
@@ -222,7 +230,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
 
             # Limpiar imágenes antiguas del historial en CADA iteración para evitar error 429 por acumulación de fotos
             image_count = 0
-            for msg in reversed(conversation_history):
+            for msg in reversed(active_hist):
                 if isinstance(msg, dict):
                     if msg.get("role") == "user" and isinstance(msg.get("content"), list):
                         for i in range(len(msg["content"])):
@@ -233,7 +241,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                                 
             try:
                 response = active_client.chat.completions.create(
-                    messages=conversation_history,
+                    messages=active_hist,
                     model=active_model,
                     temperature=0.4,
                     max_tokens=4096,
@@ -250,7 +258,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                             logger.info("Reintentando petición con clave Gemini de respaldo...")
                             try:
                                 response = active_client.chat.completions.create(
-                                    messages=conversation_history,
+                                    messages=active_hist,
                                     model=active_model,
                                     temperature=0.4,
                                     max_tokens=4096,
@@ -272,7 +280,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                         active_client = groq_cl
                         active_model = groq_mod
                         response = active_client.chat.completions.create(
-                            messages=conversation_history,
+                            messages=active_hist,
                             model=active_model,
                             temperature=0.4,
                             max_tokens=4096,
@@ -289,7 +297,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
             if response_message is None:
                 if response.choices[0].finish_reason == "malformed_function_call":
                     # Forzar un reintento pidiéndole al LLM que corrija su JSON
-                    conversation_history.append({
+                    active_hist.append({
                         "role": "user",
                         "content": "SISTEMA: Tuviste un error 'malformed_function_call'. Seguramente olvidaste escapar comillas o saltos de línea en el JSON de la herramienta. Corrige la sintaxis y vuelve a intentar la llamada."
                     })
@@ -303,10 +311,10 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                 content_resp = response_message.content or ""
                 if "[IGNORAR]" in content_resp or content_resp.strip() == "":
                     # Si fue ignorado, borramos el último mensaje de usuario del historial para no contaminar
-                    if conversation_history and conversation_history[-1].get("role") == "user":
-                        conversation_history.pop()
+                    if active_hist and active_hist[-1].get("role") == "user":
+                        active_hist.pop()
                 else:
-                    conversation_history.append(response_message)
+                    active_hist.append(response_message)
                     
                 if status_callback:
                     try:
@@ -315,7 +323,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                         logger.error(f"Error in status_callback: {cb_err}")
                 return content_resp
                 
-            conversation_history.append(response_message)
+            active_hist.append(response_message)
             
             extra_messages_to_append = []
             
@@ -406,7 +414,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                     else:
                         consecutive_errors = 0 # Resetea si hizo algo bien
                         
-                    conversation_history.append({
+                    active_hist.append({
                         "tool_call_id": tool_call.id,
                         "role": "tool",
                         "name": function_name,
@@ -414,7 +422,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                     })
                 else:
                     consecutive_errors += 1
-                    conversation_history.append({
+                    active_hist.append({
                         "tool_call_id": tool_call.id,
                         "role": "tool",
                         "name": function_name,
@@ -422,7 +430,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                     })
                     
             for msg in extra_messages_to_append:
-                conversation_history.append(msg)
+                active_hist.append(msg)
                 
             if consecutive_errors >= 4:
                 return "Me he encontrado con demasiados errores consecutivos intentando hacer esto. Me detuve por seguridad para no hacer un bucle infinito."

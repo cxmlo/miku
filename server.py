@@ -165,10 +165,17 @@ def get_mouse_position():
 class ChatRequest(BaseModel):
     message: str
     source: str = "mobile"  # 'mobile' o 'pc'
+    agent_id: str = "miku"
+    agent_name: str = "Miku"
+    agent_prompt: str = ""
+    agent_mcp: Optional[str] = None
+    silent: bool = False
 
 class ChatResponse(BaseModel):
     reply: str
-    audio_url: str = None
+    audio_url: Optional[str] = None
+    agent_id: Optional[str] = "miku"
+    agent_name: Optional[str] = "Miku"
 
 from datetime import datetime
 import json
@@ -276,6 +283,13 @@ async def stop_endpoint(api_key: str = Security(get_api_key)):
     await manager.broadcast_message({"type": "ui_command", "action": "status_update", "text": "Idle"})
     return {"status": "stopped"}
 
+@app.post("/api/speech/stop")
+async def stop_speech_endpoint():
+    """Detiene inmediatamente cualquier audio o sintetizador de voz en ejecución."""
+    from audio_handler import stop_speaking
+    stop_speaking()
+    return {"status": "speech_stopped"}
+
 @app.get("/history")
 def get_history(api_key: str = Security(get_api_key)):
     return {"messages": get_chat_history()}
@@ -284,9 +298,11 @@ def get_history(api_key: str = Security(get_api_key)):
 async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
     user_input = req.message
     source = req.source
-    logger.info(f"Petición de Texto recibida de {source}: {user_input}")
+    is_miku = (req.agent_id == "miku")
+    is_silent = req.silent or not is_miku
+    logger.info(f"Petición de Texto recibida de {source} [Agente: {req.agent_name} ({req.agent_id})]: {user_input}")
     
-    user_msg = {"id": str(int(time.time()*1000)), "text": user_input, "sender": "user"}
+    user_msg = {"id": str(int(time.time()*1000)), "text": user_input, "sender": "user", "agent_id": req.agent_id}
     append_to_chat_history(user_msg)
     await manager.broadcast_message(user_msg)
     
@@ -297,62 +313,79 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
         from agents import agent_manager
         agent_manager.cancel_all()
         await manager.broadcast_message({"type": "ui_command", "action": "status_update", "text": "Idle"})
-        return ChatResponse(reply="[IGNORAR]")
+        return ChatResponse(reply="[IGNORAR]", agent_id=req.agent_id, agent_name=req.agent_name)
     
     main_loop = asyncio.get_running_loop()
     def status_callback(status: str):
         try:
             asyncio.run_coroutine_threadsafe(
-                manager.broadcast_message({"type": "ui_command", "action": "status_update", "text": status}),
+                manager.broadcast_message({"type": "ui_command", "action": "status_update", "text": status, "agent_id": req.agent_id}),
                 main_loop
             )
         except Exception:
             pass
 
     os.environ["MIKU_CURRENT_SOURCE"] = source
-    sys_prompt = get_system_prompt(user_input, source=source)
+    if is_miku:
+        sys_prompt = get_system_prompt(user_input, source=source)
+    else:
+        custom_instructions = req.agent_prompt.strip() if req.agent_prompt else ""
+        mcp_note = f"\nTienes conectado el servidor MCP '{req.agent_mcp}'. Utiliza sus herramientas mcp_{req.agent_mcp}_* prioritariamente para ejecutar tareas de forma autónoma (ej. Pull Requests, inspección de archivos, base de datos)." if req.agent_mcp else ""
+        sys_prompt = f"""Eres {req.agent_name}, un agente técnico autónomo y altamente capacitado del ecosistema Miku.
+Instrucciones específicas de tu rol:
+{custom_instructions if custom_instructions else 'Eres un asistente técnico proactivo. Ejecuta las órdenes técnicas que te asigne el usuario.'}{mcp_note}
+
+REGLAS DE OPERACIÓN:
+1. Responde de forma técnica, estructurada, precisa y concisa.
+2. NUNCA uses etiquetas de voz <voz> ni hables como mascota kawaii; eres un agente técnico.
+3. Eres silencioso (no reproduces audio por altavoces). Tu salida es puramente texto y herramientas.
+4. Si se te solicita una acción técnica (como una pull request, ejecutar un comando, revisar código), utiliza las herramientas disponibles a tu alcance y devuelve un resumen concreto y útil de lo ejecutado."""
+
     response_text = await asyncio.to_thread(
         get_llm_response,
         user_input,
         sys_prompt,
-        status_callback
+        status_callback,
+        None,
+        req.agent_id
     )
     
     # Separar voz corta del texto completo (si usa <voz>)
     voice_text, chat_text = extract_voice_text(response_text)
     
-    miku_msg = {"id": str(int(time.time()*1000) + 1), "text": chat_text, "sender": "miku"}
-    append_to_chat_history(miku_msg)
-    await manager.broadcast_message(miku_msg)
+    agent_msg = {"id": str(int(time.time()*1000) + 1), "text": chat_text, "sender": req.agent_id, "agent_id": req.agent_id, "agent_name": req.agent_name}
+    append_to_chat_history(agent_msg)
+    await manager.broadcast_message(agent_msg)
     
     # Imprimir en la terminal para el usuario
-    logger.info(f"[Miku]: {chat_text}")
+    logger.info(f"[{req.agent_name}]: {chat_text}")
     
-    if source in ("pc", "desktop"):
-        # Reproducir localmente en la PC
-        import threading
-        sync_miku_state("talking")
-        speech_text = clean_text_for_speech(voice_text)
-        threading.Thread(target=speak, args=(speech_text,), daemon=True).start()
-    else:
-        # Tarea asíncrona para no bloquear la respuesta HTTP instantánea del celular
-        async def send_audio_async():
-            speech_text = clean_text_for_speech(voice_text)
-            audio_path = await generate_full_audio_file(speech_text)
-            if audio_path:
-                filename = f"miku_response_{int(time.time())}.mp3"
-                dest_path = os.path.join(tempfile.gettempdir(), filename)
-                shutil.copy2(audio_path, dest_path)
-                audio_url = f"/api/audio_temp/{filename}"
-                await manager.broadcast_message({
-                    "type": "ui_command", 
-                    "action": "play_audio", 
-                    "url": audio_url
-                })
-        
-        asyncio.create_task(send_audio_async())
+    if is_miku and not is_silent:
+        if source in ("pc", "desktop"):
+            if len(manager.active_connections) > 0:
+                import threading
+                sync_miku_state("talking")
+                speech_text = clean_text_for_speech(voice_text)
+                threading.Thread(target=speak, args=(speech_text,), daemon=True).start()
+        else:
+            # Tarea asíncrona para no bloquear la respuesta HTTP instantánea del celular
+            async def send_audio_async():
+                speech_text = clean_text_for_speech(voice_text)
+                audio_path = await generate_full_audio_file(speech_text)
+                if audio_path:
+                    filename = f"miku_response_{int(time.time())}.mp3"
+                    dest_path = os.path.join(tempfile.gettempdir(), filename)
+                    shutil.copy2(audio_path, dest_path)
+                    audio_url = f"/api/audio_temp/{filename}"
+                    await manager.broadcast_message({
+                        "type": "ui_command", 
+                        "action": "play_audio", 
+                        "url": audio_url
+                    })
+            
+            asyncio.create_task(send_audio_async())
     
-    return ChatResponse(reply=chat_text)
+    return ChatResponse(reply=chat_text, agent_id=req.agent_id, agent_name=req.agent_name)
 
 @app.post("/audio", response_model=ChatResponse)
 async def audio_endpoint(file: UploadFile = File(...), api_key: str = Security(get_api_key)):

@@ -345,9 +345,10 @@ const Bridge = (() => {
 
   /* ---------------- OUTGOING BRIDGE METHODS ---------------- */
 
-  // 1. Send chat prompt
-  function sendChat(text) {
+  // 1. Send chat prompt per agent
+  function sendChat(text, agent) {
     if (!text || !text.trim()) return;
+    const ag = agent || { id: "miku", name: "Miku" };
     window.feed?.({ type: "state", name: "thinking" });
 
     apiFetch("/chat", {
@@ -355,21 +356,42 @@ const Bridge = (() => {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ message: text, source: "desktop" })
+      body: JSON.stringify({
+        message: text,
+        source: "desktop",
+        agent_id: ag.id,
+        agent_name: ag.name,
+        agent_prompt: ag.prompt || "",
+        agent_mcp: ag.mcp || null,
+        silent: (ag.id !== "miku")
+      })
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data && data.reply && !data.reply.includes("[IGNORAR]")) {
-          window.feed?.({ type: "state", name: "happy" });
-          window.feed?.({ type: "scene", name: "result", args: { text: data.reply } });
+          window.feed?.({
+            type: "agent_reply",
+            agent_id: ag.id,
+            agent_name: ag.name,
+            text: data.reply
+          });
         }
       })
       .catch((err) => {
         console.warn("[Bridge] Error sending chat:", err);
-        window.feed?.({ type: "state", name: "error" });
-        window.feed?.({ type: "scene", name: "notify", args: { title: "Error de conexión", text: err.message } });
+        window.feed?.({
+          type: "agent_reply",
+          agent_id: ag.id,
+          agent_name: ag.name,
+          error: err.message,
+          text: "Error de conexión: " + err.message
+        });
       });
+  }
+
+  function stopSpeech() {
+    apiFetch("/api/speech/stop", { method: "POST" }).catch(() => {});
   }
 
   // 2. Dictate toggle
@@ -750,7 +772,8 @@ const Bridge = (() => {
     getDetectableApps,
     getRunningApps,
     getDesktopStatus,
-    getElevenLabsVoices
+    getElevenLabsVoices,
+    stopSpeech
   };
 })();
 
@@ -760,5 +783,11 @@ if (document.readyState === "loading") {
 } else {
   Bridge.init();
 }
+
+window.addEventListener("beforeunload", () => {
+  try {
+    Bridge.stopSpeech();
+  } catch (_) {}
+});
 
 window.Bridge = Bridge;
