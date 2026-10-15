@@ -256,4 +256,12 @@ def get_system_prompt(user_input: str = "", source: str = "pc") -> str:
         "26. [HERRAMIENTAS DISPONIBLES PARA CELULAR]: ¡RECUERDA! SÍ TIENES las herramientas 'enviar_archivo_a_celular(ruta)' y 'enviar_imagen_a_chat(ruta_imagen, mensaje)'. "
         "NUNCA digas que no puedes enviar archivos o imágenes al celular. ¡SIEMPRE PUEDES! Solo necesitas la ruta absoluta del archivo."
     )
+
+    # 4. Idioma del sistema configurado por el usuario
+    current_lang = load_settings().get("lang", "es")
+    if current_lang == "en":
+        prompt += "\n\n[LANGUAGE REQUIREMENT - CRITICAL]: The user has chosen ENGLISH as the interface language. You MUST always speak, reason, and reply in ENGLISH. All voice synthesis and chat output must be in natural, fluent English."
+    else:
+        prompt += "\n\n[IDIOMA DEL SISTEMA]: El usuario ha seleccionado ESPAÑOL. Debes responder, razonar y hablar siempre en ESPAÑOL de forma natural y cercana."
+
     return prompt

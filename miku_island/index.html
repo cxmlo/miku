@@ -7,10 +7,10 @@
 *{box-sizing:border-box;margin:0;-webkit-user-select:none;user-select:none}
 html,body{height:100%;background:transparent;overflow:hidden;font:14px/1.4 'Segoe UI Variable','Segoe UI',system-ui,sans-serif;color:#fff}
 .island{position:fixed;top:0;left:50%;translate:-50% 0;width:340px;height:44px;border-radius:0 0 22px 22px;background:#000;overflow:hidden;
- transition:width .55s var(--spr),height .55s var(--spr),border-radius .45s}
+ transition:width .42s cubic-bezier(.32,.72,0,1),height .42s cubic-bezier(.32,.72,0,1),border-radius .35s}
 .island.vz{box-shadow:0 0 0 1.5px color-mix(in srgb,var(--vc) 55%,transparent),0 5px 14px color-mix(in srgb,var(--vc) 30%,transparent);animation:vp 1.6s ease-in-out infinite}
 @keyframes vp{50%{box-shadow:0 0 0 2.5px color-mix(in srgb,var(--vc) 80%,transparent),0 6px 14px color-mix(in srgb,var(--vc) 48%,transparent)}}
-#in{position:absolute;left:0;top:0;width:max-content;min-width:340px;max-width:680px;display:flex;align-items:center;gap:10px;padding:10px 18px 18px 12px}
+#in{position:absolute;left:0;top:0;width:max-content;min-width:340px;max-width:680px;display:flex;align-items:center;gap:10px;padding:10px 18px 18px 12px;transition:opacity .15s ease}
 #in.m{align-items:center;height:44px;padding:0 14px 0 8px}
 .mkw{position:relative;flex:none;cursor:pointer}
 .cs{display:block;flex:none;margin:0 auto;cursor:pointer}
@@ -33,7 +33,7 @@ html,body{height:100%;background:transparent;overflow:hidden;font:14px/1.4 'Sego
 .minis{display:flex;flex-direction:column;gap:11px;justify-content:center;width:44px;margin-left:8px}
 .mi{display:block;width:34px;height:26px;margin:0 auto;border-radius:50% 50% 46% 46%;position:relative;background:radial-gradient(circle at 34% 68%,#14141c 1.6px,#0000 2.1px),radial-gradient(circle at 66% 68%,#14141c 1.6px,#0000 2.1px),linear-gradient(#fff5,#0000 60%),var(--c)}
 .mi:before{content:"";position:absolute;left:-2px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--d);border:1.5px solid #14141c}
-.island.closing{transition:width .34s cubic-bezier(.45,0,.2,1),height .34s cubic-bezier(.45,0,.2,1),border-radius .3s}
+.island.closing{transition:width .36s cubic-bezier(.32,.72,0,1),height .36s cubic-bezier(.32,.72,0,1),border-radius .32s}
 #warp{z-index:2}#in{z-index:1}
 #in.hc{padding:6px 10px 10px}.hd{padding:0 6px}
 .card.mk{padding:12px 16px 12px 6px}
@@ -946,15 +946,40 @@ function applyWinSize(w,h){
  if(window.pywebview?.api?.resize_window)window.pywebview.api.resize_window(w,h);
  else if(window.__TAURI__?.core?.invoke)window.__TAURI__.core.invoke('resize_window',{width:w,height:h}).catch(()=>{});
 }
-let cw=0,ch=0,wt;
+let cw=0,ch=0,wt=null,shrinkTimer=null;
 function notify(){
- const r=isl.getBoundingClientRect(),W=Math.ceil(Math.max(r.width,lw)+16),H=Math.ceil(Math.max(r.height,lh)+12);
- if(scene==='compact'){
-  clearTimeout(wt);cw=W;ch=H;applyWinSize(W,H);return;
+ const r=isl.getBoundingClientRect();
+ const isComp=(scene==='compact');
+ if(isComp){
+  clearTimeout(shrinkTimer);
+  clearTimeout(wt);
+  // Mantener la ventana nativa amplia durante los 400ms de animación de cierre para que NUNCA se corte el contenido
+  shrinkTimer=setTimeout(()=>{
+   if(scene==='compact'){
+    const compW=Math.max(340,Math.ceil(isl.offsetWidth)+16);
+    const compH=Math.max(48,Math.ceil(isl.offsetHeight)+12);
+    cw=compW;ch=compH;
+    applyWinSize(compW,compH);
+   }
+  },420);
+  return;
  }
- const gw=Math.max(W,cw),gh=Math.max(H,ch);
- cw=gw;ch=gh;applyWinSize(gw,gh);clearTimeout(wt);
- if(gw>W||gh>H)wt=setTimeout(()=>{cw=W;ch=H;applyWinSize(W,H)},350);
+ clearTimeout(shrinkTimer);
+ const W=Math.ceil(Math.max(r.width,lw)+24),H=Math.ceil(Math.max(r.height,lh)+20);
+ const gw=Math.max(W,cw,620),gh=Math.max(H,ch,460);
+ cw=gw;ch=gh;
+ applyWinSize(gw,gh);
+ clearTimeout(wt);
+ if(gw>W||gh>H){
+  wt=setTimeout(()=>{
+   if(scene!=='compact'){
+    const fw=Math.ceil(Math.max(isl.offsetWidth,lw)+24);
+    const fh=Math.ceil(Math.max(isl.offsetHeight,lh)+20);
+    cw=fw;ch=fh;
+    applyWinSize(fw,fh);
+   }
+  },400);
+ }
 }
 new ResizeObserver(notify).observe(isl);addEventListener('pywebviewready',notify);
 addEventListener('DOMContentLoaded',()=>{setTimeout(notify,150)});

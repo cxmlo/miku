@@ -910,30 +910,39 @@ async def control_media_endpoint(req: MediaControlRequest):
     action = req.action.lower().strip()
     
     def _do_control():
+        success = False
         try:
             import tools_spotify
             if not tools_spotify.sp:
                 tools_spotify.init_spotify()
             
+            res = None
             if action in ["play", "start"]:
-                tools_spotify.controlar_spotify("play")
+                res = tools_spotify.controlar_spotify("play")
             elif action in ["pause", "stop"]:
-                tools_spotify.controlar_spotify("pause")
+                res = tools_spotify.controlar_spotify("pause")
             elif action == "toggle":
                 cur = tools_spotify.sp.current_playback() if tools_spotify.sp else None
                 if cur and cur.get("is_playing"):
-                    tools_spotify.controlar_spotify("pause")
+                    res = tools_spotify.controlar_spotify("pause")
                 else:
-                    tools_spotify.controlar_spotify("play")
+                    res = tools_spotify.controlar_spotify("play")
             elif action in ["next", "fwd"]:
-                tools_spotify.controlar_spotify("next")
+                res = tools_spotify.controlar_spotify("next")
             elif action in ["previous", "prev", "back"]:
-                tools_spotify.controlar_spotify("previous")
+                res = tools_spotify.controlar_spotify("previous")
             elif action in ["vol", "volume"] and req.param is not None:
-                tools_spotify.cambiar_volumen_spotify(int(req.param))
+                res = tools_spotify.cambiar_volumen_spotify(int(req.param))
             else:
-                tools_spotify.controlar_spotify(action)
-        except Exception:
+                res = tools_spotify.controlar_spotify(action)
+            
+            if res and not str(res).lower().startswith("error"):
+                success = True
+        except Exception as e:
+            logger.warning(f"Spotify API control failed: {e}")
+            success = False
+
+        if not success:
             VK_MEDIA_NEXT_TRACK = 0xB0
             VK_MEDIA_PREV_TRACK = 0xB1
             VK_MEDIA_PLAY_PAUSE = 0xB3
@@ -947,6 +956,7 @@ async def control_media_endpoint(req: MediaControlRequest):
             if key:
                 ctypes.windll.user32.keybd_event(key, 0, 0, 0)
                 ctypes.windll.user32.keybd_event(key, 0, 2, 0)
+                logger.info(f"[Media] Simulado atajo multimedia Windows para acción '{action}'")
 
     await asyncio.to_thread(_do_control)
     await asyncio.sleep(0.3)
@@ -1150,6 +1160,77 @@ async def update_alerts_config(req: UpdateAlertsRequest):
     with open(ALERTS_FILE, "w", encoding="utf-8") as f:
         json.dump(req.alerts, f, indent=2, ensure_ascii=False)
     return {"status": "ok", "alerts": req.alerts}
+
+KNOWN_DETECTABLE_APPS = [
+    {
+        "id": "vscode",
+        "name": "Visual Studio Code",
+        "process": "code.exe",
+        "category": "trabajo",
+        "icon": '<svg viewBox="0 0 24 24" fill="#007ACC"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .32 8.697L3.9 12 .32 15.303a1 1 0 0 0 .007 1.436l1.322 1.202a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352z"/></svg>'
+    },
+    {
+        "id": "discord",
+        "name": "Discord",
+        "process": "discord.exe",
+        "category": "ocio",
+        "icon": '<svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>'
+    },
+    {
+        "id": "chrome",
+        "name": "Google Chrome",
+        "process": "chrome.exe",
+        "category": "navegador",
+        "icon": '<svg viewBox="0 0 24 24"><path fill="#EA4335" d="M12 2C6.48 2 2 6.48 2 12c0 2.85 1.2 5.42 3.12 7.24L8.7 13.5A5.5 5.5 0 0 1 12 6.5h9.72A9.97 9.97 0 0 0 12 2z"/><path fill="#4285F4" d="M12 6.5A5.5 5.5 0 0 1 17.5 12c0 .88-.21 1.71-.58 2.45l5.22 3.01C23.28 15.74 24 13.96 24 12c0-5.52-4.48-10-10-10H12v4.5z"/><path fill="#FBBC05" d="M12 17.5a5.5 5.5 0 0 1-4.76-2.75L1.86 17.9A9.97 9.97 0 0 0 12 22c4.05 0 7.57-2.41 9.14-5.88L15.92 13.1A5.48 5.48 0 0 1 12 17.5z"/><circle fill="#FFF" cx="12" cy="12" r="3.8"/><circle fill="#1A73E8" cx="12" cy="12" r="3"/></svg>'
+    },
+    {
+        "id": "spotify",
+        "name": "Spotify",
+        "process": "spotify.exe",
+        "category": "ocio",
+        "icon": '<svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.65c-.2.32-.6.41-.92.21-2.52-1.54-5.7-1.89-9.44-1.04-.37.08-.73-.15-.81-.52-.08-.37.15-.73.52-.81 4.1-.94 7.62-.53 10.44 1.19.32.2.41.6.21.97zm1.23-2.74c-.25.4-.77.53-1.17.28-2.88-1.77-7.28-2.28-10.69-1.25-.45.14-.93-.12-1.07-.57-.14-.45.12-.93.57-1.07 3.9-1.18 8.76-.61 12.08 1.44.4.25.53.77.28 1.17zm.11-2.86c-3.46-2.05-9.17-2.24-12.49-1.23-.53.16-1.09-.14-1.25-.67-.16-.53.14-1.09.67-1.25 3.82-1.16 10.12-.94 14.11 1.43.48.28.63.89.35 1.37-.29.48-.9.63-1.39.35z"/></svg>'
+    },
+    {
+        "id": "steam",
+        "name": "Steam / Juegos",
+        "process": "steam.exe",
+        "category": "juego",
+        "icon": '<svg viewBox="0 0 24 24" fill="#171A21"><path d="M12 2a10 10 0 0 0-10 10c0 4.74 3.31 8.7 7.74 9.71l2.58-3.73a3.54 3.54 0 0 1-.32-.22l-3.32-1.37a2.5 2.5 0 1 1 2.3-4.22l3.35 1.38c.45-.16.94-.25 1.45-.25a3.75 3.75 0 1 1 0 7.5c-.32 0-.63-.04-.93-.11l-2.6 3.76A10 10 0 1 0 12 2z"/></svg>'
+    },
+    {
+        "id": "telegram",
+        "name": "Telegram",
+        "process": "telegram.exe",
+        "category": "ocio",
+        "icon": '<svg viewBox="0 0 24 24" fill="#24A1DE"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg>'
+    },
+    {
+        "id": "edge",
+        "name": "Microsoft Edge",
+        "process": "msedge.exe",
+        "category": "navegador",
+        "icon": '<svg viewBox="0 0 24 24" fill="#0078D7"><path d="M21.95 12.87c-.17-.79-.53-1.53-1.05-2.17-.78-.96-1.89-1.58-3.13-1.74-.75-.1-1.5.02-2.18.35-.45.22-.85.52-1.18.89l-.27.31c.32-1.37.15-2.82-.48-4.08-.66-1.31-1.74-2.35-3.04-2.93-1.34-.6-2.84-.67-4.22-.21C5.07 3.76 3.86 4.7 3.01 5.95 2.16 7.2 1.7 8.68 1.7 10.18c0 .88.16 1.75.48 2.58.46 1.21 1.28 2.25 2.36 2.99 1.13.78 2.48 1.2 3.86 1.2h.85c.34 0 .68-.03 1.01-.1.49-.1.97-.27 1.41-.5l.39-.22c-.64.44-1.38.74-2.16.88-1.07.19-2.18.06-3.18-.38-.63-.28-1.19-.69-1.63-1.21-.43-.5-.73-1.1-.88-1.73l-.06-.31c.42.59.97 1.07 1.61 1.4.74.38 1.57.57 2.4.55h.35c.81-.03 1.6-.24 2.32-.61.7-.36 1.3-.87 1.77-1.49.5-.66.83-1.43.96-2.25.13-.81.04-1.64-.26-2.4-.23-.59-.59-1.12-1.04-1.54l-.4-.34c.59.04 1.16.23 1.67.55.51.32.93.76 1.24 1.28.32.54.5 1.15.53 1.77.03.62-.09 1.24-.35 1.81-.22.48-.54.91-.94 1.25l-.39.29c.47-.2.89-.48 1.25-.83.47-.46.82-1.03 1.02-1.66.2-.62.24-1.28.12-1.92z"/></svg>'
+    },
+    {
+        "id": "valorant",
+        "name": "Valorant / Riot Games",
+        "process": "valorant.exe",
+        "category": "juego",
+        "icon": '<svg viewBox="0 0 24 24" fill="#FF4655"><path d="M4.092 12.012L0 15.932 6.552 24h6.059L4.092 12.012zm15.816-12L10.37 9.544l2.585 3.176L24 0h-4.092z"/></svg>'
+    },
+    {
+        "id": "minecraft",
+        "name": "Minecraft",
+        "process": "javaw.exe",
+        "category": "juego",
+        "icon": '<svg viewBox="0 0 24 24" fill="#5E8C31"><path d="M4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm2 4v4h4V6H6zm8 0v4h4V6h-4zm-4 6v4h4v-4h-4zm-4 4v2h4v-2H6zm8 0v2h4v-2h-4z"/></svg>'
+    }
+]
+
+@app.get("/api/apps/detectable")
+async def get_detectable_apps():
+    """Devuelve las aplicaciones populares e instaladas con sus iconos y categorías."""
+    return {"apps": KNOWN_DETECTABLE_APPS}
 
 
 import re

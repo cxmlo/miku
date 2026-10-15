@@ -20,12 +20,18 @@ El orquestador principal es `ui.py`.
 
 ## Dynamic Island v6 & WebView (`miku_island/` & `miku_ui/`)
 Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica fluida e interactiva (v6)**:
-- **`miku_island/index.html` (v6)**: Isla dinámica interactiva en la parte superior central de la pantalla con micro-animaciones SVG/Canvas de Miku, estados reactivos (pensando, escuchando, trabajando, hablar), escenas (reproductor de música, previsualización de archivos QuickLook, aprobación de acciones, escaneo de herramientas) y selector magnético de agentes.
-- **`miku_island/miku_settings.html` (v6)**: Panel completo de configuración y agentes sincronizado en tiempo real vía `BroadcastChannel('miku')` con la isla principal. Permite gestionar API Keys (Google Gemini, Anthropic, OpenAI, Groq), conectar LLMs locales (Ollama, LM Studio) y configurar la voz y atajos.
-- **`miku_island/bridge.js`**: Puente universal bidireccional entre la interfaz web y el backend Python (`server.py`) vía WebSockets y llamadas REST autenticadas.
-- **Ejecución de escritorio:**
+- **`miku_island/index.html` (v6)**: Isla dinámica interactiva en la parte superior central de la pantalla con micro-animaciones SVG/Canvas de Miku, estados reactivos (pensando, escuchando, trabajando, hablar), escenas (reproductor de música con soporte multimedia universal Windows, previsualización de archivos QuickLook, aprobación de acciones, escaneo de herramientas) y selector magnético de agentes. Incluye un sistema de redimensionado no destructivo que mantiene la ventana nativa transparente amplia durante el colapso (420ms) para evitar cortes bruscos de animación.
+- **`miku_island/miku_settings.html` (v6)**: Panel amplio (880px) de configuración y agentes sincronizado en tiempo real vía `BroadcastChannel('miku')`:
+  - **Selector paralelo de agentes**: Gran avatar y los 3 slots de la isla en paralelo, con **Miku (Blanco/Original)** siempre seleccionable en la primera posición.
+  - **Componente `WheelDial`**: Indicador circular de 60 divisiones sobre 300° con simulación de resorte fluido (spring overshoot) y ondas dinámicas para ajuste de volumen de voz y notificaciones.
+  - **Alertas Proactivas por Aplicación**: Detección de aplicaciones activas (VS Code, Discord, Chrome, Spotify, Steam, Telegram, etc.) con sus iconos oficiales e umbrales configurables en minutos.
+  - **Catálogo MCP con 1 Clic**: Instalación guiada e inmediata de servidores esenciales (`file_system`, `memory`, `sqlite`, `github`, `google-drive`) y configuración persistente en `.env`.
+  - **Soporte Bilingüe Completo**: Conmutación instantánea entre español e inglés.
+- **`miku_island/bridge.js`**: Puente universal bidireccional entre la interfaz web y el backend Python (`server.py`) vía WebSockets y llamadas REST autenticadas (`127.0.0.1` DNS-safe).
+- **Ejecución de escritorio y Control de Instancias:**
+  - **Bloqueo de Instancia Única (Mutex Global)**: Implementado tanto en Rust (`Global\MikuDynamicIslandSingleInstanceMutex`) como en Python (`start_ui.py`) para impedir la apertura de múltiples instancias simultáneas. Al intentar abrir Miku nuevamente, enfoca y restaura la ventana activa existente.
   - `start_ui.py`: Utiliza `pywebview` sin bordes y transparente (`frameless=True`, `transparent=True`, `on_top=True`), redimensionando dinámicamente y recentrando la ventana en pantalla.
-  - `miku_ui/` (Tauri 2): Binario nativo ultraligero en Rust con WebView2 para empaquetado de producción e instalador Windows.
+  - `miku_ui/` (Tauri 2): Binario nativo ultraligero en Rust con WebView2, menú de bandeja del sistema limpio (`Configuración` y `Salir`), y ventana de configuración optimizada (980x740).
 
 ---
 👉 **Volver al Menú Principal:** [[Home]]

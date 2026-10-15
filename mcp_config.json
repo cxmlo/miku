@@ -21,6 +21,13 @@
         "-y",
         "@piotr-agier/google-drive-mcp"
       ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ]
     }
   }
 }

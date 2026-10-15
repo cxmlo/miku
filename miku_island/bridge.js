@@ -1,13 +1,20 @@
 /* =========================================================================
    bridge.js — Universal Bridge for Miku Dynamic Island & Settings
-   Connects miku_v6.html and miku_settings_v6.html with the Python backend
+   Connects miku_v6.html and miku_settings.html with the Python backend
    (server.py) over WebSocket and REST APIs.
    ========================================================================= */
 
 const Bridge = (() => {
   "use strict";
 
-  const HOST = location.hostname && location.hostname !== "localhost" ? location.hostname : "127.0.0.1";
+  // In Tauri on Windows, location.hostname is "tauri.localhost", which does NOT resolve in Windows DNS.
+  // We must explicitly use 127.0.0.1 for local communication.
+  const isLocal = !location.hostname || 
+                  location.hostname === "localhost" || 
+                  location.hostname === "127.0.0.1" || 
+                  location.hostname.endsWith(".localhost") || 
+                  location.hostname.includes("tauri");
+  const HOST = isLocal ? "127.0.0.1" : location.hostname;
   const BACKEND_PORT = "8000";
   const PORT = BACKEND_PORT;
   const BASE_URL = `http://${HOST}:${BACKEND_PORT}`;
@@ -22,15 +29,24 @@ const Bridge = (() => {
   // BroadcastChannel for cross-window sync (Island <-> Settings)
   const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("miku") : null;
 
+  async function apiFetch(path, options = {}) {
+    const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
+    const headers = Object.assign({
+      "x-api-key": API_KEY
+    }, options.headers || {});
+    return fetch(url, { ...options, headers });
+  }
+
   function init() {
     connectWS();
     initLocalIp();
     initMouseTracker();
     fetchMediaStatus();
+    initSettingsSync();
   }
 
   function fetchMediaStatus() {
-    fetch(`${BASE_URL}/api/media/status`)
+    apiFetch("/api/media/status")
       .then(r => r.json())
       .then(data => {
         if (data) {
@@ -98,95 +114,73 @@ const Bridge = (() => {
   function handleIncomingMessage(data) {
     if (!data) return;
 
-    // 1. Miku Chat Response
-    if (data.sender === "miku") {
-      const text = data.text || "";
-      if (text.includes("[IGNORAR]") || !text.trim()) return;
-
-      window.feed?.({ type: "state", name: "happy" });
-      window.feed?.({ type: "scene", name: "result", args: { text: text } });
-      return;
-    }
-
-    // 2. UI Commands from backend
-    if (data.type === "ui_command") {
-      const action = data.action;
-      const text = data.text || "";
-      const args = data.args || [];
-
-      switch (action) {
-        case "status_update":
-          handleStatusUpdate(text);
-          break;
-
-        case "tool_use": {
-          const label = args[0] || text || "Ejecutando herramienta";
-          window.feed?.({ type: "scene", name: "tool_use", args: { label, badge: "Tool" } });
-          window.feed?.({ type: "state", name: "working" });
-          break;
+    // 1. Proactive Alerts from Server (Gaming, Work, Social, etc.)
+    if (data.type === "proactive_alert") {
+      console.log("[Bridge] Received Proactive Alert:", data);
+      window.feed?.({
+        type: "scene",
+        name: "alert",
+        args: {
+          title: data.title || "Notificación de Miku",
+          text: data.text || data.message || "",
+          badge: data.badge || "Salud Digital"
         }
-
-        case "show_info":
-          window.feed?.({
-            type: "notify",
-            title: args[0] || "Información",
-            text: args[1] || text || ""
-          });
-          break;
-
-        case "island_notify":
-          window.feed?.({
-            type: "notify",
-            title: args.title || text || "Miku",
-            text: args.text || ""
-          });
-          break;
-
-        case "show_quicklook":
-          window.feed?.({
-            type: "scene",
-            name: "quicklook",
-            args: {
-              title: args[0] || "Archivo",
-              text: args[1] || args[0] || "Vista previa"
-            }
-          });
-          break;
-
-        case "miku_link_connected":
-          window.feed?.({ type: "miku_link_connected", name: text || "Celular" });
-          break;
-
-        case "miku_link_disconnected":
-          window.feed?.({ type: "miku_link_disconnected" });
-          break;
-
-        case "music":
-          window.feed?.({ type: "music", ...args });
-          break;
-
-        case "play_audio":
-          // If audio is played locally or received, animate talking
-          window.feed?.({ type: "state", name: "talking" });
-          break;
+      });
+      if (window.buddy?.emote) {
+        window.buddy.emote("alert", 2500);
       }
       return;
     }
 
-    // 3. Agent Hook events (Coucou style: Claude Code, Cursor, Codex, Antigravity)
-    if (data.type === "agent_hook") {
-      const agent = data.agent || "claude";
-      const ev = data.event || "Notification";
-      const prompt = data.prompt || "";
-      const tool = data.tool || "";
-      const payload = data.payload || {};
-      console.log(`[Bridge] Agent Hook: ${agent} -> ${ev}`);
+    // 2. Direct feed forward
+    if (data.type) {
+      if (data.type === "state" && window.buddy?.emote) {
+        window.buddy.emote(data.name || "idle", data.dur || 2000);
+      }
+      window.feed?.(data);
+      return;
+    }
 
-      if (ev === "PermissionRequest") {
+    // 3. Audio Player Event (TTS from Miku)
+    if (data.audio_url) {
+      console.log("[Bridge] Playing backend TTS audio:", data.audio_url);
+      const audio = new Audio(`${BASE_URL}${data.audio_url}`);
+      audio.play().catch(e => console.warn("[Bridge] Audio playback blocked:", e));
+      window.feed?.({ type: "state", name: "talking" });
+      audio.onended = () => {
+        window.feed?.({ type: "state", name: "idle" });
+      };
+      return;
+    }
+
+    // 4. Status updates from backend
+    if (data.status) {
+      handleStatusUpdate(data.status);
+    }
+
+    // 5. Hooks / Agent events
+    if (data.event) {
+      const ev = data.event;
+      const agent = data.agent_id || data.agent || "claude";
+      const payload = data.payload || {};
+      const prompt = payload.prompt || payload.query || "";
+      const tool = payload.tool_name || payload.tool || "";
+
+      if (ev === "Notification") {
         window.feed?.({
-          type: "approve",
-          title: `¿Permitir acción de ${agent}?`,
-          text: tool || prompt || "Permiso solicitado",
+          type: "scene",
+          name: "notify",
+          args: {
+            title: payload.title || "Notificación",
+            text: payload.message || payload.text || ""
+          }
+        });
+      } else if (ev === "PermissionRequest") {
+        window.feed?.({
+          type: "ask",
+          title: "Permiso solicitado",
+          text: `${agent} quiere ejecutar: ${tool}`,
+          actions: ["Permitir", "Rechazar"],
           id: payload.request_id || "req_1"
         });
       } else if (ev === "UserPromptSubmit") {
@@ -236,7 +230,7 @@ const Bridge = (() => {
   /* ---------------- MIKU-LINK PAIRING QR ---------------- */
   async function generatePairingUrl() {
     try {
-      const res = await fetch(`${BASE_URL}/api/desktop/info`);
+      const res = await apiFetch("/api/desktop/info");
       let ip = HOST;
       if (res.ok) {
         const info = await res.json();
@@ -249,7 +243,7 @@ const Bridge = (() => {
       const sessionId = Math.random().toString(36).substring(2, 10);
 
       // Registrar sesión en backend
-      await fetch(`${BASE_URL}/api/pair/init`, {
+      await apiFetch("/api/pair/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId })
@@ -292,7 +286,7 @@ const Bridge = (() => {
       // 2. In pywebview / browser: fallback to backend /mouse
       if (!document.hasFocus() && window.feed) {
         try {
-          const res = await fetch(`${BASE_URL}/mouse`);
+          const res = await apiFetch("/mouse");
           if (res.ok) {
             const pt = await res.json();
             if (pt.x !== lastX || pt.y !== lastY) {
@@ -313,11 +307,10 @@ const Bridge = (() => {
     if (!text || !text.trim()) return;
     window.feed?.({ type: "state", name: "thinking" });
 
-    fetch(`${BASE_URL}/chat`, {
+    apiFetch("/chat", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ message: text, source: "desktop" })
     })
@@ -350,7 +343,7 @@ const Bridge = (() => {
   // 3. Send text to phone (via clipboard endpoint)
   function sendToPhone(text) {
     if (!text) return;
-    fetch(`${BASE_URL}/api/device/clipboard`, {
+    apiFetch("/api/device/clipboard", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
@@ -368,20 +361,18 @@ const Bridge = (() => {
 
   // 5. Cancel / Stop
   function cancel() {
-    fetch(`${BASE_URL}/api/stop`, {
-      method: "POST",
-      headers: { "x-api-key": API_KEY }
+    apiFetch("/api/stop", {
+      method: "POST"
     }).catch(err => console.warn("[Bridge] Stop error:", err));
     window.feed?.({ type: "state", name: "idle" });
   }
 
   // 6. Media / Music controls
   function media(action, param = null) {
-    fetch(`${BASE_URL}/api/media/control`, {
+    apiFetch("/api/media/control", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ action, param })
     })
@@ -415,11 +406,10 @@ const Bridge = (() => {
       secrets[envKey] = keyValue || "";
     }
 
-    fetch(`${BASE_URL}/api/secrets`, {
+    apiFetch("/api/secrets", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ secrets })
     })
@@ -431,7 +421,7 @@ const Bridge = (() => {
   /* ---------------- CONFIGURATION API ---------------- */
   async function getConfigKeys() {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/keys`);
+      const res = await apiFetch("/api/config/keys");
       return res.ok ? await res.json() : { keys: {} };
     } catch (e) {
       console.warn("[Bridge] getConfigKeys error:", e);
@@ -441,7 +431,7 @@ const Bridge = (() => {
 
   async function saveConfigKeys(keys) {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/keys`, {
+      const res = await apiFetch("/api/config/keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keys })
@@ -455,7 +445,7 @@ const Bridge = (() => {
 
   async function getModelsConfig() {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/models`);
+      const res = await apiFetch("/api/config/models");
       return res.ok ? await res.json() : { current: {}, available: {} };
     } catch (e) {
       console.warn("[Bridge] getModelsConfig error:", e);
@@ -465,7 +455,7 @@ const Bridge = (() => {
 
   async function saveModelsConfig(models) {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/models`, {
+      const res = await apiFetch("/api/config/models", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(models)
@@ -479,7 +469,7 @@ const Bridge = (() => {
 
   async function getMcpServers() {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/mcp`);
+      const res = await apiFetch("/api/config/mcp");
       return res.ok ? await res.json() : { servers: [] };
     } catch (e) {
       console.warn("[Bridge] getMcpServers error:", e);
@@ -489,7 +479,7 @@ const Bridge = (() => {
 
   async function addMcpServer(name, command, args = []) {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/mcp`, {
+      const res = await apiFetch("/api/config/mcp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, command, args })
@@ -503,7 +493,7 @@ const Bridge = (() => {
 
   async function deleteMcpServer(name) {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/mcp/${encodeURIComponent(name)}`, {
+      const res = await apiFetch(`/api/config/mcp/${encodeURIComponent(name)}`, {
         method: "DELETE"
       });
       return res.ok;
@@ -515,7 +505,7 @@ const Bridge = (() => {
 
   async function getAlertsConfig() {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/alerts`);
+      const res = await apiFetch("/api/config/alerts");
       return res.ok ? await res.json() : { alerts: {} };
     } catch (e) {
       console.warn("[Bridge] getAlertsConfig error:", e);
@@ -525,7 +515,7 @@ const Bridge = (() => {
 
   async function saveAlertsConfig(alerts) {
     try {
-      const res = await fetch(`${BASE_URL}/api/config/alerts`, {
+      const res = await apiFetch("/api/config/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ alerts })
@@ -537,9 +527,19 @@ const Bridge = (() => {
     }
   }
 
+  async function getDetectableApps() {
+    try {
+      const res = await apiFetch("/api/apps/detectable");
+      return res.ok ? await res.json() : { apps: [] };
+    } catch (e) {
+      console.warn("[Bridge] getDetectableApps error:", e);
+      return { apps: [] };
+    }
+  }
+
   async function getDesktopStatus() {
     try {
-      const res = await fetch(`${BASE_URL}/api/desktop/status`);
+      const res = await apiFetch("/api/desktop/status");
       return res.ok ? await res.json() : {};
     } catch (e) {
       console.warn("[Bridge] getDesktopStatus error:", e);
@@ -547,14 +547,13 @@ const Bridge = (() => {
     }
   }
 
-
   // 9. Send Dropped File
   function sendFile(file) {
     if (!file) return;
     const formData = new FormData();
     formData.append("file", file);
 
-    fetch(`${BASE_URL}/api/send_to_phone`, {
+    apiFetch("/api/send_to_phone", {
       method: "POST",
       body: formData
     })
@@ -565,11 +564,10 @@ const Bridge = (() => {
 
   function sendFilePath(filePath) {
     if (!filePath) return;
-    fetch(`${BASE_URL}/api/desktop/file_drop`, {
+    apiFetch("/api/desktop/file_drop", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ path: filePath })
     })
@@ -583,7 +581,7 @@ const Bridge = (() => {
     if (window.__TAURI__?.core?.invoke) {
       window.__TAURI__.core.invoke('open_settings_window').catch(() => {
         window.__TAURI__.core.invoke('open_settings').catch(() => {
-          window.open("miku_settings.html", "miku_settings", "width=920,height=720");
+          window.open("miku_settings.html", "miku_settings", "width=980,height=740");
         });
       });
       return;
@@ -592,7 +590,7 @@ const Bridge = (() => {
     if (pw?.open_settings) {
       pw.open_settings();
     } else {
-      window.open("miku_settings.html", "miku_settings", "width=920,height=720");
+      window.open("miku_settings.html", "miku_settings", "width=980,height=740");
     }
   }
 
@@ -601,11 +599,10 @@ const Bridge = (() => {
     try {
       localStorage.setItem(`miku_${k}`, JSON.stringify(v));
       channel?.postMessage({ k: "cfg_item", key: k, value: v });
-      fetch(`${BASE_URL}/api/setting`, {
+      apiFetch("/api/setting", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-api-key": API_KEY
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ key: k, value: v })
       }).catch(() => {});
@@ -632,7 +629,7 @@ const Bridge = (() => {
 
   async function getElevenLabsVoices() {
     try {
-      const res = await fetch(`${BASE_URL}/api/elevenlabs/voices`);
+      const res = await apiFetch("/api/elevenlabs/voices");
       return await res.json();
     } catch (e) {
       return { status: "error", message: e.message, voices: [] };
@@ -664,6 +661,7 @@ const Bridge = (() => {
     deleteMcpServer,
     getAlertsConfig,
     saveAlertsConfig,
+    getDetectableApps,
     getDesktopStatus,
     getElevenLabsVoices
   };

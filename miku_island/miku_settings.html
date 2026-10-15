@@ -8,16 +8,14 @@
 html,body{background:var(--bg);color:#fff;font:14px/1.45 'Segoe UI Variable','Segoe UI',system-ui,sans-serif}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-header{display:none}
-.shell{max-width:540px;margin:0 auto;padding:10px 14px 44px;display:flex;flex-direction:column;gap:14px;min-height:100vh}
+header{position:sticky;top:0;z-index:5;padding:20px clamp(14px,3vw,28px) 14px;background:linear-gradient(var(--bg) 72%,#0000)}
+h1{font-size:20px;font-weight:650;letter-spacing:-.01em}
+header p{color:var(--mut);font-size:13px;margin-top:2px}
+.shell{max-width:920px;margin:0 auto;padding:0 clamp(12px,3vw,28px) 48px;display:grid;grid-template-columns:176px minmax(0,1fr);gap:clamp(12px,2.5vw,22px);align-items:start}
 
-/* ── barra superior de categorías (rectangular vertical) ── */
-.rail{position:sticky;top:0;z-index:25;background:rgba(14,15,18,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:8px 2px 10px;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px}
-.rail::-webkit-scrollbar{display:none}
-.rail h3{display:none}
-.cat{white-space:nowrap;padding:7px 13px;border-radius:12px;background:#17181c;font-size:12px;font-weight:550;color:var(--mut);transition:all .18s var(--e);border:1px solid #24262c;flex:none}
-.cat:hover{background:#212227;color:#fff}
-.cat.on{background:var(--ac);color:var(--acx);font-weight:600;border-color:transparent;box-shadow:0 3px 12px rgba(0,0,0,0.35)}
+/* ── riel de personajes ── */
+.rail{position:sticky;top:84px;display:flex;flex-direction:column;gap:4px}
+.rail h3{font-size:12px;font-weight:600;color:var(--mut);padding:0 10px 6px}
 .who{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;text-align:left;width:100%;transition:background .2s,transform .2s var(--e)}
 .who:hover{background:#17181c}.who:active{transform:scale(.97)}
 .who.on{background:var(--card);box-shadow:inset 0 0 0 1.5px var(--wc)}
@@ -245,7 +243,189 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none}
 .emoh .mw{flex:none;width:92px;height:92px;display:grid;place-items:center;border-radius:20px;background:radial-gradient(60% 70% at 50% 45%,color-mix(in srgb,var(--ac) 22%,transparent),transparent 75%),#0e0f12}
 .hm{display:block;width:70px;height:auto}.emoh .emo{flex:1;min-width:0}
 
-/* Extras para MCP y Claves */
+/* ── Estilos WheelDial (adaptado del componente Liquid Spring Gauge) ── */
+.hum {
+  --hum-lit: #3ce085;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  color: #c7c9d0;
+  user-select: none;
+  touch-action: none;
+}
+.hum[data-state="crit"] { --hum-lit: #ff5c66; }
+.hum[data-state="low"] { --hum-lit: #f0a02a; }
+.hum[data-state="high"] { --hum-lit: #5b9bff; }
+.hum[data-state="ok"] { --hum-lit: #3ce085; }
+
+.hum-dial { position: relative; width: 176px; height: 176px; }
+.hwheel {
+  position: absolute;
+  inset: 0;
+  width: 176px;
+  height: 176px;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+.hwheel[data-dragging="true"] { cursor: grabbing; }
+.hwheel:focus, .hwheel:focus-visible { outline: none !important; box-shadow: none; }
+.hwheel-readout {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex; align-items: baseline; justify-content: center; gap: 2px;
+  pointer-events: none;
+}
+.hum-figure {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.hum-unit {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--mut);
+}
+.hum-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: #111216;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  min-width: 210px;
+  flex: 1;
+}
+.hum-card-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+}
+.hum-card-sub {
+  font-size: 11.5px;
+  color: var(--mut);
+  text-align: center;
+}
+
+/* ── Hero paralelo y ancho ── */
+.hero {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  flex-wrap: nowrap !important;
+  padding: 18px 24px !important;
+}
+.hero-main {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  flex: 1;
+}
+.hero .mw {
+  width: 100px;
+  height: 90px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.hero .ht {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.hero h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero h2 em {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--mut);
+  background: #23262c;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.dock {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  flex: none;
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: #0e0f12;
+  border: 1.5px dashed #2c2f36;
+}
+
+/* ── Tarjetas de alertas y apps ── */
+.app-badge-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.app-badge-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.alert-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #111216;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-bottom: 8px;
+}
+.alert-item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.detectable-app-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #111216;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  transition: all .2s cubic-bezier(.23,1,.32,1);
+}
+.detectable-app-card:hover {
+  background: #191b20;
+  border-color: #3b3e48;
+}
+
+/* ── Extras para MCP y Claves ── */
 .mcp-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:#0e0f12;border:1px solid #24262c;border-radius:14px;margin-bottom:8px}
 .mcp-info b{font-size:13px;display:flex;align-items:center;gap:6px;color:#fff}
 .mcp-info code{font-size:11px;color:var(--mut);background:#17181c;padding:2px 6px;border-radius:6px;display:inline-block;margin-top:2px}
@@ -255,7 +435,7 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 </style></head><body>
-
+<header><h1>Configuración de Miku</h1><p>Los cambios se aplican al instante en la isla. El color y la ropa de cada agente se cambian con clic derecho en la isla.</p></header>
 <div class="shell"><nav class="rail" id="rail" aria-label="Personajes"></nav><main class="pane" id="pane"></main></div>
 
 <script>
@@ -789,32 +969,148 @@ function HoldButton(host,{label,doneLabel='Listo',icon='',hold=1800,onHold,small
 }
 
 /* ───── pantallas ───── */
+
+/* ───── I18N DICCIONARIO BILINGÜE ───── */
+const I18N = {
+  es: {
+    cat_general: "General",
+    cat_agentes: "Agentes",
+    cat_modelos: "Modelos de IA",
+    cat_keys: "Claves de API",
+    cat_mcp: "Servidores MCP",
+    cat_alertas: "Alertas Proactivas",
+    cat_voz: "Sonido y voz",
+    cat_link: "Miku-Link",
+    isl_title: "Isla Dinámica",
+    hover_open_title: "Abrir al pasar el cursor",
+    hover_open_desc: "La isla se despliega al pasar el ratón y se repliega automáticamente al salir.",
+    autoclose_title: "Cierre automático",
+    autoclose_desc: "Tiempo de inactividad antes de que la isla se minimice por completo.",
+    lang_title: "Idioma del sistema",
+    lang_desc: "Idioma de las respuestas de texto y menús de la interfaz.",
+    pers_title: "Personalidad",
+    pers_desc: "Cambia el tono y estilo de las respuestas de Miku.",
+    reset_title: "Restablecer",
+    reset_btn: "Restablecer",
+    reset_desc: "Restaura la configuración local de la interfaz a los valores predeterminados.",
+    reset_note: "Tus claves y modelos del backend no se borran al restablecer los valores locales.",
+    voice_title: "Voz de Miku",
+    voice_active: "Voz activa",
+    voice_active_desc: "Permite que Miku hable en voz alta al responder consultas.",
+    voice_dials_title: "Centro de Control de Volumen",
+    voice_vol_title: "Voz de Miku",
+    voice_vol_desc: "Nivel de audio de las respuestas habladas",
+    sfx_vol_title: "Alertas y Efectos",
+    sfx_vol_desc: "Nivel para notificaciones de salud y avisos",
+    mic_title: "Micrófono de entrada",
+    mic_desc: "Dispositivo de audio para captura y reconocimiento de voz.",
+    barge_title: "Interrumpir con voz (Barge-in)",
+    barge_desc: "Hablar mientras Miku responde corta inmediatamente el audio.",
+    wake_title: "Pausar palabra 'Miku'",
+    wake_desc: "Desactiva temporalmente la detección del wake word.",
+    ag_principal: "Principal",
+    ag_custom: "Agente",
+    ag_in_island: "En la isla",
+    ag_create: "Crear agente",
+    ag_delete: "Quitar agente",
+    ag_add_isl: "Poner en la isla",
+    ag_rem_isl: "Quitar de la isla",
+    keys_title: "Modelos de Lenguaje (LLMs)",
+    keys_note: "Las claves se guardan en el archivo .env de forma segura y se recargan al instante.",
+    mcp_title: "Servidores MCP Conectados",
+    mcp_note: "Model Context Protocol: Permite a Miku interactuar con SQLite, filesystem, navegadores y herramientas externas.",
+    mcp_add: "Añadir Servidor MCP",
+    alerts_title: "Alertas de Salud y Enfoque Activas",
+    alerts_note: "Miku monitorea en segundo plano el tiempo en aplicaciones y te avisa cuando superas el límite establecido.",
+    alerts_detectable: "Aplicaciones detectadas en tu equipo",
+    alerts_mins: "minutos",
+    link_title: "Vincular con Dispositivo Móvil",
+    link_note: "Escanea este código QR con la app móvil de Miku para sincronizar portapapeles y notificaciones.",
+    miku_original: "Miku (Blanco)"
+  },
+  en: {
+    cat_general: "General",
+    cat_agentes: "Agents",
+    cat_modelos: "AI Models",
+    cat_keys: "API Keys",
+    cat_mcp: "MCP Servers",
+    cat_alertas: "Proactive Alerts",
+    cat_voz: "Sound & Voice",
+    cat_link: "Miku-Link",
+    isl_title: "Dynamic Island",
+    hover_open_title: "Open on cursor hover",
+    hover_open_desc: "Island expands on mouse hover and automatically collapses when leaving.",
+    autoclose_title: "Auto-close timer",
+    autoclose_desc: "Inactivity duration before the island minimizes completely.",
+    lang_title: "System Language",
+    lang_desc: "Language for text responses and user interface menus.",
+    pers_title: "Personality",
+    pers_desc: "Change tone and style of Miku's responses.",
+    reset_title: "Factory Reset",
+    reset_btn: "Reset",
+    reset_desc: "Restore local interface settings to factory defaults.",
+    reset_note: "Your backend API keys and models will not be deleted when resetting local settings.",
+    voice_title: "Miku's Voice",
+    voice_active: "Voice Active",
+    voice_active_desc: "Allows Miku to speak aloud when answering queries.",
+    voice_dials_title: "Volume Control Center",
+    voice_vol_title: "Miku Voice",
+    voice_vol_desc: "Audio level for spoken responses",
+    sfx_vol_title: "Alerts & Effects",
+    sfx_vol_desc: "Volume level for health alerts and system sounds",
+    mic_title: "Input Microphone",
+    mic_desc: "Audio device for voice recognition and capture.",
+    barge_title: "Voice Barge-in",
+    barge_desc: "Speaking while Miku is talking immediately stops audio playback.",
+    wake_title: "Pause wake word 'Miku'",
+    wake_desc: "Temporarily disables wake word listening.",
+    ag_principal: "Main",
+    ag_custom: "Agent",
+    ag_in_island: "In Island",
+    ag_create: "Create Agent",
+    ag_delete: "Delete Agent",
+    ag_add_isl: "Pin to Island",
+    ag_rem_isl: "Remove from Island",
+    keys_title: "Language Models (LLMs)",
+    keys_note: "Keys are securely stored in the local .env file and reloaded instantly.",
+    mcp_title: "Connected MCP Servers",
+    mcp_note: "Model Context Protocol: Allows Miku to interact with SQLite, filesystem, and external tools.",
+    mcp_add: "Add MCP Server",
+    alerts_title: "Active Health & Focus Alerts",
+    alerts_note: "Miku monitors app usage in the background and notifies you when exceeding your time limit.",
+    alerts_detectable: "Detectable Apps on your PC",
+    alerts_mins: "minutes",
+    link_title: "Pair Mobile Device",
+    link_note: "Scan this QR code with the Miku mobile app to sync clipboard and notifications.",
+    miku_original: "Miku (White)"
+  }
+};
+
+function t(k) {
+  const lang = CFG.lang === 'en' ? 'en' : 'es';
+  return I18N[lang]?.[k] || I18N['es'][k] || k;
+}
+
 const CATS = [
-  ['general', 'General'],
-  ['agentes', 'Agentes'],
-  ['modelos', 'Modelos de IA'],
-  ['keys', 'Claves de API'],
-  ['mcp', 'Servidores MCP'],
-  ['alertas', 'Alertas Proactivas'],
-  ['voz', 'Sonido y voz'],
-  ['link', 'Miku-Link']
+  ['general', 'cat_general'],
+  ['agentes', 'cat_agentes'],
+  ['modelos', 'cat_modelos'],
+  ['keys', 'cat_keys'],
+  ['mcp', 'cat_mcp'],
+  ['alertas', 'cat_alertas'],
+  ['voz', 'cat_voz'],
+  ['link', 'cat_link']
 ];
 let CAT = ls.get('miku_cat', 'general');
 if (!CATS.find(c => c[0] == CAT)) CAT = 'general';
 
 const TOOLS = [
-  ['copilot', 'GitHub Copilot / Git CLI', '~/.copilot/hooks/miku.json'],
-  ['mcp', 'Servidor MCP (General)', 'mcp_config.json'],
-  ['google-drive', 'MCP: Google Drive', 'mcp_config.json'],
-  ['sqlite', 'MCP: SQLite Database', 'mcp_config.json'],
-  ['file_system', 'MCP: Filesystem', 'mcp_config.json'],
-  ['gemini', 'Gemini CLI', '~/.gemini/settings.json'],
-  ['antigravity', 'Antigravity IDE', '~/.gemini/config/hooks.json'],
-  ['claude', 'Claude Code', '~/.claude/settings.json'],
-  ['cursor', 'Cursor Agent', '~/.cursor/hooks.json'],
-  ['codex', 'Codex', '~/.codex/hooks.json'],
-  ['api', 'API Externa', ''],
-  ['custom', 'Personalizado', '']
+  ['copilot', 'GitHub Copilot / Git CLI'],
+  ['mcp', 'Servidor MCP (General)'],
+  ['gemini', 'Google Gemini Assistant'],
+  ['antigravity', 'Antigravity IDE Assistant'],
+  ['claude', 'Claude Code Assistant'],
+  ['custom', 'Agente Personalizado']
 ];
 
 const KEYS = ls.get('miku_keysaved', {});
@@ -824,6 +1120,7 @@ const STATE = {
   models: { current: { chat: '', computer_use: '', stt: '' }, available: { chat: [], computer_use: [], stt: [] } },
   mcp: [],
   alerts: {},
+  detectableApps: [],
   desktopStatus: {},
   pairUrl: 'miku://pair?s=init&ip=127.0.0.1',
   linkConnected: false,
@@ -840,6 +1137,155 @@ function showToast(msg = 'Guardado correctamente') {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ───── WHEEL DIAL (Adaptado del componente React Liquid Spring Gauge) ───── */
+function WheelDial(host, { value = 50, onChange, title = '', subtitle = '' }) {
+  const N = 60, START = 120, SWEEP = 300, CX = 100, CY = 100, R = 52, waveAmp = 2.6;
+  const rad = d => (d * Math.PI) / 180;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  let target = value, cur = value, vel = 0, wave = 0, dragging = false;
+  let rafId = null, lastT = performance.now();
+
+  host.innerHTML = `
+    <div class="hum-card">
+      <div class="hum-card-title">${esc(title)}</div>
+      <div class="hum" data-state="ok">
+        <div class="hum-dial">
+          <svg class="hwheel" viewBox="0 0 200 200" role="slider" tabindex="0" aria-label="${esc(title)}" aria-valuenow="${Math.round(value)}" aria-valuemin="0" aria-valuemax="100">
+            <g class="hwheel-ticks"></g>
+          </svg>
+          <div class="hwheel-readout">
+            <span class="hum-figure">${Math.round(value)}</span>
+            <span class="hum-unit">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="hum-card-sub">${esc(subtitle)}</div>
+    </div>
+  `;
+
+  const hum = host.querySelector('.hum');
+  const svg = host.querySelector('.hwheel');
+  const gTicks = host.querySelector('.hwheel-ticks');
+  const figure = host.querySelector('.hum-figure');
+
+  function stateFor(v) {
+    if (v < 12) return "crit";
+    if (v < 25) return "low";
+    if (v > 80) return "high";
+    return "ok";
+  }
+
+  function fromPointer(e) {
+    const b = svg.getBoundingClientRect();
+    const x = ((e.clientX - b.left) / b.width) * 200 - CX;
+    const y = ((e.clientY - b.top) / b.height) * 200 - CY;
+    let deg = (Math.atan2(y, x) * 180) / Math.PI;
+    if (deg < 0) deg += 360;
+    let rel = deg - START;
+    if (rel < 0) rel += 360;
+    if (rel > SWEEP) rel = rel < SWEEP + 30 ? SWEEP : 0;
+    const next = Math.round((rel / SWEEP) * 100);
+    target = next;
+    onChange?.(next);
+  }
+
+  const lines = [];
+  for (let i = 0; i < N; i++) {
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("stroke-width", "2");
+    line.setAttribute("stroke-linecap", "round");
+    gTicks.appendChild(line);
+    lines.push(line);
+  }
+
+  function tick(t) {
+    const dt = Math.min(34, t - lastT) / 16.67;
+    lastT = t;
+
+    const k = 0.16;
+    const d = 0.76;
+    vel += (target - cur) * k * dt;
+    vel *= Math.pow(d, dt);
+    cur += vel * dt;
+    if (Math.abs(target - cur) < 0.02 && Math.abs(vel) < 0.02) {
+      cur = target;
+      vel = 0;
+    }
+    wave += dt * 0.055;
+
+    const display = cur;
+    const st = stateFor(display);
+    hum.setAttribute("data-state", st);
+    figure.textContent = Math.round(display);
+    svg.setAttribute("aria-valuenow", Math.round(display));
+
+    const f = clamp(display, 0, 100) / 100;
+    const amp = 1 + (display / 100) * waveAmp;
+
+    for (let i = 0; i < N; i++) {
+      const tf = i / (N - 1);
+      const on = tf <= f + 0.001;
+      const behind = f - tf;
+      const comet = on && behind < 0.14 ? (1 - behind / 0.14) * 8 : 0;
+      const undulate = on ? Math.sin(wave + i * 0.5) * amp : 0;
+      const len = (on ? 24 : 21) + comet + undulate;
+      const a = rad(START + tf * SWEEP);
+      const cos = Math.cos(a);
+      const sin = Math.sin(a);
+
+      const x1 = CX + cos * R;
+      const y1 = CY + sin * R;
+      const x2 = CX + cos * (R + len);
+      const y2 = CY + sin * (R + len);
+
+      const line = lines[i];
+      line.setAttribute("x1", x1.toFixed(2));
+      line.setAttribute("y1", y1.toFixed(2));
+      line.setAttribute("x2", x2.toFixed(2));
+      line.setAttribute("y2", y2.toFixed(2));
+      line.style.stroke = on ? "var(--hum-lit)" : "currentColor";
+      line.setAttribute("stroke-opacity", on ? (0.42 + (1 - clamp(behind, 0, 1)) * 0.58).toFixed(2) : "0.24");
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+  rafId = requestAnimationFrame(tick);
+
+  svg.addEventListener("pointerdown", e => {
+    e.stopPropagation();
+    dragging = true;
+    svg.setAttribute("data-dragging", "true");
+    try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+    fromPointer(e);
+  });
+  svg.addEventListener("pointermove", e => {
+    if (dragging) fromPointer(e);
+  });
+  const stopDrag = () => {
+    dragging = false;
+    svg.removeAttribute("data-dragging");
+  };
+  svg.addEventListener("pointerup", stopDrag);
+  svg.addEventListener("pointercancel", stopDrag);
+
+  svg.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      target = clamp(target + 2, 0, 100);
+      onChange?.(target);
+    }
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      target = clamp(target - 2, 0, 100);
+      onChange?.(target);
+    }
+  });
+
+  return {
+    set(v) { target = clamp(v, 0, 100); },
+    destroy() { if (rafId) cancelAnimationFrame(rafId); }
+  };
 }
 
 /* ───── GENERADOR QR STANDALONE ───── */
@@ -896,91 +1342,134 @@ const note = t => `<p class="nt">${t}</p>`;
 const stat = (id, on, t) => `<span class="pill ${on ? 'on' : ''}" id="${id}">${t}</span>`;
 
 function railHtml() {
-  return CATS.map(([k, l]) => `<button class="cat ${CAT == k ? 'on' : ''}" data-cat="${k}">${l}</button>`).join('');
+  return CATS.map(([k, lkey]) => `<button class="cat ${CAT == k ? 'on' : ''}" data-cat="${k}">${t(lkey)}</button>`).join('');
 }
 
 const V = {};
 
-// 1. GENERAL (Limpio, moderno, sin el muñeco gigante mal puesto)
+// 1. GENERAL
 V.general = () => `
 <section>
-  <h2>Isla Dinámica</h2>
-  ${row('Abrir al pasar el cursor', 'La isla se despliega al pasar el ratón y se repliega automáticamente al salir.', sw('hover_open', CFG.hover_open))}
-  ${row('Cierre automático', 'Tiempo de inactividad antes de que la isla se minimice por completo.', `<span id="gs-ac"></span>`)}
-  ${row('Idioma del sistema', 'Idioma de las respuestas de texto y menús de la interfaz.', `<span id="gs-lang"></span>`)}
-  ${row('Personalidad', 'Cambia el tono y estilo de las respuestas de Miku.', `<span id="gs-pers"></span>`)}
+  <h2>${t('isl_title')}</h2>
+  ${row(t('hover_open_title'), t('hover_open_desc'), sw('hover_open', CFG.hover_open))}
+  ${row(t('autoclose_title'), t('autoclose_desc'), `<span id="gs-ac"></span>`)}
+  ${row(t('lang_title'), t('lang_desc'), `<span id="gs-lang"></span>`)}
+  ${row(t('pers_title'), t('pers_desc'), `<span id="gs-pers"></span>`)}
 </section>
 <section>
-  <h2>Restablecer</h2>
-  ${row('Valores de fábrica', 'Restaura la configuración local de la interfaz a los valores predeterminados.', `<span id="hb-reset"></span>`)}
-  ${note('Tus claves y modelos del backend no se borran al restablecer los valores locales.')}
+  <h2>${t('reset_title')}</h2>
+  ${row(t('reset_btn'), t('reset_desc'), `<span id="hb-reset"></span>`)}
+  ${note(t('reset_note'))}
 </section>
 `;
 
-// 2. VOZ Y SONIDO
+// 2. VOZ Y SONIDO (Con WheelDial interactivo con ondas de líquido)
 V.voz = () => `
 <section>
-  <h2>Voz de Miku</h2>
-  ${row('Voz activa', 'Permite que Miku hable en voz alta al responder consultas.', sw('voice', CFG.voice))}
-  ${row('Volumen de voz', 'Nivel de audio de la síntesis de voz de Miku.', rg('voice_volume'), 1)}
-  ${row('Micrófono de entrada', 'Dispositivo de audio para captura y reconocimiento de voz.', `<span id="gs-mic"></span>`)}
-  ${row('Interrumpir con voz (Barge-in)', 'Hablar mientras Miku responde corta inmediatamente el audio.', sw('barge_in', CFG.barge_in))}
-  ${row('Pausar palabra "Miku"', 'Desactiva temporalmente la detección del wake word.', sw('wake_paused', CFG.wake_paused))}
+  <h2>${t('voice_dials_title')}</h2>
+  <div style="display:flex;align-items:center;justify-content:center;gap:24px;padding:14px 0 18px;flex-wrap:wrap">
+    <div id="dial-voice"></div>
+    <div id="dial-sfx"></div>
+  </div>
 </section>
 <section>
-  <h2>Efectos de sonido</h2>
-  ${row('Volumen de efectos', 'Nivel de volumen para sonidos de sistema y animaciones.', rg('sfx_volume'), 1)}
+  <h2>${t('voice_title')}</h2>
+  ${row(t('voice_active'), t('voice_active_desc'), sw('voice', CFG.voice))}
+  ${row(t('mic_title'), t('mic_desc'), `<span id="gs-mic"></span>`)}
+  ${row(t('barge_title'), t('barge_desc'), sw('barge_in', CFG.barge_in))}
+  ${row(t('wake_title'), t('wake_desc'), sw('wake_paused', CFG.wake_paused))}
 </section>
 `;
 
-// 3. AGENTES (Diseño exacto de v6 con hero animado, dock con 3 slots, drag & drop, pills con caras reactivas y creación)
+// 3. AGENTES (Hero horizontal ancho, 3 slots en paralelo, Miku blanco siempre visible)
 V.agentes = () => {
-  const i = AG.findIndex(a => a.id == SELID), sel = i >= 0 ? AG[i] : null, PR = { id: 'miku', name: 'Miku', c: '#f5f5f5', outfit: PROUT }, A = sel || PR, tool = sel && TOOLS.find(x => x[0] == (sel.tool || sel.id));
-  const bodyOf = g => g.id == 'miku' ? '#fff' : g.c, outOf = g => g.id == 'miku' ? PROUT : (g.outfit || 'none');
+  const isMiku = (SELID === 'miku');
+  const sel = isMiku ? null : AG.find(a => a.id == SELID);
+  const PR = { id: 'miku', name: 'Miku', c: '#f5f5f5', outfit: PROUT };
+  const A = sel || PR;
+  const bodyOf = g => g.id == 'miku' ? '#fff' : g.c;
+  const outOf = g => g.id == 'miku' ? PROUT : (g.outfit || 'none');
   const face = (g, big, idx = 0) => big ? `<canvas class="hl" data-who="${esc(g.id)}"></canvas>` : `<span class="apw" data-av="${bodyOf(g)}|${outOf(g)}|full|${idx}|"><canvas class="apimg" width="84" height="84"></canvas></span>`;
-  const pill = (a, idx) => { const on = a.id == SELID, g = on ? PR : a; return `<button class="ap ${on ? 'swp' : ''}${islIds().includes(a.id) ? ' isl' : ''}" data-ag="${esc(a.id)}" style="--pc:${g.c}" data-sel="${on ? 'miku' : esc(a.id)}" title="${on ? 'Volver a Miku' : esc(a.name)}">${face(g, 0, idx)}<span>${esc(g.name)}</span></button>`; };
-  const on = sel ? !!sel.hooks : true;
-  const ids = islIds(), full = ids.length >= ISLMAX, inI = !!sel && ids.includes(sel.id),
-    chip = (g, k) => `<button class="dk" data-dk="${esc(g.id)}" style="--pc:${g.c}" title="${esc(g.name)}"><span class="apw" data-av="${g.c}|${g.outfit || 'none'}|full|${k}|"><canvas class="apimg" width="84" height="84"></canvas></span><em>${esc(g.name)}</em><i class="dkx" data-rm="${esc(g.id)}" title="Quitar de la isla">×</i></button>`,
-    dock = () => `<div class="dock" id="dock"><small class="dkt">En la isla · ${ids.length}/${ISLMAX}</small><div class="dks">${[0, 1, 2].map(k => { const g = AG.find(x => x.id == ids[k]); return g ? chip(g, k) : `<span class="dk e"></span>`; }).join('')}</div></div>`,
-    dkb = `<div class="dkb"><button class="sec-btn pri" data-act="islAdd" ${!sel || inI || full ? 'disabled' : ''}>Añadir</button><button class="sec-btn" data-act="islDel" ${!sel || !inI ? 'disabled' : ''}>Quitar</button></div>`;
+
+  const ids = islIds();
+  const full = ids.length >= ISLMAX;
+  const inI = !!sel && ids.includes(sel.id);
+
+  const chip = (g, k) => `<button class="dk" data-dk="${esc(g.id)}" style="--pc:${g.c}" title="${esc(g.name)}"><span class="apw" data-av="${g.c}|${g.outfit || 'none'}|full|${k}|"><canvas class="apimg" width="84" height="84"></canvas></span><em>${esc(g.name)}</em><i class="dkx" data-rm="${esc(g.id)}" title="Quitar de la isla">×</i></button>`;
+  const dock = () => `<div class="dock" id="dock"><small class="dkt">En la isla · ${ids.length}/${ISLMAX}</small><div class="dks">${[0, 1, 2].map(k => { const g = AG.find(x => x.id == ids[k]); return g ? chip(g, k) : `<span class="dk e"></span>`; }).join('')}</div></div>`;
+
   return `
-<div class="hero"><div class="mw">${face(A, 1)}</div><div class="ht"><h2>${esc(A.name)}<em>${sel ? 'Integración' : 'Principal'}</em></h2><p><i class="sd ${on ? 'on' : ''}" id="hsd"></i><span id="hst" class="nt" style="padding:0">${sel ? (sel.hooks ? 'Hooks activos' : 'Hooks sin instalar') : 'API conectada'}</span></p></div>${dock()}</div>
-${dkb}
-<section><h2>Agentes</h2>
-${AG.length ? `<div class="apg">${AG.map((x, idx) => pill(x, idx)).join('')}</div>` : `<p class="nt">Aún no hay agentes. Crea el primero abajo.</p>`}
-${note('Misma selección que en la isla. El color y la ropa de cada agente se cambian con clic derecho en la isla.')}
+<div class="hero">
+  <div class="hero-main">
+    <div class="mw">${face(A, 1)}</div>
+    <div class="ht">
+      <h2>${esc(A.name)}<em>${sel ? t('ag_custom') : t('ag_principal')}</em></h2>
+      <p><i class="sd on"></i><span class="nt" style="padding:0">${sel ? (inI ? 'En la isla' : 'Disponible') : 'Miku Core (Activo)'}</span></p>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        ${sel ? `<button class="sec-btn sm ${inI ? '' : 'pri'}" data-act="${inI ? 'islDel' : 'islAdd'}">${inI ? t('ag_rem_isl') : t('ag_add_isl')}</button>` : ''}
+      </div>
+    </div>
+  </div>
+  ${dock()}
+</div>
+
+<section>
+  <h2>Seleccionar Personaje o Agente Activo</h2>
+  <div class="apg">
+    <!-- PILL 0: SIEMPRE MIKU ORIGINAL (BLANCO) -->
+    <button class="ap ${SELID === 'miku' ? 'on swp' : ''}" data-sel="miku" style="--pc:#f5f5f5" title="${t('miku_original')}">
+      <span class="apw" data-av="#fff|${PROUT}|full|0|"><canvas class="apimg" width="84" height="84"></canvas></span>
+      <span>${t('miku_original')}</span>
+    </button>
+    <!-- PILLS 1..N: AGENTES -->
+    ${AG.map((a, idx) => `
+      <button class="ap ${SELID === a.id ? 'on swp' : ''} ${ids.includes(a.id) ? ' isl' : ''}" data-sel="${esc(a.id)}" style="--pc:${a.c}" title="${esc(a.name)}">
+        <span class="apw" data-av="${a.c}|${a.outfit || 'none'}|full|${idx + 1}|"><canvas class="apimg" width="84" height="84"></canvas></span>
+        <span>${esc(a.name)}</span>
+      </button>
+    `).join('')}
+  </div>
+  ${note('Toca cualquier agente para activarlo. Miku Blanco siempre está disponible como primer personaje.')}
 </section>
-${sel ? `<section><h2>Integración de ${esc(sel.name)}</h2>
-${row('Hooks', esc(sel.path || (tool && tool[2]) || 'Sin ruta de configuración'), sw('hk' + i, sel.hooks))}
-${row('Quitar agente', 'Mantén pulsado para quitarlo y desinstalar sus hooks', `<span id="hb-del${i}"></span>`)}
-${note('Al instalar hooks verás el cambio exacto y dónde va la copia de seguridad antes de que se escriba nada; al desinstalar solo se quita lo que añadió Miku.')}
-</section>` : ''}
-<section><h2>Crear agente</h2>
-${row('Herramienta / Rol', 'Plantilla de integración o rol inicial', `<span id="gs-tool"></span>`)}
-${row('Nombre', '', inp('ag-name', 'Mi agente', 'text', '220px'), 1)}
-<div id="ag-addr-row" style="display:none">${row('Dirección', 'IP, URL o comando del servidor', inp('ag-addr', '192.168.1.10:8080', 'text', '220px'), 1)}</div>
-${row('Instrucciones / Contexto', 'Prompt del sistema o personalidad específica para este agente', `<textarea class="tx-in" id="ag-prompt" placeholder="Ej: Eres un asistente especializado en análisis de código y GitHub..." style="width:100%;height:64px;resize:vertical;border-radius:10px;padding:8px 10px;font-size:12px;margin-top:4px"></textarea>`, 1)}
-${row('Servidor MCP', 'Asigna herramientas MCP específicas', `<span id="gs-ag-mcp"></span>`)}
-${row('Clave de API dedicada', 'Opcional (deja vacío para usar la predeterminada)', inp('ag-apikey', 'Opcional: sk-... o AIza...', 'password', '220px'), 1)}
-${row('', '', `<button class="sec-btn pri" id="ag-add">Crear agente</button>`)}
-</section>`;
+
+${sel ? `
+<section>
+  <h2>Configuración de ${esc(sel.name)}</h2>
+  ${row('Nombre', '', inp('ag-edit-name', sel.name, 'text', '240px'), 1)}
+  ${row('Color distintivo', 'Color del halo y ojos del agente', `
+    <div class="chips">
+      ${PRESET.map(hex => `<button class="sw8 ${sel.c.toLowerCase() === hex.toLowerCase() ? 'on' : ''}" data-color="${hex}" style="--c:${hex}"></button>`).join('')}
+    </div>
+  `)}
+  ${row('Instrucciones / Rol', 'Prompt del sistema específico para este agente', `<textarea class="tx-in" id="ag-edit-prompt" style="width:100%;height:68px;resize:vertical;border-radius:10px;padding:8px 10px;font-size:12px;margin-top:4px">${esc(sel.prompt || '')}</textarea>`, 1)}
+  ${row('Quitar agente', 'Elimina este agente de tu lista', `<span id="hb-del-curr"></span>`)}
+</section>
+` : ''}
+
+<section>
+  <h2>${t('ag_create')}</h2>
+  ${row('Rol inicial', 'Plantilla o especialidad', `<span id="gs-tool"></span>`)}
+  ${row('Nombre', '', inp('ag-name', 'Mi agente', 'text', '220px'), 1)}
+  ${row('Instrucciones / Contexto', 'Prompt del sistema o personalidad específica para este agente', `<textarea class="tx-in" id="ag-prompt" placeholder="Ej: Eres un asistente especializado en análisis de código..." style="width:100%;height:60px;resize:vertical;border-radius:10px;padding:8px 10px;font-size:12px;margin-top:4px"></textarea>`, 1)}
+  ${row('', '', `<button class="sec-btn pri" id="ag-add">Crear agente</button>`)}
+</section>
+`;
 };
 
 function selAgent(id, noEmit) {
-  SELID = AG.some(a => a.id == id) ? id : 'miku';
+  SELID = (id === 'miku' || !id) ? 'miku' : (AG.some(a => a.id == id) ? id : 'miku');
   const a = AG.find(x => x.id == SELID);
   ACC = a ? a.c : '#f5f5f5';
   theme();
   if (!noEmit) emit({ k: 'select', who: SELID });
 }
 
-// 4. MODELOS DE IA (Filtrado activo por backend, nunca muestra Claude si no hay API Key)
+// 4. MODELOS DE IA
 V.modelos = () => {
   const hasProviders = STATE.models?.has_providers || (STATE.models?.active_providers && STATE.models.active_providers.length > 0);
   const warnBanner = !hasProviders ? `
   <div style="padding:12px 14px;background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.3);border-radius:14px;margin-bottom:12px;color:#ffd166;font-size:12.5px;line-height:1.45;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><b>No tienes claves de API configuradas.</b><br>
+    <b>No tienes claves de API configuradas.</b><br>
     Para activar modelos de IA, ve a la pestaña <b>Claves de API</b> e ingresa al menos una clave (Google Gemini, Groq, OpenAI, etc.).
   </div>` : '';
 
@@ -1020,14 +1509,15 @@ V.keys = () => {
   };
   return `
   <section>
-    <h2>Modelos de Lenguaje (LLMs)</h2>
-    ${note('Las claves se guardan en .env. Puedes ingresar múltiples claves separadas por coma para rotación automática de respaldo si una alcanza su límite de cuota.')}
+    <h2>${t('keys_title')}</h2>
+    ${note(t('keys_note'))}
+    ${kRow('GEMINI_API_KEY', 'Google Gemini API Key', 'Modelos Gemini Flash desde Google AI Studio (Recomendado).')}
     ${kRow('GROQ_API_KEY', 'Groq API Key', 'Inferencia ultra rápida para Llama 3.3 70B y transcripción Whisper.')}
-    ${kRow('GEMINI_API_KEY', 'Google Gemini API Key', 'Modelos Gemini Flash desde Google AI Studio.')}
-    ${kRow('GOOGLE_CLOUD_PROJECT', 'Vertex AI - Project ID', 'ID del proyecto en Google Cloud para Vertex AI.', false)}
-    ${kRow('NVIDIA_API_KEY', 'NVIDIA NIM API Key', 'Inferencia de modelos en la nube de NVIDIA.')}
     ${kRow('OPENAI_API_KEY', 'OpenAI API Key', 'Modelos GPT-4o y Whisper de OpenAI.')}
     ${kRow('ANTHROPIC_API_KEY', 'Anthropic API Key', 'Modelos Claude 3.5 Sonnet de Anthropic.')}
+    ${kRow('GOOGLE_CLOUD_PROJECT', 'Vertex AI - Project ID', 'ID del proyecto en Google Cloud para Vertex AI.', false)}
+    ${kRow('NVIDIA_API_KEY', 'NVIDIA NIM API Key', 'Inferencia de modelos en la nube de NVIDIA.')}
+    ${kRow('GITHUB_TOKEN', 'GitHub Token', 'Acceso a repositorios y GitHub Copilot.', true)}
   </section>
   <section>
     <h2>Multimedia y Servicios</h2>
@@ -1039,12 +1529,82 @@ V.keys = () => {
 };
 
 // 6. SERVIDORES MCP (mcp_config.json)
+const RECOMMENDED_MCPS = [
+  {
+    id: 'file_system',
+    name: 'Archivos de la PC (Filesystem)',
+    desc: 'Permite a Miku explorar carpetas, buscar documentos, leer código y gestionar archivos de tu equipo.',
+    cmd: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-filesystem', 'C:\\Users\\cxmluwu\\Desktop', 'C:\\Users\\cxmluwu\\Downloads'],
+    icon: '<svg viewBox="0 0 24 24" fill="#3B9EFF" width="22" height="22"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>'
+  },
+  {
+    id: 'memory',
+    name: 'Memoria y Contexto (Knowledge Graph)',
+    desc: 'Grafo de conocimiento persistente para que Miku recuerde proyectos, preferencias y decisiones pasadas.',
+    cmd: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-memory'],
+    icon: '<svg viewBox="0 0 24 24" fill="#A855F7" width="22" height="22"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
+  },
+  {
+    id: 'sqlite',
+    name: 'Base de Datos SQLite',
+    desc: 'Conexión a bases de datos SQLite locales para análisis de datos, consultas SQL e informes.',
+    cmd: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-sqlite'],
+    icon: '<svg viewBox="0 0 24 24" fill="#10B981" width="22" height="22"><path d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zm0 3c3.86 0 7 1.12 7 2.5S15.86 10 12 10s-7-1.12-7-2.5S8.14 5 12 5zm0 14c-3.86 0-7-1.12-7-2.5V14.7c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5zm0-4.5c-3.86 0-7-1.12-7-2.5V10.2c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5z"/></svg>'
+  },
+  {
+    id: 'github',
+    name: 'GitHub Repositorios y Código',
+    desc: 'Exploración de repositorios de código, commits, ramas, pull requests y issues de GitHub.',
+    cmd: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-github'],
+    icon: '<svg viewBox="0 0 24 24" fill="#F43F5E" width="22" height="22"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>'
+  },
+  {
+    id: 'google-drive',
+    name: 'Google Drive en la Nube',
+    desc: 'Búsqueda y consulta de documentos, hojas de cálculo y archivos de tu cuenta de Google Drive.',
+    cmd: 'npx',
+    args: ['-y', '@piotr-agier/google-drive-mcp'],
+    icon: '<svg viewBox="0 0 24 24" fill="#EAB308" width="22" height="22"><path d="M7.71 3.5L1.15 15l3.43 6l6.55-11.5L7.71 3.5zm4.86 1.5l6.55 11.5h6.88L19.44 5H12.57zM8.7 16.5l3.43 6h13.72l-3.43-6H8.7z"/></svg>'
+  }
+];
+
 V.mcp = () => {
   const list = STATE.mcp || [];
+  const installedNames = new Set(list.map(s => (s.name || '').toLowerCase()));
+
   return `
   <section>
-    <h2>Servidores MCP Conectados (${list.length})</h2>
-    ${note('Model Context Protocol: Permite a Miku interactuar con SQLite, sistema de archivos, navegadores y herramientas externas.')}
+    <h2>Servidores MCP Recomendados (Instalación con 1 Clic)</h2>
+    ${note('Servidores esenciales listos para instalar. Permiten a Miku gestionar archivos en tu PC, recordar proyectos y consultar bases de datos:')}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px;">
+      ${RECOMMENDED_MCPS.map(r => {
+        const isInst = installedNames.has(r.id.toLowerCase());
+        return `
+        <div class="mcp-card" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px;background:#111216;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="app-badge-icon">${r.icon}</span>
+            <b style="font-size:13px;color:#fff;">${esc(r.name)}</b>
+          </div>
+          <p style="font-size:11.5px;color:var(--mut);line-height:1.4;margin:0;">${esc(r.desc)}</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;border-top:1px solid #202227;padding-top:8px;">
+            <code style="font-size:10.5px;color:#8e919a;background:#1a1b20;padding:2px 6px;border-radius:4px;">${esc(r.id)}</code>
+            <button class="sec-btn sm ${isInst ? '' : 'pri'}" data-quick-mcp="${esc(r.id)}" ${isInst ? 'disabled' : ''}>
+              ${isInst ? '✓ Instalado' : '+ Instalar'}
+            </button>
+          </div>
+        </div>
+        `;
+      }).join('')}
+    </div>
+  </section>
+
+  <section>
+    <h2>${t('mcp_title')} (${list.length})</h2>
+    ${note(t('mcp_note'))}
     <div id="mcp-list" style="margin-top:10px;">
       ${list.length ? list.map(s => `
         <div class="mcp-card">
@@ -1060,41 +1620,84 @@ V.mcp = () => {
       `).join('') : '<p class="nt">No hay servidores MCP configurados.</p>'}
     </div>
   </section>
+
   <section>
-    <h2>Añadir Servidor MCP</h2>
-    ${row('Nombre', 'Identificador del servidor (ej. sqlite, github, memory)', inp('mcp-name', 'mi-servidor', 'text', '200px'), 1)}
+    <h2>${t('mcp_add')} (Personalizado)</h2>
+    ${row('Nombre', 'Identificador del servidor (ej. memory, sqlite, custom-mcp)', inp('mcp-name', 'mi-servidor', 'text', '200px'), 1)}
     ${row('Comando', 'Ejecutable base (npx, uvx, python)', inp('mcp-cmd', 'npx', 'text', '200px'), 1)}
-    ${row('Argumentos', 'Separados por espacio (ej. -y @modelcontextprotocol/server-sqlite)', inp('mcp-args', '-y @modelcontextprotocol/server-memory', 'text', '320px'), 1)}
+    ${row('Argumentos', 'Separados por espacio (ej. -y @modelcontextprotocol/server-memory)', inp('mcp-args', '-y @modelcontextprotocol/server-memory', 'text', '320px'), 1)}
     ${row('', '', `<button class="sec-btn pri" id="btn-add-mcp">Añadir Servidor</button>`)}
   </section>
   `;
 };
 
-// 7. ALERTAS PROACTIVAS (alerts_config.json)
+// 7. ALERTAS PROACTIVAS POR APLICACIÓN (con iconos de apps detectables)
 V.alertas = () => {
   const A = STATE.alerts || {};
-  const alertRow = (key, defaultLabel) => {
-    const item = A[key] || { enabled: true, threshold: 120, label: defaultLabel };
-    return `
-    <div class="row fx">
-      <div>
-        <b>${item.label || defaultLabel}</b>
-        <small>Aviso cuando se superen los ${item.threshold || 120} minutos continuos.</small>
-      </div>
-      <div class="ctl">
-        <span class="so-host" data-alert="${key}"></span>
-        <label class="sq"><input type="checkbox" data-alert-en="${key}" ${item.enabled ? 'checked' : ''}><i></i></label>
-      </div>
-    </div>`;
-  };
+  const alertKeys = Object.keys(A);
+  const detectable = STATE.detectableApps || [];
+
   return `
   <section>
-    <h2>Alertas de Salud y Enfoque</h2>
-    ${note('Miku monitorea en segundo plano el uso de aplicaciones en tu PC y te avisa cuando llevas demasiado tiempo.')}
-    ${alertRow('trabajo', 'Trabajo continuo (VSCode, IDEs...)')}
-    ${alertRow('juego', 'Juegos (Valorant, LoL, Minecraft...)')}
-    ${alertRow('ocio', 'Ocio / Redes Sociales (Discord, Telegram...)')}
-    ${alertRow('navegador', 'Navegación web (Chrome, Edge...)')}
+    <h2>${t('alerts_title')}</h2>
+    ${note(t('alerts_note'))}
+    <div id="active-alerts-list" style="margin-top:12px;">
+      ${alertKeys.length ? alertKeys.map(k => {
+        const item = A[k] || { enabled: true, threshold: 120, label: k };
+        const foundApp = detectable.find(d => d.id === k);
+        const iconHtml = item.icon || (foundApp ? foundApp.icon : '<svg viewBox="0 0 24 24" fill="#a1a1aa"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>');
+        return `
+        <div class="alert-item-card">
+          <div class="alert-item-info">
+            <span class="app-badge-icon">${iconHtml}</span>
+            <div>
+              <b style="color:#fff;font-size:13.5px">${esc(item.label || k)}</b>
+              <small style="color:var(--mut);display:block;font-size:11.5px">Avisar tras <b>${item.threshold || 120}</b> ${t('alerts_mins')} continuos</small>
+            </div>
+          </div>
+          <div class="ctl">
+            <input type="range" min="15" max="360" step="15" value="${item.threshold || 120}" data-alert-range="${esc(k)}" style="width:130px">
+            <output id="out-alert-${esc(k)}">${item.threshold || 120}m</output>
+            <label class="sq"><input type="checkbox" data-alert-en="${esc(k)}" ${item.enabled ? 'checked' : ''}><i></i></label>
+            <button class="sec-btn del sm" data-del-alert="${esc(k)}" style="padding:4px 10px;font-size:11px">×</button>
+          </div>
+        </div>`;
+      }).join('') : '<p class="nt">No tienes alertas configuradas.</p>'}
+    </div>
+  </section>
+
+  <section>
+    <h2>${t('alerts_detectable')}</h2>
+    ${note('Haz clic en "+ Añadir" para crear una alerta proactiva para esa aplicación con su icono oficial:')}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px">
+      ${detectable.map(app => {
+        const alreadyAdded = !!A[app.id];
+        return `
+        <div class="detectable-app-card">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0">
+            <span class="app-badge-icon">${app.icon}</span>
+            <span style="font-size:12.5px;font-weight:550;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(app.name)}</span>
+          </div>
+          <button class="sec-btn sm ${alreadyAdded ? '' : 'pri'}" data-add-app-alert="${esc(app.id)}" ${alreadyAdded ? 'disabled' : ''}>
+            ${alreadyAdded ? 'Activa' : '+ Añadir'}
+          </button>
+        </div>`;
+      }).join('')}
+    </div>
+    
+    <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+      <div class="row fx">
+        <div>
+          <b>Aplicación personalizada</b>
+          <small>Escribe el nombre de otra aplicación o juego (ej. Photoshop, Blender, Roblox)</small>
+        </div>
+        <div class="ctl">
+          ${inp('custom-app-name', 'Nombre de la aplicación...', 'text', '170px')}
+          ${inp('custom-app-mins', '120', 'number', '80px')}
+          <button class="sec-btn pri" id="btn-add-custom-alert">+ Añadir</button>
+        </div>
+      </div>
+    </div>
   </section>
   `;
 };
@@ -1102,8 +1705,8 @@ V.alertas = () => {
 // 8. MIKU-LINK (Móvil)
 V.link = () => `
 <section>
-  <h2>Vincular con Dispositivo Móvil</h2>
-  ${note('Escanea este código QR con la app móvil de Miku para sincronizar portapapeles, archivos y notificaciones.')}
+  <h2>${t('link_title')}</h2>
+  ${note(t('link_note'))}
   <div style="display:flex;align-items:center;gap:24px;padding:16px 0;flex-wrap:wrap">
     <canvas id="qr" width="140" height="140" style="border-radius:16px;background:#fff;padding:8px"></canvas>
     <div>
@@ -1119,18 +1722,10 @@ const renderRail = () => { $('#rail').innerHTML = railHtml(); };
 
 function render() {
   theme();
+  renderRail();
   $$('.cat').forEach(b => b.classList.toggle('on', b.dataset.cat == CAT));
   $('#pane').innerHTML = (V[CAT] || V.general)();
   mount();
-  const E = 'cubic-bezier(.32,.72,0,1)';
-  if (window.__cat !== CAT) {
-    window.__cat = CAT;
-    $('#pane').animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: E });
-  }
-  if (window.__pop) {
-    window.__pop = 0;
-    $$('.dock .dk:not(.e)').forEach((el, i) => el.animate([{ opacity: 0, transform: 'scale(.6) translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 480, delay: i * 60, easing: 'cubic-bezier(.3,1.35,.5,1)', fill: 'backwards' }));
-  }
 }
 
 const holdReset = () => { Object.assign(CFG, DEF); saveCfg(); setTimeout(render, 700); };
@@ -1139,46 +1734,73 @@ function holdify() { $$('[data-key],[data-act="relay"],[data-conn],[data-act="ke
 function heroLive() { STOP?.(); STOP = null; const cv = document.querySelector('canvas.hl'); if (!cv) return; const id = cv.dataset.who; STOP = MK.live(cv, () => { const g = AG.find(x => x.id == id) || { id: 'miku', c: '#fff', outfit: PROUT }; return { color: bodyOf(g), outfit: outOf(g) }; }); }
 const bodyOf = g => g.id == 'miku' ? '#fff' : g.c, outOf = g => g.id == 'miku' ? PROUT : (g.outfit || 'none');
 
+let activeVoiceDial = null, activeSfxDial = null;
+
 function mount() {
   heroLive();
   miniLive();
   setTimeout(holdify, 0);
-  $$('.so-host:not([data-alert])').forEach(h => Slosh(h, { value: CFG[h.dataset.k], label: 'Volumen', onChange: v => { CFG[h.dataset.k] = v; saveCfg(); } }));
+
   const G = (id, o) => { const h = $('#' + id); return h ? GlideSelect(h, o) : null; };
 
   if (CAT === 'general') {
-    G('gs-ac', { options: [10, 15, 30, 60].map(n => ({ value: n, label: n + ' segundos' })), value: CFG.autoclose, label: 'Cierre automático', onChange: v => { CFG.autoclose = +v; saveCfg(); } });
-    G('gs-pers', { options: [{ value: 'calm', label: 'Calma' }, { value: 'casual', label: 'Casual' }, { value: 'code', label: 'Código' }], value: CFG.personality, label: 'Personalidad', onChange: v => { CFG.personality = v; saveCfg(); } });
-    G('gs-lang', { options: [{ value: 'system', label: 'Sistema' }, { value: 'es', label: 'Español' }, { value: 'en', label: 'English' }], value: CFG.lang, label: 'Idioma', onChange: v => { CFG.lang = v; saveCfg(); } });
-    HoldButton($('#hb-reset'), { label: 'Restablecer', doneLabel: 'Restablecido', hold: 2000, small: 1, onHold: holdReset });
+    G('gs-ac', { options: [10, 15, 30, 60].map(n => ({ value: n, label: n + ' s' })), value: CFG.autoclose, label: t('autoclose_title'), onChange: v => { CFG.autoclose = +v; saveCfg(); } });
+    G('gs-pers', { options: [{ value: 'calm', label: 'Calma' }, { value: 'casual', label: 'Casual' }, { value: 'code', label: 'Código' }], value: CFG.personality, label: t('pers_title'), onChange: v => { CFG.personality = v; saveCfg(); } });
+    G('gs-lang', {
+      options: [{ value: 'es', label: 'Español' }, { value: 'en', label: 'English' }],
+      value: CFG.lang || 'es',
+      label: t('lang_title'),
+      onChange: v => {
+        CFG.lang = v;
+        saveCfg();
+        render();
+      }
+    });
+    HoldButton($('#hb-reset'), { label: t('reset_btn'), doneLabel: 'Restablecido', hold: 2000, small: 1, onHold: holdReset });
   }
 
   if (CAT === 'voz') {
-    G('gs-mic', { options: window.__mics || [{ value: 'default', label: 'Predeterminado' }], value: CFG.mic, label: 'Micrófono', onChange: v => { CFG.mic = v; saveCfg(); } });
+    G('gs-mic', { options: window.__mics || [{ value: 'default', label: 'Predeterminado' }], value: CFG.mic, label: t('mic_title'), onChange: v => { CFG.mic = v; saveCfg(); } });
+
+    // Montar los WheelDials
+    const vHost = $('#dial-voice');
+    if (vHost) {
+      activeVoiceDial = WheelDial(vHost, {
+        value: CFG.voice_volume || 80,
+        title: t('voice_vol_title'),
+        subtitle: t('voice_vol_desc'),
+        onChange: val => {
+          CFG.voice_volume = val;
+          saveCfg();
+          window.Bridge?.setVolume?.(val);
+        }
+      });
+    }
+    const sHost = $('#dial-sfx');
+    if (sHost) {
+      activeSfxDial = WheelDial(sHost, {
+        value: CFG.sfx_volume || 60,
+        title: t('sfx_vol_title'),
+        subtitle: t('sfx_vol_desc'),
+        onChange: val => {
+          CFG.sfx_volume = val;
+          saveCfg();
+        }
+      });
+    }
   }
 
   if (CAT === 'agentes') {
     let tool = 'copilot';
-    let agMcp = 'none';
     G('gs-tool', {
       options: TOOLS.map(t => ({ value: t[0], label: t[1] })),
       value: tool,
-      label: 'Herramienta',
+      label: 'Rol',
       onChange: v => {
         tool = v;
-        const ar = $('#ag-addr-row'), ai = $('#ag-addr');
-        if (ar) ar.style.display = (v == 'mcp' || v == 'api') ? '' : 'none';
-        if (ai) ai.placeholder = v == 'mcp' ? 'URL o comando del servidor MCP' : 'IP o URL, ej. 192.168.1.10:8080';
-        $('#ag-name').placeholder = (TOOLS.find(t => t[0] == v) || [])[1] || 'Mi agente';
+        const nInp = $('#ag-name');
+        if (nInp) nInp.placeholder = (TOOLS.find(t => t[0] == v) || [])[1] || 'Mi agente';
       }
-    });
-
-    const mcpOptions = [{ value: 'none', label: 'Ninguno / Sistema' }, ...(STATE.mcp || []).map(s => ({ value: s.name, label: s.name }))];
-    G('gs-ag-mcp', {
-      options: mcpOptions,
-      value: agMcp,
-      label: 'MCP',
-      onChange: v => { agMcp = v; }
     });
 
     const add = $('#ag-add');
@@ -1193,14 +1815,9 @@ function mount() {
           id: tool + '-' + Date.now().toString(36),
           name,
           c,
-          hooks: 1,
           outfit: 'none',
           tool,
-          path: t ? t[2] : '',
-          addr: (tool == 'mcp' || tool == 'api') ? (($('#ag-addr') || {}).value || '').trim() : '',
-          prompt: ($('#ag-prompt')?.value || '').trim(),
-          mcp: agMcp,
-          apiKey: ($('#ag-apikey')?.value || '').trim()
+          prompt: ($('#ag-prompt')?.value || '').trim()
         };
         AG.push(na);
         saveAgents();
@@ -1209,18 +1826,58 @@ function mount() {
       };
     }
 
-    AG.forEach((a, i) => HoldButton($('#hb-del' + i), {
-      label: 'Quitar',
-      doneLabel: 'Quitado',
-      hold: 1400,
-      small: 1,
-      onHold: () => {
-        AG = AG.filter(x => x !== a);
-        if (SELID == a.id) selAgent('miku');
-        saveAgents();
-        setTimeout(render, 300);
-      }
-    }));
+    // Edición de agente seleccionado
+    const editName = $('#ag-edit-name');
+    if (editName) {
+      editName.onchange = () => {
+        const sel = AG.find(a => a.id == SELID);
+        if (sel) {
+          sel.name = editName.value.trim() || sel.name;
+          saveAgents();
+          render();
+        }
+      };
+    }
+
+    const editPrompt = $('#ag-edit-prompt');
+    if (editPrompt) {
+      editPrompt.onchange = () => {
+        const sel = AG.find(a => a.id == SELID);
+        if (sel) {
+          sel.prompt = editPrompt.value.trim();
+          saveAgents();
+        }
+      };
+    }
+
+    $$('[data-color]').forEach(btn => {
+      btn.onclick = () => {
+        const sel = AG.find(a => a.id == SELID);
+        if (sel) {
+          sel.c = btn.dataset.color;
+          ACC = sel.c;
+          saveAgents();
+          theme();
+          render();
+        }
+      };
+    });
+
+    const delHost = $('#hb-del-curr');
+    if (delHost) {
+      HoldButton(delHost, {
+        label: t('ag_delete'),
+        doneLabel: 'Eliminado',
+        hold: 1400,
+        small: 1,
+        onHold: () => {
+          AG = AG.filter(a => a.id != SELID);
+          selAgent('miku');
+          saveAgents();
+          setTimeout(render, 300);
+        }
+      });
+    }
   }
 
   if (CAT === 'modelos') {
@@ -1286,6 +1943,27 @@ function mount() {
   }
 
   if (CAT === 'mcp') {
+    $$('[data-quick-mcp]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.quickMcp;
+        const rec = RECOMMENDED_MCPS.find(r => r.id === id);
+        if (!rec) return;
+        btn.disabled = true;
+        btn.textContent = 'Instalando...';
+        const ok = await window.Bridge?.addMcpServer?.(rec.id, rec.cmd, rec.args);
+        if (ok) {
+          showToast(`Servidor ${rec.name} instalado correctamente`);
+          const data = await window.Bridge?.getMcpServers?.();
+          STATE.mcp = data.servers || [];
+          render();
+        } else {
+          showToast(`Error al instalar ${rec.name}`);
+          btn.disabled = false;
+          btn.textContent = '+ Instalar';
+        }
+      };
+    });
+
     const btnAdd = $('#btn-add-mcp');
     if (btnAdd) {
       btnAdd.onclick = async () => {
@@ -1327,20 +2005,25 @@ function mount() {
   }
 
   if (CAT === 'alertas') {
-    $$('[data-alert]').forEach(h => {
-      const key = h.dataset.alert;
-      const current = STATE.alerts?.[key]?.threshold || 120;
-      Slosh(h, {
-        value: Math.round((current / 360) * 100),
-        label: 'Minutos',
-        onChange: val => {
-          const mins = Math.max(15, Math.round((val / 100) * 360));
-          if (!STATE.alerts[key]) STATE.alerts[key] = { enabled: true, threshold: mins };
-          STATE.alerts[key].threshold = mins;
-          window.Bridge?.saveAlertsConfig?.(STATE.alerts);
-        }
-      });
+    // Sliders de umbral
+    $$('[data-alert-range]').forEach(range => {
+      range.oninput = () => {
+        const key = range.dataset.alertRange;
+        const val = +range.value;
+        const out = document.getElementById('out-alert-' + key);
+        if (out) out.textContent = val + 'm';
+      };
+      range.onchange = () => {
+        const key = range.dataset.alertRange;
+        const val = +range.value;
+        if (!STATE.alerts[key]) STATE.alerts[key] = { enabled: true, threshold: val };
+        STATE.alerts[key].threshold = val;
+        window.Bridge?.saveAlertsConfig?.(STATE.alerts);
+        showToast(`Umbral para ${key}: ${val} minutos`);
+      };
     });
+
+    // Switches ON/OFF
     $$('[data-alert-en]').forEach(inp => {
       inp.onchange = () => {
         const key = inp.dataset.alertEn;
@@ -1349,6 +2032,55 @@ function mount() {
         window.Bridge?.saveAlertsConfig?.(STATE.alerts);
       };
     });
+
+    // Eliminar alerta
+    $$('[data-del-alert]').forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.dataset.delAlert;
+        delete STATE.alerts[key];
+        window.Bridge?.saveAlertsConfig?.(STATE.alerts);
+        render();
+        showToast(`Alerta eliminada`);
+      };
+    });
+
+    // Añadir alerta desde detectable
+    $$('[data-add-app-alert]').forEach(btn => {
+      btn.onclick = () => {
+        const appId = btn.dataset.addAppAlert;
+        const app = (STATE.detectableApps || []).find(d => d.id === appId);
+        if (!app) return;
+        STATE.alerts[appId] = {
+          enabled: true,
+          threshold: 120,
+          label: app.name,
+          icon: app.icon
+        };
+        window.Bridge?.saveAlertsConfig?.(STATE.alerts);
+        render();
+        showToast(`Alerta añadida para ${app.name}`);
+      };
+    });
+
+    // Añadir alerta personalizada
+    const btnCustom = $('#btn-add-custom-alert');
+    if (btnCustom) {
+      btnCustom.onclick = () => {
+        const name = ($('#custom-app-name')?.value || '').trim();
+        const mins = +(($('#custom-app-mins')?.value || '120').trim()) || 120;
+        if (!name) { alert('Introduce un nombre para la aplicación.'); return; }
+        const key = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        STATE.alerts[key] = {
+          enabled: true,
+          threshold: mins,
+          label: name,
+          icon: '<svg viewBox="0 0 24 24" fill="#a1a1aa"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>'
+        };
+        window.Bridge?.saveAlertsConfig?.(STATE.alerts);
+        render();
+        showToast(`Alerta creada para ${name}`);
+      };
+    }
   }
 
   if (CAT === 'link') {
@@ -1365,7 +2097,6 @@ function mount() {
 }
 
 /* Eventos globales */
-let KB = null;
 document.addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
@@ -1389,16 +2120,6 @@ document.addEventListener('click', e => {
 
 document.addEventListener('input', e => {
   const t = e.target, k = t.dataset.k;
-  if (k && k.startsWith('hk') && t.type == 'checkbox') {
-    const i = +k.slice(2), a = AG[i];
-    if (!a) return;
-    a.hooks = t.checked ? 1 : 0;
-    const st = $('#hst'), sd = $('#hsd');
-    if (st) st.textContent = t.checked ? 'Hooks activos' : 'Hooks sin instalar';
-    if (sd) sd.classList.toggle('on', t.checked);
-    saveAgents();
-    return;
-  }
   if (!k) return;
   CFG[k] = t.type == 'checkbox' ? (t.checked ? 1 : 0) : t.type == 'range' ? +t.value : t.value;
   saveCfg();
@@ -1439,6 +2160,10 @@ async function loadBackendData() {
     if (window.Bridge?.getAlertsConfig) {
       const res = await window.Bridge.getAlertsConfig();
       STATE.alerts = res.alerts || {};
+    }
+    if (window.Bridge?.getDetectableApps) {
+      const res = await window.Bridge.getDetectableApps();
+      STATE.detectableApps = res.apps || [];
     }
   } catch (err) {
     console.warn("Error loading backend data in settings:", err);

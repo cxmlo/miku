@@ -32,7 +32,29 @@ class Api:
         except Exception:
             webbrowser.open('http://127.0.0.1:8000/island/miku_settings.html')
 
+def ensure_single_instance():
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        mutex_name = "Global\\MikuDynamicIslandSingleInstanceMutex"
+        mutex = kernel32.CreateMutexW(None, False, mutex_name)
+        if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+            print("[INFO] Miku ya está en ejecución. Enfocando ventana existente...")
+            hwnd = ctypes.windll.user32.FindWindowW(None, "Miku Desktop")
+            if hwnd:
+                ctypes.windll.user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+                ctypes.windll.user32.SetForegroundWindow(hwnd)
+            return False, None
+        return True, mutex
+    except Exception:
+        return True, None
+
 def main():
+    ok, mutex = ensure_single_instance()
+    if not ok:
+        import sys
+        sys.exit(0)
+
     try:
         monitor = screeninfo.get_monitors()[0]
         mon_w = monitor.width

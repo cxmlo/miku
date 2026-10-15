@@ -91,12 +91,43 @@ fn open_settings(app: tauri::AppHandle) {
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Emitter,
     Manager,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn CreateMutexW(lpMutexAttributes: *mut std::ffi::c_void, bInitialOwner: i32, lpName: *const u16) -> *mut std::ffi::c_void;
+            fn GetLastError() -> u32;
+            fn FindWindowW(lpClassName: *const u16, lpWindowName: *const u16) -> isize;
+            fn SetForegroundWindow(hWnd: isize) -> i32;
+            fn ShowWindow(hWnd: isize, nCmdShow: i32) -> i32;
+        }
+        use std::os::windows::ffi::OsStrExt;
+        let mutex_name: Vec<u16> = std::ffi::OsStr::new("Global\\MikuDynamicIslandSingleInstanceMutex")
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+        let _mutex = unsafe { CreateMutexW(std::ptr::null_mut(), 0, mutex_name.as_ptr()) };
+        if unsafe { GetLastError() } == 183 { // ERROR_ALREADY_EXISTS
+            eprintln!("[INFO] Miku ya está en ejecución. Enfocando ventana activa...");
+            let win_title: Vec<u16> = std::ffi::OsStr::new("Miku · Dynamic Island")
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
+            let hwnd = unsafe { FindWindowW(std::ptr::null(), win_title.as_ptr()) };
+            if hwnd != 0 {
+                unsafe {
+                    ShowWindow(hwnd, 9); // SW_RESTORE
+                    SetForegroundWindow(hwnd);
+                }
+            }
+            return;
+        }
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -113,37 +144,15 @@ pub fn run() {
             }
 
             let config_i = MenuItem::with_id(app, "config", "Configuración (API Keys)", true, None::<&str>)?;
-            let mikulink_i = MenuItem::with_id(app, "miku_link", "Miku-Link (Móvil)", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&config_i, &mikulink_i, &quit_i])?;
+            let menu = Menu::with_items(app, &[&config_i, &quit_i])?;
 
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "config" => {
-                        if let Some(existing) = app.get_webview_window("settings") {
-                            let _ = existing.show();
-                            let _ = existing.set_focus();
-                        } else {
-                            let _ = tauri::WebviewWindowBuilder::new(
-                                app,
-                                "settings",
-                                tauri::WebviewUrl::App("miku_settings.html".into())
-                            )
-                            .title("Configuración · Miku")
-                            .inner_size(920.0, 720.0)
-                            .resizable(true)
-                            .center()
-                            .build();
-                        }
-                    }
-                    "miku_link" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.emit("open_settings", ());
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        open_settings_window(app.clone());
                     }
                     "quit" => {
                         std::process::exit(0);
