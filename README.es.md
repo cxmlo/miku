@@ -8,18 +8,18 @@
 
 Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha música en Spotify, arrastra archivos y chatea con tus modelos favoritos — todo desde una isla flotante no intrusiva.
 
-[![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)](https://github.com)
+[![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)](https://github.com/cxmlo/miku)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.0--beta-orange)](https://github.com)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.1-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
-> [!WARNING]
-> **Aviso de Fase Beta**: Miku Desktop se encuentra actualmente en versión **v0.1.0-beta**. Puedes encontrar comportamientos experimentales o errores ocasionales. ¡Tus comentarios, reportes de fallos y contribuciones son más que bienvenidos!
+> [!TIP]
+> **Novedades en v0.1.1**: **Actualizador automático en 1 clic** con firmas criptográficas Minisign, **Chat Multagente aislado**, menú líquido desplegable (`+`) y alertas por aplicación.
 
 ---
 
@@ -35,13 +35,17 @@ Conoce a **Miku**: una suave nube brillante que asoma en la parte superior de tu
 ## Características
 
 - **Isla Dinámica en Windows**: Flota en el borde superior de tu pantalla. Pasa el cursor para verla asomar; haz clic para expandirla. Nunca roba el foco de tus ventanas activas.
+- **Actualizaciones Automáticas Integradas**: Comprueba e instala actualizaciones oficiales firmadas criptográficamente con un solo clic desde Ajustes.
+- **Chat Multagente con Contexto Aislado**: Comunícate con agentes especializados (GitHub, Programador, Investigador, etc.). Cada agente conserva su propio historial y buzón de respuestas sin mezclar contextos.
+- **Menú Líquido Desplegable (`+`)**: Adjunta archivos, activa visión de pantalla o pega del portapapeles con animaciones elásticas de resorte.
+- **Alertas Proactivas de Tiempo en Pantalla**: Configura avisos o pausas para aplicaciones como VS Code, Chrome, Spotify, Discord o juegos con sus iconos oficiales y umbrales en minutos.
 - **Cerebro Multi-LLM con Rotación Automática**: Conecta Google Gemini (Flash / Pro), Groq (Llama 3.3 70B y Whisper), Claude 3.5 Sonnet u OpenAI GPT-4o. Puedes colocar múltiples claves de respaldo por proveedor (`clave1, clave2`) y Miku rotará automáticamente ante errores de límite de peticiones (Error 429).
-- **Estudio de Creación de Agentes**: Diseña tus propios agentes directamente en Ajustes: asígnales un prompt de personalidad personalizado, herramientas, servidores MCP y claves de API dedicadas.
+- **Estudio de Creación de Agentes**: Diseña tus propios agentes directamente en Ajustes: asígnales un prompt de personalidad personalizado, herramientas, servidores MCP exclusivos y claves de API dedicadas.
 - **Hooks en Vivo para Agentes de Código**: Monitorea **Claude Code**, **Cursor**, **Codex** o tus propios scripts en tiempo real:
   - ¿Pensando? Miku entra en estado `thinking`.
-  - ¿Petición de permisos para ejecutar comandos o editar archivos? Aparece una tarjeta de aprobación directamente en la Isla.
-  - ¿Finalizado? Miku da un salto de alegría (`happy`).
-- **Spotify y Multimedia sin Configuración**: Detecta automáticamente canciones y artistas de Spotify, YouTube o navegadores sin necesidad de claves de desarrollador de Spotify. Pausa, reanuda o cambia de pista con un clic.
+  - ¿Petición de permisos para ejecutar comandos o editar archivos? Aparece una tarjeta de aprobación directamente en la Isla con atajos de teclado (`Y`/`N`).
+  - ¿Finalizado? Miku muestra una insignia de aviso y celebra con un gesto animado.
+- **Spotify y Multimedia sin Configuración**: Detecta automáticamente canciones y artistas de Spotify, YouTube o navegadores sin necesidad de claves de desarrollador de Spotify. Pausa, reanuda o cambia de pista con arrastre de volumen fluido.
 - **Arrastrar y Soltar Archivos**: Arrastra cualquier archivo o imagen sobre la Isla. Miku lo analiza de forma silenciosa, despliega una vista previa instantánea y responde tus preguntas sobre él.
 - **Model Context Protocol (MCP)**: Conecta bases de datos SQLite, exploradores del sistema de archivos, Google Drive o memoria semántica de largo plazo.
 - **Sincronización Móvil (Miku-Link)**: Empareja tu celular en segundos escaneando un código QR vía Wi-Fi local o túneles gratuitos de Cloudflare. Sincroniza portapapeles, archivos y widgets móviles.
@@ -69,7 +73,7 @@ Conoce a **Miku**: una suave nube brillante que asoma en la parte superior de tu
 
 ### Instalador Oficial para Windows (.exe — Recomendado)
 
-1. Descarga el archivo `Miku Desktop_0.1.0_x64-setup.exe` desde la sección de [Releases](https://github.com/cxmlo/miku/releases).
+1. Descarga **[Miku_Setup.exe](https://github.com/cxmlo/miku/releases/latest/download/Miku_Setup.exe)** desde la sección oficial de [Releases](https://github.com/cxmlo/miku/releases/latest).
 2. Ejecuta el instalador y abre **Miku Desktop**.
 3. Haz clic en **Ajustes** en la Isla Dinámica para ingresar tu primera API Key (por ejemplo, Gemini Flash gratuito desde Google AI Studio).
 

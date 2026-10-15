@@ -8,18 +8,18 @@
 
 Watch your agents work, approve actions, listen to Spotify, drop files, and chat with your favorite AI models — all from a floating, non-intrusive island.
 
-[![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)](https://github.com)
+[![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)](https://github.com/cxmlo/miku)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v0.1.0--beta-orange)](https://github.com)
+[![Release](https://img.shields.io/badge/Release-v0.1.1-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
-> [!WARNING]
-> **Public Beta Notice**: Miku Desktop is currently in **v0.1.0-beta**. You may encounter experimental features or occasional bugs. Feedback, bug reports, and pull requests are warmly welcome!
+> [!TIP]
+> **New in v0.1.1**: Integrated **1-Click Auto-Updater** with cryptographic Minisign signatures, **Isolated Multi-Agent Chat**, and liquid create menu!
 
 ---
 
@@ -35,13 +35,17 @@ Meet **Miku**: a soft, glossy cloud character that peeks out from the top of you
 ## Features
 
 - **Dynamic Island on Windows** — sits quietly at the top edge of your screen. Hover over it to peek in; click to expand. Never steals window focus.
+- **Built-in Auto-Updater** — verify and install official updates with cryptographic security in one click directly from Settings.
+- **Isolated Multi-Agent Chat** — converse with specialized agents (e.g., GitHub, Coder, Researcher). Each agent maintains its own persistent history and mailbox without cross-contamination.
+- **Liquid Create Menu (+)** — attach files, trigger screen vision analysis, or paste from clipboard with concentric spring animations.
+- **Proactive App Screen-Time Alerts** — set focus or break alarms for apps like VS Code, Chrome, Spotify, Discord, or games with official icons and custom minute thresholds.
 - **Multi-LLM Brain with Automatic Failover** — connect Google Gemini (Flash / Pro), Groq (Llama 3.3 70B & Whisper), Claude 3.5 Sonnet, or OpenAI GPT-4o. You can configure multiple backup keys per provider (`key1, key2`) and Miku rotates automatically on Rate Limits (Error 429).
 - **Custom Agent Studio** — build your own specialized agents directly inside Settings: assign a custom persona prompt, tools, dedicated MCP servers, and custom API keys.
 - **Live Coding Agent Hooks** — watch **Claude Code**, **Cursor**, **Codex**, or your custom scripts work in real time:
   - Thinking? Miku enters `thinking` mode.
-  - Asking for command/file permissions? An approval card appears right inside the island.
-  - Finished? Miku jumps with a happy emote.
-- **Zero-Config Spotify & Media** — automatically detects and displays track titles and artists from Spotify, YouTube, or your browser without requiring Spotify Developer API tokens. Play, pause, or skip tracks with one click.
+  - Asking for command/file permissions? An approval card appears right inside the island with keyboard shortcuts (`Y`/`N`).
+  - Finished? Miku displays an alert badge and celebrates with a happy emote.
+- **Zero-Config Spotify & Media** — automatically detects and displays track titles and artists from Spotify, YouTube, or your browser without requiring Spotify Developer API tokens. Play, pause, or skip tracks with continuous volume dragging.
 - **Drag & Drop Files** — drag any file or image directly into the Island. Miku analyzes it silently, provides an instant quicklook preview card, and answers questions about it.
 - **Model Context Protocol (MCP)** — plug in SQLite databases, local filesystem explorers, Google Drive, or semantic vector memories dynamically.
 - **Miku-Link Mobile Gateway** — pair your phone in seconds via QR code over your local Wi-Fi or free Cloudflare Quick Tunnels to sync clipboard, files, and mobile widgets.
@@ -66,7 +70,7 @@ Meet **Miku**: a soft, glossy cloud character that peeks out from the top of you
 
 ### Windows Executable (.exe — Recommended)
 
-1. Grab the latest `Miku Desktop_0.1.0_x64-setup.exe` from [Releases](https://github.com/cxmlo/miku/releases).
+1. Download **[Miku_Setup.exe](https://github.com/cxmlo/miku/releases/latest/download/Miku_Setup.exe)** from the official [Releases](https://github.com/cxmlo/miku/releases/latest).
 2. Run the installer and launch **Miku Desktop**.
 3. Open **Settings** from the island to paste your preferred API key (e.g., free Gemini Flash from Google AI Studio).
 
