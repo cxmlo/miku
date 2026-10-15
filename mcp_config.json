@@ -1,0 +1,26 @@
+{
+  "servidores": {
+    "test_server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-everything"
+      ]
+    },
+    "file_system": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ]
+    },
+    "google-drive": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@piotr-agier/google-drive-mcp"
+      ]
+    }
+  }
+}

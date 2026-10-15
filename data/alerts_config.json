@@ -1,0 +1,22 @@
+{
+  "juego": {
+    "label": "Juegos (Valorant, LoL, Minecraft...)",
+    "enabled": true,
+    "threshold": 180
+  },
+  "ocio": {
+    "label": "Ocio / Redes Sociales (Discord, Telegram...)",
+    "enabled": true,
+    "threshold": 180
+  },
+  "trabajo": {
+    "label": "Trabajo continuo (VSCode, IDEs...)",
+    "enabled": true,
+    "threshold": 184
+  },
+  "navegador": {
+    "label": "Navegación web (Chrome, Edge...)",
+    "enabled": true,
+    "threshold": 180
+  }
+}

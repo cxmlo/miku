@@ -1,0 +1,6 @@
+c = open('miku_ui/src/index.html','r',encoding='utf-8').read()
+print('Has KEEP:', 'const KEEP=' in c)
+print('Has blur:', 'addEventListener' in c and 'collapse' in c)
+print('Has mostrarResultado:', 'window.mostrarResultado' in c)
+print('Has setHabla:', 'window.setHabla' in c)
+print('Has SC compact idle:', "compact:{st:'idle',t:'p'" in c)

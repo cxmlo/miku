@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Esquema de Conexiones Miku</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px;}
+        svg { background-color: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        text { font-size: 14px; font-weight: bold; fill: #333; }
+        .pin-text { font-size: 12px; font-weight: normal; fill: white; }
+    </style>
+</head>
+<body>
+    <h2>Esquema Visual de Conexiones (ESP32 en Tabla)</h2>
+    <svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+        
+        <!-- Protoboard (Fondo) -->
+        <rect x="50" y="50" width="800" height="500" rx="15" fill="#fdfdfd" stroke="#ccc" stroke-width="2"/>
+        
+        <!-- Líneas de Energía Protoboard -->
+        <line x1="80" y1="80" x2="820" y2="80" stroke="red" stroke-width="4"/>
+        <text x="830" y="85" fill="red">+</text>
+        <line x1="80" y1="100" x2="820" y2="100" stroke="blue" stroke-width="4"/>
+        <text x="830" y="105" fill="blue">-</text>
+
+        <!-- MB Board (Cargador) -->
+        <rect x="100" y="150" width="120" height="80" rx="5" fill="#333"/>
+        <text x="115" y="170" fill="white">MB Board</text>
+        <text x="110" y="190" class="pin-text" fill="white">(Cargador USB)</text>
+        
+        <!-- Pines MB Board -->
+        <circle cx="130" cy="220" r="5" fill="silver"/> <text x="120" y="240" fill="red">5V</text>
+        <circle cx="170" cy="220" r="5" fill="silver"/> <text x="155" y="240" fill="blue">GND</text>
+
+        <!-- ESP32 -->
+        <rect x="350" y="200" width="200" height="250" rx="5" fill="#222"/>
+        <text x="410" y="320" fill="white" font-size="20">ESP32</text>
+        
+        <!-- Pines ESP32 Arriba -->
+        <circle cx="370" cy="210" r="5" fill="silver"/> <text x="380" y="215" class="pin-text">5V</text>
+        <circle cx="370" cy="235" r="5" fill="silver"/> <text x="380" y="240" class="pin-text">GND</text>
+        <circle cx="370" cy="260" r="5" fill="silver"/> <text x="380" y="265" class="pin-text">12 (BASE)</text>
+        <circle cx="370" cy="285" r="5" fill="silver"/> <text x="380" y="290" class="pin-text">14 (SCL)</text>
+        <circle cx="370" cy="310" r="5" fill="silver"/> <text x="380" y="315" class="pin-text">15 (SDA)</text>
+        <circle cx="370" cy="335" r="5" fill="silver"/> <text x="380" y="340" class="pin-text">2 (CABEZA)</text>
+        
+        <!-- Pines ESP32 Abajo -->
+        <circle cx="530" cy="430" r="5" fill="silver"/> <text x="490" y="435" class="pin-text">3.3V</text>
+
+        <!-- OLED -->
+        <rect x="650" y="150" width="120" height="80" rx="5" fill="#003366"/>
+        <text x="670" y="195" fill="white">PANTALLA</text>
+        <circle cx="660" cy="220" r="5" fill="silver"/> <text x="650" y="240" fill="#333">GND</text>
+        <circle cx="690" cy="220" r="5" fill="silver"/> <text x="680" y="240" fill="#333">VCC</text>
+        <circle cx="720" cy="220" r="5" fill="silver"/> <text x="710" y="240" fill="#333">SCL</text>
+        <circle cx="750" cy="220" r="5" fill="silver"/> <text x="740" y="240" fill="#333">SDA</text>
+
+        <!-- Servo Cabeza -->
+        <rect x="150" y="350" width="120" height="60" rx="5" fill="#0066cc"/>
+        <text x="160" y="385" fill="white">CABEZA (Pin 2)</text>
+        <circle cx="180" cy="360" r="4" fill="#a0522d"/> <!-- Cafe -->
+        <circle cx="210" cy="360" r="4" fill="red"/> <!-- Rojo -->
+        <circle cx="240" cy="360" r="4" fill="orange"/> <!-- Amarillo -->
+
+        <!-- Servo Base -->
+        <rect x="150" y="450" width="120" height="60" rx="5" fill="#0066cc"/>
+        <text x="170" y="485" fill="white">BASE (Pin 12)</text>
+        <circle cx="180" cy="460" r="4" fill="#a0522d"/> <!-- Cafe -->
+        <circle cx="210" cy="460" r="4" fill="red"/> <!-- Rojo -->
+        <circle cx="240" cy="460" r="4" fill="orange"/> <!-- Amarillo -->
+
+        <!-- ================= CABLES ================= -->
+        
+        <!-- Energia MB a Protoboard -->
+        <path d="M 130 220 L 130 80" stroke="red" stroke-width="3" fill="none"/>
+        <path d="M 170 220 L 170 100" stroke="blue" stroke-width="3" fill="none"/>
+
+        <!-- Energia Protoboard a ESP32 -->
+        <path d="M 370 210 L 320 210 L 320 80" stroke="red" stroke-width="3" fill="none"/>
+        <path d="M 370 235 L 340 235 L 340 100" stroke="blue" stroke-width="3" fill="none"/>
+
+        <!-- Energia Servos a Protoboard -->
+        <path d="M 180 360 L 180 320 L 80 320 L 80 100" stroke="#a0522d" stroke-width="3" fill="none"/> <!-- Cabeza Cafe -->
+        <path d="M 210 360 L 210 300 L 90 300 L 90 80" stroke="red" stroke-width="3" fill="none"/> <!-- Cabeza Rojo -->
+        <path d="M 180 460 L 180 320" stroke="#a0522d" stroke-width="3" fill="none"/> <!-- Base Cafe (conecta al otro cafe) -->
+        <path d="M 210 460 L 210 300" stroke="red" stroke-width="3" fill="none"/> <!-- Base Rojo (conecta al otro rojo) -->
+
+        <!-- Datos Servos a ESP32 -->
+        <path d="M 240 360 L 240 335 L 370 335" stroke="orange" stroke-width="3" fill="none"/> <!-- Cabeza Amarillo a Pin 2 -->
+        <path d="M 240 460 L 250 460 L 250 260 L 370 260" stroke="orange" stroke-width="3" fill="none"/> <!-- Base Amarillo a Pin 12 -->
+
+        <!-- Pantalla a ESP32 y Protoboard -->
+        <path d="M 660 220 L 660 100" stroke="blue" stroke-width="3" fill="none"/> <!-- GND a Proto -->
+        <path d="M 690 220 L 690 430 L 530 430" stroke="green" stroke-width="3" fill="none"/> <!-- VCC a 3.3V ESP -->
+        <path d="M 720 220 L 720 285 L 370 285" stroke="purple" stroke-width="3" fill="none"/> <!-- SCL a 14 -->
+        <path d="M 750 220 L 750 310 L 370 310" stroke="magenta" stroke-width="3" fill="none"/> <!-- SDA a 15 -->
+
+    </svg>
+    <p>Sigue las líneas de colores para conectar cada componente.</p>
+</body>
+</html>

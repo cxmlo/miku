@@ -1,0 +1,81 @@
+# Environment & Secrets (CRITICAL: Do NOT commit secrets!)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Rust / Cargo / Tauri
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Node.js
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Databases & local user state
+*.sqlite3
+*.db
+!miku.db.example
+db/
+data/activity_today.json
+chat_history/history_*.json
+.cache
+.cache*
+miku_identity.json
+spatial_memory.json
+miku_contacts.json
+brain/music_memory.json
+widgets/brain/music_memory.json
+
+# Operating System & IDEs
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*.log
+
+# Scripts / Legacy patches archives
+scripts/legacy_patches/
+scratch/
+
+# Binaries
+cloudflared.exe
+*.exe
+*.msi
+*.whl
+*.zip

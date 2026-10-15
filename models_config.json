@@ -1,0 +1,5 @@
+{
+  "chat": "gemini-flash-lite-latest",
+  "computer_use": "gemini-3.5-flash",
+  "stt": "whisper-large-v3"
+}

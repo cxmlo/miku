@@ -1,0 +1,24 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for desktop windows",
+  "windows": ["*"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-current-monitor",
+    "core:window:allow-inner-position",
+    "core:window:allow-inner-size",
+    "core:window:allow-outer-position",
+    "core:window:allow-cursor-position",
+    "core:window:allow-scale-factor",
+    "core:window:allow-set-focus",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:event:allow-listen",
+    "core:event:allow-emit"
+  ]
+}

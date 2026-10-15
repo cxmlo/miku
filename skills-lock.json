@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "ios-hig-design": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "ios-hig-design/SKILL.md",
+      "computedHash": "6483e15378366d4f3eb535450d2406e3926b8e3ec7fcfde290e4373e1ceb89d1"
+    },
+    "pragmatic-programmer": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "pragmatic-programmer/SKILL.md",
+      "computedHash": "ca808589ff9e63a264a3e174930e73b6e5e4a309af00d807e6c988fb9d5d289d"
+    },
+    "refactoring-ui": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "refactoring-ui/SKILL.md",
+      "computedHash": "ae02c7c2b3685df24ca66836dff7a01efac1ed213b9d6963273c354cd9fe57b1"
+    },
+    "system-design": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "system-design/SKILL.md",
+      "computedHash": "6b952b824a92dbda8eb7e47902c25e844f9dbfa52cb2a6c59a970918aa6d26b9"
+    }
+  }
+}

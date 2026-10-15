@@ -1,0 +1,7 @@
+{
+  "name": "MikuIntent",
+  "platforms": ["android"],
+  "android": {
+    "modules": ["expo.modules.mikuintent.MikuIntentModule"]
+  }
+}

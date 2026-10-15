@@ -1,0 +1,8 @@
+{
+  "name": "miku-intent",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "peerDependencies": {
+    "expo": "*"
+  }
+}

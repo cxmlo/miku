@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miku Desktop — Tu Compañera de Escritorio Inteligente & Dynamic Island para Windows</title>
+  
+  <meta name="description" content="Miku Desktop es una asistente de inteligencia artificial con Dynamic Island para Windows. Automatización visual, modelos de IA (Gemini, Claude, GPT), Spotify y agentes locales con MCP.">
+  <meta name="keywords" content="Miku, AI Desktop, Dynamic Island Windows, Computer Use, Gemini Flash, Claude Sonnet, MCP, Open Source, cxmlo">
+  <meta name="author" content="cxmlo">
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://cxmlo.github.io/miku/">
+  <meta property="og:title" content="Miku Desktop — AI Companion & Dynamic Island for Windows">
+  <meta property="og:description" content="La inteligencia artificial que vive en tu pantalla, no en una pestaña. Isla Dinámica nativa, control visual de pantalla y agentes locales.">
+  <meta property="og:image" content="assets/app_icon.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/app_icon.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Ambient background glow & grid -->
+  <div class="ambient-glow" aria-hidden="true"></div>
+  <div class="ambient-glow-bottom" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- Header / Navigation -->
+  <header class="navbar" id="topNav">
+    <nav class="nav-inner" aria-label="Main Navigation">
+      <a href="#hero" class="brand" id="brandLink">
+        <img src="assets/app_icon.png" alt="Miku Logo" class="brand-icon">
+        <span class="brand-title">Miku Desktop <span class="badge-tag js-release-version">v0.1.0-beta</span></span>
+      </a>
+
+      <ul class="nav-links" id="mainMenu">
+        <li><a href="#features" class="nav-link">Características</a></li>
+        <li><a href="#simulator" class="nav-link">Dynamic Island</a></li>
+        <li><a href="#models" class="nav-link">Modelos</a></li>
+        <li><a href="#agents" class="nav-link">Agentes & MCP</a></li>
+        <li><a href="#install" class="nav-link">Instalación</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Language Switcher -->
+        <div class="lang-switch" id="langSwitch" aria-label="Language selector">
+          <button type="button" class="lang-btn active" data-lang="es" id="btnLangEs">ES</button>
+          <button type="button" class="lang-btn" data-lang="en" id="btnLangEn">EN</button>
+        </div>
+
+        <!-- GitHub Link -->
+        <a href="https://github.com/cxmlo/miku" target="_blank" rel="noopener noreferrer" class="btn-github" id="githubRepoLink">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero" id="hero">
+      <div class="container">
+        <div class="hero-pill">
+          <span class="pulse-dot"></span>
+          <span data-i18n="heroTag">⚡ Tu compañera de escritorio inteligente para Windows</span>
+        </div>
+
+        <h1 data-i18n="heroTitle">
+          La inteligencia artificial que vive en tu pantalla, <span class="hero-gradient-text">no en una pestaña</span>.
+        </h1>
+
+        <p class="hero-subtitle" data-i18n="heroSubtitle">
+          Dynamic Island para Windows, control visual de tu PC en tiempo real, soporte multi-modelo con rotación automática de claves y creación de agentes locales con MCP.
+        </p>
+
+        <div class="hero-cta">
+          <div class="cta-group">
+            <a href="https://github.com/cxmlo/miku/releases" class="btn-primary-glow js-download-btn" id="heroDownloadBtn">
+              <!-- Windows SVG icon -->
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+              </svg>
+              <span>
+                <span data-i18n="downloadBtnText">Descargar para Windows</span>
+                <span style="display:block;font-size:0.75rem;font-weight:500;opacity:0.85" class="js-release-version">v0.1.0-beta</span>
+              </span>
+            </a>
+
+            <a href="https://github.com/cxmlo/miku" target="_blank" rel="noopener noreferrer" class="btn-secondary" id="heroGithubBtn">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+              </svg>
+              <span data-i18n="viewGithub">Ver en GitHub</span>
+            </a>
+          </div>
+
+          <div class="hero-meta">
+            <span>
+              <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              Instalador oficial .exe (<span class="js-release-size">2.57 MB</span>)
+            </span>
+            <span>•</span>
+            <span>Windows 10 / 11 (64-bit)</span>
+            <span>•</span>
+            <span>Código Abierto (Licencia MIT)</span>
+          </div>
+        </div>
+
+        <!-- Interactive Dynamic Island Simulator -->
+        <div class="island-showcase" id="simulator">
+          <div class="island-canvas">
+            <div class="notch-container">
+              <div class="dynamic-island" id="dynamicIsland">
+                <img src="assets/app_character.jpg" alt="Miku" class="island-avatar" id="islandAvatar">
+                <div class="island-content">
+                  <div class="island-title" id="islandTitle">Anuel AA — Mejor Que Yo</div>
+                  <div class="island-sub" id="islandSub">Spotify • 320kbps • 1:42 / 3:15</div>
+                </div>
+                <div class="island-visualizer" id="islandVisualizer">
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Simulator interactive switches -->
+            <div class="simulator-controls" aria-label="Simulador de Estados">
+              <button type="button" class="sim-btn active" data-mode="spotify" id="simModeSpotify">
+                <span>🎵</span> Spotify Player
+              </button>
+              <button type="button" class="sim-btn" data-mode="vision" id="simModeVision">
+                <span>👁️</span> Computer Use
+              </button>
+              <button type="button" class="sim-btn" data-mode="agent" id="simModeAgent">
+                <span>🤖</span> Agente DevOps
+              </button>
+              <button type="button" class="sim-btn" data-mode="alert" id="simModeAlert">
+                <span>🔔</span> Alerta Proactiva
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Features Section -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-tag" data-i18n="featTag">Capacidades Únicas</span>
+          <h2 class="section-title" data-i18n="featTitle">Diseñada para elevar tu flujo diario</h2>
+          <p class="section-desc" data-i18n="featDesc">
+            Miku se integra orgánicamente en Windows con una isla discreta, automatización visual de tu ratón y la potencia de los mejores modelos del mundo.
+          </p>
+        </div>
+
+        <div class="grid-3">
+          <!-- Card 1 -->
+          <article class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="card1Title">Isla Dinámica Nativa</h3>
+            <p class="card-text" data-i18n="card1Text">
+              Ubicada discretamente en el notch superior. Se expande con suaves animaciones de resortes al reproducir Spotify, recibir alertas o ejecutar comandos.
+            </p>
+          </article>
+
+          <!-- Card 2 -->
+          <article class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="card2Title">Multi-Modelo con Auto-Respaldo</h3>
+            <p class="card-text" data-i18n="card2Text">
+              Gemini Flash Lite, Gemini 2.5 Pro, Claude 3.5 Sonnet, GPT-4o y Groq Whisper. Si una API se agota o satura, Miku conmuta al instante a tu clave de respaldo.
+            </p>
+          </article>
+
+          <!-- Card 3 -->
+          <article class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="card3Title">Computer Use & Memoria Espacial</h3>
+            <p class="card-text" data-i18n="card3Text">
+              Ve tu pantalla, analiza la interfaz y recuerda dónde hacer clic. Automatiza tareas en cualquier app de Windows sin requerir APIs complejas.
+            </p>
+          </article>
+
+          <!-- Card 4 -->
+          <article class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="card4Title">Creador de Agentes & MCP</h3>
+            <p class="card-text" data-i18n="card4Text">
+              Crea agentes especializados desde la interfaz o conecta herramientas de terminal (Claude Code, Cursor) usando webhooks y servidores MCP oficiales.
+            </p>
+          </article>
+
+          <!-- Card 5 -->
+          <article class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.65c-.2.32-.6.41-.92.21-2.52-1.54-5.7-1.89-9.44-1.04-.37.08-.73-.15-.81-.52-.08-.37.15-.73.52-.81 4.1-.94 7.62-.53 10.44 1.19.32.2.41.6.21.97zm1.23-2.74c-.25.4-.77.53-1.17.28-2.88-1.77-7.28-2.28-10.69-1.25-.45.14-.93-.12-1.07-.57-.14-.45.12-.93.57-1.07 3.9-1.18 8.76-.61 12.08 1.44.4.25.53.77.28 1.17zm.11-2.86c-3.46-2.05-9.17-2.24-12.49-1.23-.53.16-1.09-.14-1.25-.67-.16-.53.14-1.09.67-1.25 3.82-1.16 10.12-.94 14.11 1.43.48.28.63.89.35 1.37-.29.48-.9.63-1.39.35z"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="card5Title">Música & Spotify Integrado</h3>
+            <p class="card-text" data-i18n="card5Text">
+              Detección automática de reproducción, carátula dinámica en la isla y control total por voz o atajos de teclado sin salir de tu ventana actual.
+            </p>
+          </article>
+
+          <!-- Card 6 -->
+          <article class="card">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            </div>
+            <h3 class="card-title" data-i18n="card6Title">100% Local & Seguro</h3>
+            <p class="card-text" data-i18n="card6Text">
+              Tus credenciales y bases de datos se almacenan exclusivamente en tu equipo. Sin intermediarios, sin telemetría intrusiva, código abierto bajo MIT.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Model Matrix Section -->
+    <section class="section" id="models">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-tag" data-i18n="modelsTag">Elección Óptima</span>
+          <h2 class="section-title" data-i18n="modelsTitle">Matriz de Modelos Recomendados</h2>
+          <p class="section-desc" data-i18n="modelsDesc">
+            Miku te ayuda a seleccionar el modelo ideal para cada tarea, optimizando velocidad, costo y precisión.
+          </p>
+        </div>
+
+        <div class="models-matrix">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Tarea / Rol</th>
+                <th>Modelo Sugerido</th>
+                <th>Ventaja Clave</th>
+                <th>Costo / Proveedor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>💬 Chat & Asistencia Diaria</strong></td>
+                <td>
+                  <div class="model-name">
+                    Gemini Flash Lite
+                    <span class="model-badge-rec">Recomendado</span>
+                  </div>
+                </td>
+                <td>Latencia mínima (<400ms), 1M tokens de contexto</td>
+                <td>Gratuito / Google AI Studio</td>
+              </tr>
+              <tr>
+                <td><strong>💻 Programación & Código Complejo</strong></td>
+                <td>
+                  <div class="model-name">
+                    Claude 3.5 Sonnet / Gemini 2.5 Pro
+                    <span class="model-badge-rec">Recomendado</span>
+                  </div>
+                </td>
+                <td>Refactorización profunda, razonamiento y hooks</td>
+                <td>Anthropic / Google AI Studio</td>
+              </tr>
+              <tr>
+                <td><strong>👁️ Computer Use (Pantalla & Clics)</strong></td>
+                <td>
+                  <div class="model-name">
+                    Gemini 3.5 Flash
+                    <span class="model-badge-rec">Recomendado</span>
+                  </div>
+                </td>
+                <td>Detección visual de coordenadas y clics de alta resolución</td>
+                <td>Google AI Studio</td>
+              </tr>
+              <tr>
+                <td><strong>🎙️ Voz a Texto (STT en tiempo real)</strong></td>
+                <td>
+                  <div class="model-name">
+                    Whisper Large v3 (Groq)
+                    <span class="model-badge-rec">Recomendado</span>
+                  </div>
+                </td>
+                <td>Transcripción instantánea con precisión milimétrica en español</td>
+                <td>Nivel Gratuito / Groq Cloud</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Custom Agents & CLI Hooks Section -->
+    <section class="section" id="agents">
+      <div class="container">
+        <div class="agents-showcase">
+          <div>
+            <span class="section-tag" data-i18n="agentsTag">Ecosistema</span>
+            <h2 class="section-title" data-i18n="agentsTitle">Crea Agentes o Conecta tu Terminal</h2>
+            <p class="section-desc" data-i18n="agentsDesc" style="margin-bottom: 24px;">
+              Extiende Miku como desees: mediante el creador visual o usando el hook de terminal para Claude Code y Cursor.
+            </p>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:12px;color:var(--text-muted);font-size:0.95rem;">
+              <li style="display:flex;align-items:center;gap:10px;">
+                <span style="color:var(--primary)">✦</span>
+                <strong>Creador No-Code en la App:</strong> Asigna prompt, servidor MCP y llaves dedicadas con un clic.
+              </li>
+              <li style="display:flex;align-items:center;gap:10px;">
+                <span style="color:var(--primary)">✦</span>
+                <strong>Hooks en Vivo:</strong> Recibe avisos en la Dynamic Island cuando tu agente termine una compilación o requiera permisos.
+              </li>
+              <li style="display:flex;align-items:center;gap:10px;">
+                <span style="color:var(--primary)">✦</span>
+                <strong>Protocolo MCP:</strong> Conecta bases de datos SQLite, Google Drive y el sistema de archivos local de forma segura.
+              </li>
+            </ul>
+          </div>
+
+          <div class="code-window">
+            <div class="code-header">
+              <span class="window-dot dot-red"></span>
+              <span class="window-dot dot-yellow"></span>
+              <span class="window-dot dot-green"></span>
+              <span class="code-title">Terminal / Claude Code Hook</span>
+            </div>
+            <pre class="code-body"><code><span class="code-comment"># 1. Notificar a Miku de una tarea en terminal</span>
+python scripts/miku_hook.py <span class="code-string">"Refactorizando servidor..."</span> --event PreToolUse
+
+<span class="code-comment"># 2. Solicitar permiso visual en la Dynamic Island</span>
+python scripts/miku_hook.py <span class="code-string">"¿Borrar directorio dist/?"</span> --event PermissionRequest
+
+<span class="code-comment"># 3. Notificar finalización exitosa</span>
+python scripts/miku_hook.py <span class="code-string">"¡Compilación completada!"</span> --event Stop</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Installation & Download Card -->
+    <section class="download-section" id="install">
+      <div class="container">
+        <div class="download-card">
+          <h2 data-i18n="dlTitle">Lleva a Miku a tu Escritorio hoy</h2>
+          <p data-i18n="dlDesc">
+            Instalador oficial ligero (2.5 MB). Descarga directa, sin instaladores confusos ni paquetes ocultos.
+          </p>
+
+          <div class="cta-group">
+            <a href="https://github.com/cxmlo/miku/releases" class="btn-primary-glow js-download-btn" id="bottomDownloadBtn">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+              </svg>
+              <span>
+                <span data-i18n="downloadBtnText">Descargar para Windows</span>
+                <span style="display:block;font-size:0.75rem;font-weight:500;opacity:0.85" class="js-release-version">v0.1.0-beta</span>
+              </span>
+            </a>
+
+            <a href="https://github.com/cxmlo/miku" target="_blank" rel="noopener noreferrer" class="btn-secondary" id="bottomGithubBtn">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              <span>Repositorio en GitHub</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-copy">
+        © 2026 <strong>cxmlo</strong>. <span data-i18n="rightsReserved">Todos los derechos reservados. Licencia MIT.</span>
+      </div>
+
+      <div class="footer-links">
+        <a href="https://github.com/cxmlo/miku" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+        <a href="https://github.com/cxmlo/miku/releases" target="_blank" rel="noopener noreferrer" class="footer-link">Releases</a>
+        <a href="https://github.com/cxmlo/miku/issues" target="_blank" rel="noopener noreferrer" class="footer-link">Reportar Error</a>
+        <a href="https://github.com/cxmlo/miku/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="footer-link">Licencia MIT</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script -->
+  <script src="script.js"></script>
+</body>
+</html>
