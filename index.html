@@ -63,13 +63,41 @@ h2{font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;line-height:1.05;font-we
 .sw{transition:opacity .25s var(--soft)}
 footer{text-align:center;padding-top:60px;padding-bottom:50px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+
+/* === Mobile Responsive Polish === */
+.screen-set{position:relative;height:calc(740px*var(--k-set,1));overflow:hidden;background:#0c0d10;border-bottom:0}
+.screen-set iframe{position:absolute;top:0;left:50%;width:960px;height:740px;margin-left:-480px;border:0;background:transparent;transform:scale(var(--k-set,1));transform-origin:top center}
+
+@media(max-width:768px){
+  section,header,footer{padding:0 14px}
+  nav{padding:10px 14px;gap:8px;justify-content:space-between;align-items:center}
+  nav .nav-link-sub{display:none}
+  nav .brand{font-size:13.5px}
+  nav .gh-btn{padding:4px 8px}
+  nav .gh-btn span{display:none}
+  .hero{padding-top:76px;padding-bottom:20px}
+  h1{font-size:clamp(46px,13vw,68px);letter-spacing:-.04em}
+  .sub{font-size:15.5px;padding:0 6px;margin:12px auto 20px}
+  .btn{padding:11px 20px;font-size:14px}
+  .sec{padding-top:54px}
+  .sec>p{margin:8px 0 20px}
+  .ctl{display:flex;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:12px 14px;gap:7px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .ctl::-webkit-scrollbar{display:none}
+  .ctl .pill{flex:none;font-size:10.5px;padding:7px 11px}
+  .tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;gap:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs .pill{flex:none}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .dl .bd{padding:34px 16px}
+}
+
 </style></head><body>
 <div id="pg"></div>
 <nav>
   <a href="#top" class="brand"><img src="assets/app_icon.png" alt="Miku">Miku</a>
-  <a href="#isla" data-t="n_isl"></a>
-  <a href="#skills" data-t="n_sk"></a>
-  <a href="#ajustes" data-t="n_set"></a>
+  <a href="#isla" data-t="n_isl" class="nav-link-sub"></a>
+  <a href="#skills" data-t="n_sk" class="nav-link-sub"></a>
+  <a href="#ajustes" data-t="n_set" class="nav-link-sub"></a>
   <a class="dl" href="#download" data-t="n_ins"></a>
   <a href="https://github.com/cxmlo/miku" target="_blank" rel="noopener noreferrer" class="gh-btn" title="GitHub Repo">
     <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -98,7 +126,7 @@ footer{text-align:center;padding-top:60px;padding-bottom:50px}
 
 <section class="sec" id="ajustes">
  <h2 class="rv" data-t="h_set"></h2><p class="rv" data-t="p_set"></p>
- <div class="win rv"><div class="tb"><i></i><i></i><i></i><span data-t="w_set"></span></div><iframe class="set" id="fs" title="Configuración de Miku"></iframe></div>
+ <div class="win rv" id="win-set" style="--k-set:1"><div class="tb"><i></i><i></i><i></i><span data-t="w_set"></span></div><div class="screen screen-set" id="scr-set"><iframe class="set" id="fs" title="Configuración de Miku"></iframe></div></div>
 </section>
 
 <section class="sec" id="download">
@@ -121,8 +149,20 @@ const fi=$('#fi'),W=()=>fi.contentWindow;
 const lazy=(el,id)=>{const o=new IntersectionObserver(e=>{if(e[0].isIntersecting){el.srcdoc=dec(id);o.disconnect()}},{rootMargin:'200px'});o.observe(el)};
 lazy(fi,'#d1');lazy($('#fs'),'#d2');
 /* escala responsive de la pantalla */
-const fit=()=>{const k=Math.min(1,$('#scr').clientWidth/720);$('#demo').style.setProperty('--k',k)};
+const fit=()=>{
+  const scr=$('#scr');
+  if(scr){
+    const k=Math.min(1,scr.clientWidth/720);
+    $('#demo').style.setProperty('--k',k);
+  }
+  const s=$('#scr-set');
+  if(s){
+    const ks=Math.min(1,s.clientWidth/960);
+    $('#win-set').style.setProperty('--k-set',ks);
+  }
+};
 addEventListener('resize',fit);fit();
+setTimeout(fit,150);
 /* Miku te mira en toda la página */
 addEventListener('pointermove',e=>{document.body.style.setProperty('--mx',e.clientX+'px');document.body.style.setProperty('--my',e.clientY+'px');
  try{const r=fi.getBoundingClientRect(),k=r.width/720;W().feed((e.clientX-r.left)/k,(e.clientY-r.top)/k)}catch{}});
