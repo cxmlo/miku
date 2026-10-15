@@ -1186,28 +1186,17 @@ async def delete_mcp_server(name: str):
 # ==========================================
 ALERTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "alerts_config.json")
 
-DEFAULT_ALERTS = {
-    "juego": {"label": "Juegos (Valorant, LoL, Minecraft...)", "enabled": True, "threshold": 120},
-    "ocio": {"label": "Ocio / Redes Sociales (Discord, Telegram...)", "enabled": True, "threshold": 180},
-    "trabajo": {"label": "Trabajo continuo (VSCode, IDEs...)", "enabled": True, "threshold": 120},
-    "navegador": {"label": "Navegación web (Chrome, Edge...)", "enabled": True, "threshold": 180}
-}
+DEFAULT_ALERTS = {}
 
 @app.get("/api/config/alerts")
 async def get_alerts_config():
-    alerts = DEFAULT_ALERTS.copy()
     if os.path.exists(ALERTS_FILE):
         try:
             with open(ALERTS_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                for k, v in saved.items():
-                    if k in alerts:
-                        alerts[k].update(v)
-                    else:
-                        alerts[k] = v
+                return {"alerts": json.load(f)}
         except Exception as e:
             logger.error(f"Error reading alerts_config.json: {e}")
-    return {"alerts": alerts}
+    return {"alerts": {}}
 
 class UpdateAlertsRequest(BaseModel):
     alerts: dict
