@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tagName:
+        description: 'Release Tag (ej. v0.1.0 o v0.1.1)'
+        required: true
+        default: 'v0.1.0'
+        type: string
 
 jobs:
   release:
@@ -46,8 +52,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: ./miku_ui
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Miku Desktop ${{ github.ref_name }}'
+          tagName: ${{ github.event.inputs.tagName || github.ref_name }}
+          releaseName: 'Miku Desktop ${{ github.event.inputs.tagName || github.ref_name }}'
           releaseBody: 'Descarga la última versión de Miku Desktop.'
           releaseDraft: false
           prerelease: false
@@ -55,11 +61,12 @@ jobs:
       - name: Upload Miku_Setup.exe alias for direct web download
         shell: pwsh
         run: |
+          $tag = "${{ github.event.inputs.tagName || github.ref_name }}"
           $exe = Get-ChildItem -Path "miku_ui/src-tauri/target/release/bundle/nsis/*.exe" | Where-Object { $_.Name -notlike "*Miku_Setup.exe" } | Select-Object -First 1
           if ($exe) {
             $aliasPath = Join-Path $exe.DirectoryName "Miku_Setup.exe"
             Copy-Item $exe.FullName $aliasPath -Force
-            gh release upload ${{ github.ref_name }} "$aliasPath" --clobber
+            gh release upload $tag "$aliasPath" --clobber
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
