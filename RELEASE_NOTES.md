@@ -1,16 +1,22 @@
-## 🚀 Novedades Principales en v0.1.3
-- **Auto-Actualizador Fluido y Proactivo**: La aplicación ahora verifica automáticamente si existe una nueva versión nada más abrir la ventana de Ajustes o hacer clic en la alerta de la Isla Dinámica, permitiendo actualizar e instalar en 1 clic sin tener que descargar archivos manualmente desde la web.
-- **Servidor Core Autónomo Verificado (Puerto 8000)**: Corrección completa del empaquetado del sidecar `miku-core.exe`. Se resolvieron las dependencias dinámicas de ChromaDB (`chromadb.telemetry.product.posthog`) y los descriptores estándar I/O en Windows. Al iniciar Miku, el servidor arranca de forma 100% invisible y el indicador **Core 8000** se conecta en verde de inmediato.
+## 🚀 Novedades Principales en v0.1.4
+- **Reproductor Multimedia Universal Windows (GSMTC)**: Soporte completo para cualquier reproductor activo en Windows (Chrome, Edge, YouTube, VLC, Spotify Web o App de escritorio) sin necesidad de tener Spotify instalado. Muestra carátula, título, artista y segundos transcurridos/totales 100% sincronizados en tiempo real mediante APIs nativas de Windows (`winsdk`).
+- **Selector Jerárquico de Modelos de IA con Filtrado por Proveedor**: Menú organizado por pestañas de proveedores (Google Gemini, Groq, OpenAI, DeepSeek, Anthropic, Ollama / Local). Nueva categoría **Pro / Código** para modelos especializados de programación, además de Chat, Computer Use y STT. Cambio de modelo en caliente sin tener que reiniciar el servidor.
+- **Proceso de Pensamiento y Herramientas Colapsables en el Chat**:
+  - Visualización del razonamiento interno del agente colapsable (`Pensó durante Xs` / `Pensando...`).
+  - Historial colapsable de comandos y herramientas ejecutadas (`Ejecutó X acciones v`).
+  - Vistas previas en miniatura con número (`Captura #1`, `Captura #2`) de Computer Use directamente en el chat, con visualizador a pantalla completa al hacer clic (Zoom).
+- **Detección Ultrarrápida de Juegos (<20ms) y Alertas de Tiempo de Uso**: Detección nativa estilo Discord que lista al instante los juegos y ventanas activas sin congelar el sistema. Alertas proactivas mediante notificación toast de Windows y aviso de la mascota en la Isla cuando se excede el límite de tiempo.
+- **Conexión Instantánea de Servidores MCP**: Al pulsar "+ Instalar" en un servidor MCP recomendado o personalizado, se conecta y corre de inmediato en segundo plano con retroalimentación visual en vivo.
 
 ## 🛠️ Mejoras y Optimización
-- **Navegación Inteligente de Actualizaciones**: Al pulsar el badge de actualización en la Isla, ahora te lleva directamente a la pestaña **General** de Ajustes con la tarjeta de actualización visible y lista para instalar.
-- **Sincronización de Versión**: Unificación de la versión `v0.1.3` en todos los archivos de configuración (`tauri.conf.json`, `Cargo.toml`, `package.json`, `miku_settings.html` y `bridge.js`).
-- **Resiliencia de Base de Datos Vectorial**: Inicialización tolerante a fallos en `memory.py` con telemetría desactivada y ruta persistente en `AppData/Miku Desktop/db`.
+- **Arranque y Auto-Sincronización del Servidor Core**: Eliminada la necesidad de cerrar y volver a abrir la ventana de Ajustes. El frontend detecta automáticamente la señal de vida del servidor y recarga modelos, claves y agentes de forma transparente.
+- **Aislamiento Estricto de Agentes (GitHub, Antigravity, Miku)**: Cada subagente mantiene su propio prompt de sistema, memoria y personalidad sin filtraciones del asistente principal.
+- **Borde de Arcoíris Más Delgado**: El contorno animado de los agentes en ejecución se refinó a una línea ultradelgada de 1.1px con brillo sutil para un aspecto moderno y premium.
 
 ## 🐛 Correcciones de Errores (Fixes)
-- **Corrección en Menús Desplegables**: Solucionado el problema en todos los menús desplegables (`GlideSelect`) donde al hacer clic en una opción se seleccionaba erróneamente la de abajo debido a un desfase de cálculo en el índice.
-- **Descriptores I/O en PyInstaller**: Configuración de consola nativa oculta (`CREATE_NO_WINDOW`) que previene fallos silenciosos de Uvicorn y Logging en Windows.
-- **Importaciones Estáticas en Tools**: Sustitución de `__import__` dinámicos por importaciones estáticas para garantizar total compatibilidad con ejecutables congelados.
+- **Corrección de Desbordamiento de Texto en Selectores**: Eliminado el bug donde los nombres largos de modelos se desplazaban fuera del menú y tapaban el botón "Guardar modelos". Opciones con fondo opaco y z-index prioritario.
+- **Animación de Pensando Atascada**: Corregido el bug donde Miku se quedaba en estado de pensamiento al cambiar entre agentes. Ahora el estado de la mascota se sincroniza inmediatamente con el agente seleccionado.
+- **Mensajes de Error Amigables de APIs**: Sustitución de excepciones crudas por mensajes explicativos en español para códigos 400, 401, 402/429 (créditos o cuota insuficiente) y 404.
 
 ---
-**Instalación:** Si ya tienes Miku instalada, ve a **Ajustes → General** y pulsa **Instalar v0.1.3**, o descarga directamente `Miku_Setup.exe` abajo.
+**Instalación:** Si ya tienes Miku instalada, ve a **Ajustes → General** y pulsa **Instalar v0.1.4**, o descarga y ejecuta el instalador `Miku_Setup.exe` abajo.

@@ -5,11 +5,16 @@ import ctypes
 
 WINRT_AVAILABLE = False
 try:
-    from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus
-    from winrt.windows.storage.streams import Buffer
+    from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus
+    from winsdk.windows.storage.streams import Buffer, DataReader
     WINRT_AVAILABLE = True
 except Exception:
-    WINRT_AVAILABLE = False
+    try:
+        from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus
+        from winrt.windows.storage.streams import Buffer, DataReader
+        WINRT_AVAILABLE = True
+    except Exception:
+        WINRT_AVAILABLE = False
 
 # Estado compartido en memoria
 media_state = {
@@ -51,15 +56,27 @@ def _get_target_session(mgr):
     if not mgr:
         return None
     try:
+        cur = mgr.get_current_session()
+        if cur:
+            try:
+                playback = cur.get_playback_info()
+                if playback and playback.playback_status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.PLAYING:
+                    return cur
+            except Exception:
+                pass
+
         sessions = mgr.get_sessions()
-        if not sessions:
-            return None
-        for s in sessions:
-            if s and hasattr(s, 'source_app_user_model_id') and s.source_app_user_model_id:
-                app_id = str(s.source_app_user_model_id).lower()
-                if any(k in app_id for k in ["spotify", "music", "itunes", "aimp", "chrome"]):
-                    return s
-        return mgr.get_current_session()
+        if sessions:
+            for s in sessions:
+                if s:
+                    try:
+                        playback = s.get_playback_info()
+                        if playback and playback.playback_status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.PLAYING:
+                            return s
+                    except Exception:
+                        pass
+            return cur or sessions[0]
+        return cur
     except Exception:
         try:
             return mgr.get_current_session()
@@ -152,10 +169,23 @@ async def _media_loop():
                 if session_id != media_state["session_id"]:
                     media_state["session_id"] = session_id
                     if getattr(info, 'thumbnail', None):
-                        stream = await info.thumbnail.open_read_async()
-                        buffer = Buffer(stream.size)
-                        await stream.read_async(buffer, buffer.capacity, 0)
-                        media_state["thumbnail_bytes"] = bytes(buffer)
+                        try:
+                            stream = await info.thumbnail.open_read_async()
+                            size = stream.size
+                            if size > 0:
+                                buffer = Buffer(size)
+                                await stream.read_async(buffer, buffer.capacity, 0)
+                                try:
+                                    reader = DataReader.from_buffer(buffer)
+                                    out_b = bytearray(buffer.length)
+                                    reader.read_bytes(out_b)
+                                    media_state["thumbnail_bytes"] = bytes(out_b)
+                                except Exception:
+                                    media_state["thumbnail_bytes"] = bytes(buffer)
+                            else:
+                                media_state["thumbnail_bytes"] = None
+                        except Exception:
+                            media_state["thumbnail_bytes"] = None
                     else:
                         media_state["thumbnail_bytes"] = None
                         

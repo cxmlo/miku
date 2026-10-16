@@ -147,11 +147,11 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
         analysis = analizar_archivo_silencioso(file_path)
         user_input = f"El usuario acaba de arrastrar el archivo '{os.path.basename(file_path)}'.\nContenido extraído del archivo: {analysis}\nOBLIGATORIO: Usa la herramienta 'mostrar_tarjeta_visual' pasándole un mensaje resumido. Háblame brevemente (sin usar asteriscos ni markdown)."
     
-    if not active_hist:
+    if not active_hist or active_hist[0].get("role") != "system":
         if system_prompt:
-            active_hist.append({"role": "system", "content": system_prompt})
+            active_hist.insert(0, {"role": "system", "content": system_prompt})
     else:
-        if system_prompt and len(active_hist) > 0 and active_hist[0].get("role") == "system":
+        if system_prompt:
             active_hist[0] = {"role": "system", "content": system_prompt}
             
     active_hist.append({"role": "user", "content": user_input})
@@ -168,9 +168,12 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
     # 1. Obtener cliente y modelo según la configuración activa (models_config.json)
     try:
         from models_provider import get_client_and_model
-        active_client, active_model, provider_name = get_client_and_model(category="chat")
+        req_cat = "pro" if (agent_id and agent_id.lower() in ("github", "antigravity")) else "chat"
+        active_client, active_model, provider_name = get_client_and_model(category=req_cat)
+        if not active_client and req_cat == "pro":
+            active_client, active_model, provider_name = get_client_and_model(category="chat")
         if active_client:
-            logger.info(f"Cerebro activo: {provider_name.upper()} ({active_model})")
+            logger.info(f"Cerebro activo para '{agent_id or 'miku'}': {provider_name.upper()} ({active_model})")
     except Exception as e:
         logger.warning(f"Error resolviendo cliente desde models_provider: {e}")
 
@@ -192,8 +195,8 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
                 logger.warning(f"No se pudo inicializar Vertex AI: {e}")
                 use_fallback = True
 
-    # 2. Router Semántico dinámico si estamos en Google
-    if active_client and provider_name == "google" and not use_fallback:
+    # 2. Router Semántico dinámico si estamos en Google y el agente es Miku
+    if active_client and provider_name == "google" and not use_fallback and (not agent_id or agent_id == "miku"):
         try:
             router_prompt = f"""Eres el instinto de Miku. Analiza la petición del usuario: "{user_input}"
 Responde ÚNICAMENTE con UNA de estas 3 palabras:
@@ -326,16 +329,31 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                     else:
                         use_fallback = True
 
-                if not response and ("403" in err_text or "BILLING_DISABLED" in err_text or "PERMISSION_DENIED" in err_text or use_fallback):
-                    logger.warning(f"Cambiando inmediatamente a Groq por: {err_text}")
-                    use_fallback = True
+                if use_fallback and not response:
                     groq_cl, groq_mod = get_groq_client()
                     if groq_cl:
                         active_client = groq_cl
-                        active_model = groq_mod
-                        response = _execute_completion(active_client, active_model, active_hist)
-                    else:
-                        raise client_err
+                        active_model = "llama-3.3-70b-versatile"
+                        logger.info("Reintentando con motor Groq de respaldo...")
+                        try:
+                            response = _execute_completion(active_client, active_model, active_hist)
+                        except Exception as groq_err:
+                            err_text = str(groq_err)
+
+                if not response:
+                    logger.error(f"[Brain] Error final de cliente: {err_text}")
+                    low_err = err_text.lower()
+                    if "429" in err_text or "resource_exhausted" in low_err or "rate limit" in low_err:
+                        return "⚠️ Límite de peticiones alcanzado (Rate Limit 429). Has excedido la cuota gratuita por minuto de este modelo. Por favor espera unos momentos o añade claves de respaldo en Ajustes."
+                    elif "billing" in low_err or "quota" in low_err or "credit" in low_err or "402" in err_text:
+                        return "💳 Error al contactar la API: Falta de crédito o cuota en tu cuenta del proveedor. Este modelo requiere una cuenta con facturación activa."
+                    elif "401" in err_text or "invalid_api_key" in low_err or "unauthorized" in low_err:
+                        return "🔑 API Key no válida o revocada. Revisa la clave configurada para este proveedor en Ajustes."
+                    elif "not found" in low_err or "model_not_found" in low_err or "404" in err_text:
+                        return f"🔍 El modelo '{active_model}' no fue encontrado o no está disponible para tu cuenta en este proveedor."
+                    elif "400" in err_text:
+                        return f"⚠️ Petición rechazada por la API (Error 400). Es posible que el modelo '{active_model}' no soporte esta función o requiera una cuenta con facturación activa."
+                    return f"⚠️ Error al contactar a la API ({active_model}): {err_text}"
             
             if not response.choices:
                 return "Error: El cerebro devolvió una respuesta vacía (posible filtro de seguridad)."

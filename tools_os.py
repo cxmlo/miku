@@ -264,6 +264,8 @@ def borrar_archivo_confirmado(ruta: str) -> str:
 def tomar_captura_pantalla(nombre_archivo: str = "captura") -> str:
     """Toma una captura de la pantalla actual y la guarda como archivo de imagen (.png) en una carpeta temporal invisible."""
     import tempfile
+    import base64
+    import io
     try:
         if not nombre_archivo.endswith(".png"):
             nombre_archivo += ".png"
@@ -272,6 +274,29 @@ def tomar_captura_pantalla(nombre_archivo: str = "captura") -> str:
         
         screenshot = pyautogui.screenshot()
         screenshot.save(file_path)
+
+        # Generar thumbnail ligero para la interfaz de chat (click-to-zoom)
+        try:
+            thumb = screenshot.copy()
+            thumb.thumbnail((280, 160))
+            buf = io.BytesIO()
+            thumb.save(buf, format="JPEG", quality=75)
+            thumb_b64 = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+            import requests
+            API_KEY = os.getenv("MIKU_API_KEY", "miku_secure_key_2026")
+            requests.post("http://127.0.0.1:8000/broadcast_command",
+                          json={"payload": {
+                              "type": "agent_tool_step",
+                              "tool": "tomar_captura_pantalla",
+                              "name": "Captura de pantalla",
+                              "detail": f"Pantalla guardada en {nombre_archivo}",
+                              "screenshot": thumb_b64
+                          }},
+                          headers={"x-api-key": API_KEY}, timeout=0.5)
+        except Exception:
+            pass
+
         return f"Captura de pantalla tomada con éxito y guardada en {file_path}. (Ruta absoluta temporal, el sistema la borrará luego automáticamente)."
     except Exception as e:
         return f"Error al intentar guardar la captura: {e}"
@@ -283,7 +308,22 @@ def ejecutar_comando_sistema(comando: str) -> str:
         if comando.strip().lower().startswith("powershell"):
             if "-NonInteractive" not in comando:
                 comando = comando.replace("powershell", "powershell -NonInteractive -ExecutionPolicy Bypass", 1)
-                
+
+        # Notificar paso de comando a la UI del chat
+        try:
+            import requests
+            API_KEY = os.getenv("MIKU_API_KEY", "miku_secure_key_2026")
+            requests.post("http://127.0.0.1:8000/broadcast_command",
+                          json={"payload": {
+                              "type": "agent_tool_step",
+                              "tool": "ejecutar_comando_sistema",
+                              "name": "Ejecutó un comando",
+                              "detail": comando[:100] + ("..." if len(comando) > 100 else "")
+                          }},
+                          headers={"x-api-key": API_KEY}, timeout=0.4)
+        except Exception:
+            pass
+
         resultado = subprocess.run(comando, shell=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=15)
         out = resultado.stdout.strip()
         err = resultado.stderr.strip()

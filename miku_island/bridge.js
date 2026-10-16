@@ -85,6 +85,10 @@ const Bridge = (() => {
       window.feed?.({ type: "ws", ok: true });
       window.feed?.({ type: "api", ok: true });
 
+      try {
+        channel?.postMessage({ k: "core_connected", ok: true });
+      } catch (_) {}
+
       // Emote happy when connected
       if (window.buddy?.emote) {
         window.buddy.emote("happy", 1200);
@@ -277,7 +281,7 @@ const Bridge = (() => {
       window.feed?.({ type: "state", name: "searching" });
     } else if (text.includes("pantalla") || text.includes("clic") || text.includes("escribiendo")) {
       window.feed?.({ type: "state", name: "working" });
-      window.feed?.({ type: "scene", name: "tool_use", args: { label: rawText, badge: "Computer Use" } });
+      window.feed?.({ type: "agent_tool_step", name: "Computer Use", detail: rawText });
     } else if (text.includes("error")) {
       window.feed?.({ type: "state", name: "error" });
     } else {

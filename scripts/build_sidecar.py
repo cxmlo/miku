@@ -87,6 +87,8 @@ def run():
         "--collect-all=litellm",
         "--collect-all=openwakeword",
         "--collect-all=onnxruntime",
+        "--collect-all=winsdk",
+        "--hidden-import=winsdk",
         "--hidden-import=chromadb.telemetry.product.posthog",
         "--hidden-import=chromadb.api.segment",
         "--hidden-import=chromadb.db.impl.sqlite",

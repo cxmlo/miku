@@ -124,27 +124,30 @@ def is_ollama_running() -> bool:
 
 
 def _fetch_live_google_models(key: str) -> List[Dict]:
-    """Descubre modelos reales de Google AI Studio vía API oficial."""
+    """Descubre modelos reales de Google AI Studio vía API oficial filtrando sólo modelos válidos de chat/código/visión."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 Miku-V2"})
     with urllib.request.urlopen(req, timeout=3.0) as resp:
         data = json.loads(resp.read().decode("utf-8"))
         models = []
+        # Palabras prohibidas que NO son para chat general
+        banned = ["embedding", "aqa", "imagen", "image", "lyria", "veo", "tts", "whisper", "deep-research", "bison", "gecko", "text-"]
         for m in data.get("models", []):
             methods = m.get("supportedGenerationMethods", [])
             if "generateContent" not in methods:
                 continue
             raw_id = m.get("name", "").replace("models/", "")
-            if not raw_id:
+            if not raw_id or not raw_id.startswith("gemini"):
                 continue
-            # Omitir modelos experimentales viejos o embedding
-            if "embedding" in raw_id or "aqa" in raw_id:
+            if any(b in raw_id.lower() for b in banned):
                 continue
             
             display_name = m.get("displayName") or raw_id
             caps = ["chat"]
-            if any(term in raw_id for term in ["flash", "pro", "gemini-2"]):
+            if any(term in raw_id.lower() for term in ["flash", "pro", "vision", "thinking"]):
                 caps.append("computer_use")
+            if any(term in raw_id.lower() for term in ["pro", "thinking"]):
+                caps.append("pro")
             
             models.append({
                 "id": raw_id,
@@ -299,17 +302,25 @@ def get_available_models(force_refresh: bool = False) -> Dict[str, List[Dict]]:
     computer_use_models = []
     stt_models = []
 
+    pro_models = []
+    by_provider = {}
+
     seen_ids = set()
     for m in all_provider_models:
         mid = m["id"]
         caps = m.get("capabilities", ["chat"])
+        prov = m.get("provider", "other")
         
-        # Entrada limpia para el frontend
         entry = {
             "id": mid,
             "name": m["name"],
-            "provider": m["provider"]
+            "provider": prov,
+            "capabilities": caps
         }
+        
+        if prov not in by_provider:
+            by_provider[prov] = []
+        by_provider[prov].append(entry)
         
         if "chat" in caps and (mid, "chat") not in seen_ids:
             seen_ids.add((mid, "chat"))
@@ -319,6 +330,10 @@ def get_available_models(force_refresh: bool = False) -> Dict[str, List[Dict]]:
             seen_ids.add((mid, "computer_use"))
             computer_use_models.append(entry)
             
+        if "pro" in caps and (mid, "pro") not in seen_ids:
+            seen_ids.add((mid, "pro"))
+            pro_models.append(entry)
+
         if "stt" in caps and (mid, "stt") not in seen_ids:
             seen_ids.add((mid, "stt"))
             stt_models.append(entry)
@@ -332,23 +347,70 @@ def get_available_models(force_refresh: bool = False) -> Dict[str, List[Dict]]:
 
     chat_models.sort(key=_sort_key)
     computer_use_models.sort(key=_sort_key)
+    pro_models.sort(key=_sort_key)
     stt_models.sort(key=_sort_key)
 
     result = {
         "chat": chat_models,
         "computer_use": computer_use_models,
-        "stt": stt_models
+        "pro": pro_models,
+        "stt": stt_models,
+        "by_provider": by_provider
     }
 
     _models_cache["timestamp"] = now
     _models_cache["available"] = result
     return result
 
+def start_background_model_prefetch():
+    """Inicia descubrimiento de modelos en segundo plano sin demorar el arranque de la app."""
+    import threading
+    def _worker():
+        try:
+            get_available_models(force_refresh=True)
+        except Exception as e:
+            logger.debug(f"[ModelsProvider] Prefetch en segundo plano omitido: {e}")
+    threading.Thread(target=_worker, daemon=True).start()
 
-def get_configured_models() -> Dict[str, str]:
+# Pre-poblar caché inicial inmediatamente con catálogo estático para respuesta instantánea (0ms)
+try:
+    _initial_provs = get_active_providers()
+    _init_chat = []
+    _init_comp = []
+    _init_stt = []
+    _init_by_prov = {}
+    for _p in _initial_provs:
+        _cat_items = FALLBACK_CATALOG.get(_p, [])
+        _init_by_prov[_p] = _cat_items
+        for _m in _cat_items:
+            _c = _m.get("capabilities", [])
+            if "chat" in _c: _init_chat.append(_m)
+            if "computer_use" in _c: _init_comp.append(_m)
+            if "stt" in _c: _init_stt.append(_m)
+    _models_cache["available"] = {
+        "chat": _init_chat,
+        "computer_use": _init_comp,
+        "pro": [m for m in _init_chat if "pro" in m.get("capabilities", []) or "pro" in m["id"].lower()],
+        "stt": _init_stt,
+        "by_provider": _init_by_prov
+    }
+    _models_cache["timestamp"] = time.time()
+    start_background_model_prefetch()
+except Exception:
+    pass
+
+
+_cached_configured_models = None
+
+def get_configured_models(force_reload: bool = False) -> Dict[str, str]:
     """Carga la configuración guardada de modelos desde models_config.json."""
+    global _cached_configured_models
+    if _cached_configured_models is not None and not force_reload:
+        return _cached_configured_models
+
     default_config = {
         "chat": "gemini-2.5-flash",
+        "pro": "gemini-2.5-pro",
         "computer_use": "gemini-2.5-flash",
         "stt": "whisper-large-v3"
     }
@@ -359,7 +421,13 @@ def get_configured_models() -> Dict[str, str]:
                 default_config.update(saved)
         except Exception as e:
             logger.error(f"Error cargando models_config.json: {e}")
+    _cached_configured_models = default_config
     return default_config
+
+def reload_configured_models():
+    """Recarga la configuración de modelos en caliente."""
+    load_dotenv(get_env_path(), override=True)
+    return get_configured_models(force_reload=True)
 
 
 def identify_provider_for_model(model_id: str) -> str:

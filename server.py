@@ -130,15 +130,6 @@ async def analyze_file(req: FileRequest):
 
 logger = logging.getLogger("MikuGateway")
 
-# Habilitar CORS para peticiones desde el móvil
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Servir archivos compartidos (Descargas desde el Celular)
 os.makedirs("shared_files", exist_ok=True)
 app.mount("/shared", StaticFiles(directory="shared_files"), name="shared")
@@ -1119,7 +1110,7 @@ async def get_models_config():
     available = get_available_models()
 
     # Si el modelo guardado no existe en los disponibles reales, seleccionar el primero disponible
-    for cat in ["chat", "computer_use", "stt"]:
+    for cat in ["chat", "pro", "computer_use", "stt"]:
         eligible = available.get(cat, [])
         if eligible:
             eligible_ids = [m["id"] for m in eligible]
@@ -1137,21 +1128,28 @@ async def get_models_config():
 
 class UpdateModelsRequest(BaseModel):
     chat: Optional[str] = None
+    pro: Optional[str] = None
     computer_use: Optional[str] = None
     stt: Optional[str] = None
 
 @app.post("/api/config/models")
 async def update_models_config(req: UpdateModelsRequest):
-    from models_provider import get_configured_models
+    from models_provider import get_configured_models, reload_configured_models
     current = get_configured_models()
     if req.chat is not None:
         current["chat"] = req.chat
+    if req.pro is not None:
+        current["pro"] = req.pro
     if req.computer_use is not None:
         current["computer_use"] = req.computer_use
     if req.stt is not None:
         current["stt"] = req.stt
     with open(MODELS_FILE, "w", encoding="utf-8") as f:
         json.dump(current, f, indent=2, ensure_ascii=False)
+    try:
+        reload_configured_models()
+    except Exception:
+        pass
     return {"status": "ok", "current": current}
 
 # ==========================================
@@ -1209,12 +1207,22 @@ def get_current_spotify_status_sync() -> dict:
             cov = ""
             if ms.get("thumbnail_bytes"):
                 cov = f"data:image/jpeg;base64,{base64.b64encode(ms['thumbnail_bytes']).decode('ascii')}"
+            
+            pos_sec = ms.get("position_sec", 0)
+            if ms.get("is_playing") and ms.get("last_update_time"):
+                elapsed = time.time() - ms["last_update_time"]
+                dur = ms.get("end_time_sec", 0)
+                if dur > 0:
+                    pos_sec = min(dur, pos_sec + elapsed)
+                elif elapsed > 0:
+                    pos_sec = pos_sec + elapsed
+
             state = {
                 "title": ms.get("title") or "Sin música",
                 "artist": ms.get("artist") or "Reproductor",
                 "playing": bool(ms.get("is_playing")),
                 "cover": cov,
-                "pos": round(ms.get("position_sec", 0), 1),
+                "pos": round(pos_sec, 1),
                 "dur": round(ms.get("end_time_sec", 0), 1),
                 "vol": ms.get("volume", 70)
             }
@@ -1461,34 +1469,17 @@ class AddMcpRequest(BaseModel):
 
 @app.post("/api/config/mcp")
 async def add_mcp_server(req: AddMcpRequest):
-    servers = {}
-    if os.path.exists(MCP_FILE):
-        try:
-            with open(MCP_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                servers = data.get("servidores", {})
-        except Exception:
-            pass
-    servers[req.name] = {"command": req.command, "args": req.args}
-    with open(MCP_FILE, "w", encoding="utf-8") as f:
-        json.dump({"servidores": servers}, f, indent=2, ensure_ascii=False)
-    return {"status": "ok", "message": f"Servidor MCP '{req.name}' guardado."}
+    from mcp_client import mcp_manager
+    msg = await mcp_manager.add_server(req.name, req.command, req.args)
+    is_ok = not str(msg).lower().startswith("error")
+    return {"status": "ok" if is_ok else "error", "message": msg}
 
 @app.delete("/api/config/mcp/{name}")
 async def delete_mcp_server(name: str):
-    servers = {}
-    if os.path.exists(MCP_FILE):
-        try:
-            with open(MCP_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                servers = data.get("servidores", {})
-        except Exception:
-            pass
-    if name in servers:
-        del servers[name]
-        with open(MCP_FILE, "w", encoding="utf-8") as f:
-            json.dump({"servidores": servers}, f, indent=2, ensure_ascii=False)
-        return {"status": "ok", "message": f"Servidor MCP '{name}' eliminado."}
+    from mcp_client import mcp_manager
+    ok = await mcp_manager.remove_server(name)
+    if ok:
+        return {"status": "ok", "message": f"Servidor MCP '{name}' eliminado y desconectado."}
     return {"status": "not_found", "message": f"Servidor MCP '{name}' no encontrado."}
 
 class GenerateAgentPromptReq(BaseModel):
@@ -1744,21 +1735,83 @@ KNOWN_APP_SVGS = {
 }
 
 def get_app_icon_with_fallback(exe: str, name_lower: str) -> str:
-    icon_b64 = get_exe_icon_base64(exe)
-    if icon_b64:
-        return icon_b64
     for key, svg in KNOWN_APP_SVGS.items():
         if key in name_lower:
             return svg
+    for item in KNOWN_DETECTABLE_APPS:
+        if item.get("process", "").lower() in name_lower or item.get("id", "").lower() in name_lower:
+            return item.get("icon", "")
+    icon_b64 = get_exe_icon_base64(exe)
+    if icon_b64:
+        return icon_b64
     return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#8e919a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="6 21 18 21 12 17"/></svg>'
 
 @app.get("/api/apps/running")
 async def get_running_apps():
-    """Devuelve las aplicaciones de usuario actualmente en ejecución en la PC (filtrando servicios y demonios del sistema)."""
+    """Devuelve las aplicaciones y juegos actualmente activos en la PC al instante (estilo Discord)."""
     import psutil
     apps = []
     seen_names = set()
+    active_pids = set()
 
+    # 1. Ventanas visibles en primer plano (juegos o apps abiertas en escritorio)
+    try:
+        import win32gui
+        import win32process
+        def _enum_win(hwnd, _):
+            if win32gui.IsWindowVisible(hwnd):
+                title = win32gui.GetWindowText(hwnd)
+                if title and len(title.strip()) > 1 and title not in ("Program Manager", "Settings", "Miku Dynamic Island", "Miku"):
+                    _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                    if pid > 4:
+                        active_pids.add((pid, title.strip()))
+            return True
+        win32gui.EnumWindows(_enum_win, None)
+    except Exception:
+        pass
+
+    for pid, win_title in active_pids:
+        try:
+            p = psutil.Process(pid)
+            name = (p.name() or '').strip()
+            exe = (p.exe() or '').strip()
+            if not name or not exe:
+                continue
+            name_lower = name.lower()
+            if name_lower in seen_names:
+                continue
+            if "windows\\system32" in exe.lower() or "windows\\syswow64" in exe.lower():
+                continue
+            
+            clean_token = name_lower.replace(".exe", "")
+            if any(bad in clean_token for bad in EXCLUDE_PROC_PATTERNS):
+                continue
+
+            seen_names.add(name_lower)
+            matched_known = None
+            for kname, kinfo in KNOWN_APP_INFO.items():
+                if kname in name_lower:
+                    matched_known = kinfo
+                    break
+
+            app_name = matched_known[0] if matched_known else (win_title if len(win_title) < 28 else os.path.splitext(name)[0].replace("_", " ").title())
+            is_game = (matched_known and matched_known[1] == "juego") or any(g in name_lower or g in win_title.lower() for g in ("game", "play", "steam", "riot", "craft", "epic", "unity", "unreal", "valorant", "roblox"))
+            category = "juego" if is_game else (matched_known[1] if matched_known else "aplicacion")
+            icon_data = get_app_icon_with_fallback(exe, name_lower)
+
+            apps.append({
+                "id": name_lower.replace(".exe", ""),
+                "name": app_name,
+                "process": name,
+                "exe": exe,
+                "category": category,
+                "is_active_window": True,
+                "icon": icon_data
+            })
+        except Exception:
+            continue
+
+    # 2. Otros procesos conocidos que no tengan ventana visible activa
     for p in psutil.process_iter(['name', 'exe']):
         try:
             name = (p.info['name'] or '').strip()
@@ -1770,8 +1823,7 @@ async def get_running_apps():
                 continue
             if "windows\\system32" in exe.lower() or "windows\\syswow64" in exe.lower():
                 continue
-            
-            # 1. Comprobar si es una aplicación conocida
+
             matched_known = None
             for kname, kinfo in KNOWN_APP_INFO.items():
                 if kname in name_lower:
@@ -1779,7 +1831,6 @@ async def get_running_apps():
                     break
 
             if matched_known:
-                # Evitar duplicados (ej: Steam vs steamwebhelper)
                 if any(a["name"] == matched_known[0] for a in apps):
                     continue
                 seen_names.add(name_lower)
@@ -1790,31 +1841,13 @@ async def get_running_apps():
                     "process": name,
                     "exe": exe,
                     "category": matched_known[1],
+                    "is_active_window": False,
                     "icon": icon_data
                 })
-                continue
-
-            # 2. Si no es conocida, excluir demonios, servicios y herramientas CLI
-            clean_token = name_lower.replace(".exe", "")
-            if any(bad in clean_token for bad in EXCLUDE_PROC_PATTERNS):
-                continue
-
-            seen_names.add(name_lower)
-            friendly_name = os.path.splitext(name)[0].replace("_", " ").replace("-", " ").title()
-            icon_data = get_app_icon_with_fallback(exe, name_lower)
-            
-            apps.append({
-                "id": name_lower.replace(".exe", ""),
-                "name": friendly_name,
-                "process": name,
-                "exe": exe,
-                "category": "aplicacion",
-                "icon": icon_data
-            })
         except Exception:
             continue
 
-    apps.sort(key=lambda a: (0 if a["icon"] else 1, a["name"]))
+    apps.sort(key=lambda a: (0 if a.get("is_active_window") else 1, 0 if a.get("category") == "juego" else 1, a["name"]))
     return {"apps": apps}
 
 
@@ -2232,6 +2265,91 @@ async def dev_activity_watcher_loop():
             pass
         await asyncio.sleep(6)
 
+_last_alert_triggered = {}
+
+async def activity_alert_watcher_loop():
+    """Vigila el tiempo continuo en aplicaciones/juegos y dispara alertas proactivas tanto en la Isla como en Windows."""
+    while True:
+        try:
+            await asyncio.sleep(25)
+            if not os.path.exists(ALERTS_FILE):
+                continue
+            try:
+                with open(ALERTS_FILE, "r", encoding="utf-8") as f:
+                    alerts_cfg = json.load(f)
+            except Exception:
+                continue
+
+            if not alerts_cfg:
+                continue
+
+            from activity_monitor import get_activity_summary
+            summary = get_activity_summary()
+            
+            app_times = {}
+            for item in summary:
+                proc = item.get("process", "").lower()
+                mins = item.get("minutes", 0)
+                app_times[proc] = (item.get("app", proc), mins)
+
+            now_ts = time.time()
+            for key, alert_data in alerts_cfg.items():
+                if not alert_data or not alert_data.get("enabled", True):
+                    continue
+                threshold_mins = alert_data.get("threshold", 120)
+                key_lower = key.lower()
+
+                matched_proc = None
+                matched_name = alert_data.get("label", key)
+                matched_mins = 0
+                for proc, (name, mins) in app_times.items():
+                    if key_lower in proc or key_lower in name.lower() or proc in key_lower:
+                        matched_proc = proc
+                        matched_name = name
+                        matched_mins = mins
+                        break
+
+                if matched_proc and matched_mins >= threshold_mins:
+                    last_time = _last_alert_triggered.get(matched_proc, 0)
+                    if (now_ts - last_time) > 1800:  # Máximo 1 alerta cada 30 min por app
+                        _last_alert_triggered[matched_proc] = now_ts
+                        alert_msg = f"Llevas más de {int(matched_mins)} minutos en {matched_name}. ¿Es momento de tomar un descanso?"
+                        logger.info(f"[Alerta de Enfoque]: {alert_msg}")
+
+                        # 1. Notificar al WebSocket de la Isla dinámica
+                        await manager.broadcast_message({
+                            "type": "proactive_alert",
+                            "title": f"Alerta: {matched_name}",
+                            "message": alert_msg,
+                            "badge": "Enfoque",
+                            "app": matched_name,
+                            "minutes": matched_mins
+                        })
+
+                        # 2. Notificación nativa de Windows (Toast)
+                        def _show_windows_toast(title, msg):
+                            try:
+                                import winsdk.windows.ui.notifications as win_notif
+                                import winsdk.windows.data.xml.dom as win_xml
+                                xml_content = f"<toast><visual><binding template='ToastGeneric'><text>{title}</text><text>{msg}</text></binding></visual></toast>"
+                                doc = win_xml.XmlDocument()
+                                doc.load_xml(xml_content)
+                                notification = win_notif.ToastNotification(doc)
+                                notifier = win_notif.ToastNotificationManager.create_toast_notifier("Miku Desktop")
+                                notifier.show(notification)
+                            except Exception:
+                                try:
+                                    import subprocess
+                                    ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
+                                    subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], creationflags=subprocess.CREATE_NO_WINDOW)
+                                except Exception:
+                                    pass
+
+                        await asyncio.to_thread(_show_windows_toast, f"Miku: Límite en {matched_name}", alert_msg)
+
+        except Exception as e:
+            logger.debug(f"Error en loop de alertas: {e}")
+
 @app.on_event("startup")
 async def startup_event():
     loop = asyncio.get_running_loop()
@@ -2241,6 +2359,7 @@ async def startup_event():
     asyncio.create_task(ui_context_loop())
     asyncio.create_task(spotify_media_loop())
     asyncio.create_task(dev_activity_watcher_loop())
+    asyncio.create_task(activity_alert_watcher_loop())
     try:
         import music_controller
         music_controller.start_media_listener()

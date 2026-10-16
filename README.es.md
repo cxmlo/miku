@@ -12,14 +12,14 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.3-cyan)](https://github.com/cxmlo/miku/releases)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.4-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
 > [!TIP]
-> **Novedades en v0.1.3**: **Servidor Core autónomo verificado (Puerto 8000)**, actualizador en 1 clic automático desde la Isla, y menús desplegables corregidos.
+> **Novedades en v0.1.4**: Sincronización multimedia universal en Windows (GSMTC), selector jerárquico de modelos por proveedor y categoría Pro, pensamiento y herramientas colapsables con capturas interactivas, y detección ultrarrápida de juegos.
 
 ---
 

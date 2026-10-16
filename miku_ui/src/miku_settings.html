@@ -158,7 +158,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 section:has(.gs-m.open),.card:has(.gs-m.open),.row:has(.gs-m.open),.ctl:has(.gs-m.open),.gs:has(.gs-m.open),.alert-item-card:has(.gs-m.open),#active-alerts-list:has(.gs-m.open){z-index:200!important;position:relative!important}
 .alert-item-card{position:relative}
 .alert-item-card:has(.gs-m.open),.alert-item-card:focus-within{z-index:250!important;position:relative!important}
-.gs-m{position:absolute;z-index:300!important;min-width:100%;width:max-content;max-width:380px;max-height:240px;overflow-y:auto;overflow-x:hidden;padding:6px;border-radius:14px;background:rgba(14,16,22,0.96)!important;-webkit-backdrop-filter:blur(32px) saturate(200%);backdrop-filter:blur(32px) saturate(200%);border:1px solid rgba(255,255,255,0.18)!important;box-shadow:0 18px 48px rgba(0,0,0,0.95),inset 0 1px 0 rgba(255,255,255,0.22)!important;transform-origin:var(--o,top right);opacity:0;pointer-events:none;transform:scale(.95);transition:opacity .18s var(--e),transform .18s var(--e);right:0;top:calc(100% + 6px);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent}
+.gs-m{position:absolute;z-index:99999!important;min-width:100%;width:max-content;max-width:380px;max-height:240px;overflow-y:auto;overflow-x:hidden;padding:6px;border-radius:14px;background:#101218!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:1px solid rgba(255,255,255,0.22)!important;box-shadow:0 24px 60px rgba(0,0,0,0.98),0 0 0 1px rgba(255,255,255,0.14)!important;transform-origin:var(--o,top right);opacity:0;pointer-events:none;transform:scale(.95);transition:opacity .18s var(--e),transform .18s var(--e);right:0;top:calc(100% + 6px);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent}
 .gs-m.open{opacity:1!important;pointer-events:auto!important;transform:scale(1)!important;display:block!important}
 .gs-m.closed{opacity:0!important;pointer-events:none!important;transform:scale(.95)!important}
 .gs-m.up{top:auto!important;bottom:calc(100% + 6px)!important;transform-origin:var(--o,bottom right)!important}
@@ -2090,7 +2090,7 @@ V.general = () => `
 </section>
 <section>
   <h2>Actualizaciones de Software</h2>
-  ${row('Miku Desktop v0.1.3', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
+  ${row('Miku Desktop v0.1.4', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
   <div id="update-status" style="margin-top:6px;font-size:12.5px;color:var(--mut)"></div>
 </section>
 <section>
@@ -2225,18 +2225,42 @@ V.modelos = () => {
     Para activar modelos de IA, ve a la pestaña <b>Claves de API</b> e ingresa al menos una clave (Google Gemini, Groq, OpenAI, etc.).
   </div>` : '';
 
+  const selProv = STATE.selectedModelProvider || 'all';
+  const providers = [
+    { id: 'all', label: 'Todos los Proveedores' },
+    { id: 'google', label: 'Google Gemini' },
+    { id: 'groq', label: 'Groq' },
+    { id: 'openai', label: 'OpenAI' },
+    { id: 'deepseek', label: 'DeepSeek' },
+    { id: 'anthropic', label: 'Anthropic' },
+    { id: 'ollama', label: 'Ollama / Local' }
+  ];
+
   return `
   ${warnBanner}
   <section>
+    <h2>Filtrar por Proveedor de API</h2>
+    ${note('Toca un proveedor para desplegar únicamente sus modelos disponibles según tu plan:')}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px">
+      ${providers.map(p => `
+        <button type="button" class="sec-btn ${selProv === p.id ? 'pri' : ''}" data-model-prov="${p.id}" style="font-size:12px;padding:6px 14px;border-radius:99px">
+          ${p.label}
+        </button>
+      `).join('')}
+    </div>
+  </section>
+
+  <section>
     <h2>Modelos de Inteligencia Artificial</h2>
-    ${note('Mostrando únicamente modelos con claves de API activas en tu sistema (.env). Los cambios se guardan en models_config.json.')}
-    ${row('Cerebro Principal (Chat)', 'Modelo principal para el razonamiento y respuestas de Miku.', `<span id="gs-chat"></span>`)}
-    ${row('Control de PC (Computer Use)', 'Modelo especializado en visión y control de pantalla.', `<span id="gs-comp"></span>`)}
-    ${row('Transcripción de Voz (STT)', 'Modelo para transcripción de audio del micrófono.', `<span id="gs-stt"></span>`)}
+    ${note('Configuración en vivo de los cerebros de Miku según su especialidad:')}
+    ${row('Cerebro Principal (Chat & Conversación)', 'Modelo general para respuestas rápidas y conversación diaria.', `<span id="gs-chat"></span>`)}
+    ${row('Cerebro Pro / Código (Programación & Lógica)', 'Modelo especializado para código, refactorización y tareas avanzadas.', `<span id="gs-pro"></span>`)}
+    ${row('Control de PC (Computer Use & Pantalla)', 'Modelo especializado en visión multimodal e interacción con ventanas.', `<span id="gs-comp"></span>`)}
+    ${row('Transcripción de Voz (STT)', 'Modelo para transcripción de audio del micrófono a texto.', `<span id="gs-stt"></span>`)}
   </section>
   <section>
     <h2>Aplicar cambios</h2>
-    ${row('Guardar configuración', 'Mantén presionado para aplicar los modelos al Gateway.', `<span id="hb-models"></span>`)}
+    ${row('Guardar configuración', 'Aplica inmediatamente los modelos al gateway sin necesidad de reiniciar.', `<span id="hb-models"></span>`)}
   </section>
   `;
 };
@@ -3011,18 +3035,51 @@ function mount() {
   }
 
   if (CAT === 'modelos') {
+    // Filtrado por botones de proveedor
+    $$('[data-model-prov]').forEach(btn => {
+      btn.onclick = () => {
+        STATE.selectedModelProvider = btn.dataset.modelProv;
+        render();
+      };
+    });
+
     const M = STATE.models || {};
     const avail = M.available || {};
     const cur = M.current || {};
-    const chatOpts = (avail.chat || []).map(m => ({ value: m.id, label: m.name || m.id }));
-    const compOpts = (avail.computer_use || []).map(m => ({ value: m.id, label: m.name || m.id }));
-    const sttOpts = (avail.stt || []).map(m => ({ value: m.id, label: m.name || m.id }));
+    const selProv = (STATE.selectedModelProvider || 'all').toLowerCase();
+
+    const filterByProv = list => {
+      if (!list || !list.length) return [];
+      if (selProv === 'all') return list;
+      return list.filter(m => {
+        const p = (m.provider || '').toLowerCase();
+        const id = (m.id || '').toLowerCase();
+        if (selProv === 'google') return p === 'google' || id.startsWith('gemini');
+        if (selProv === 'groq') return p === 'groq' || id.startsWith('llama') || id.startsWith('whisper') || id.startsWith('mixtral') || id.startsWith('deepseek-r1-distill');
+        if (selProv === 'openai') return p === 'openai' || id.startsWith('gpt');
+        if (selProv === 'deepseek') return p === 'deepseek' || id.startsWith('deepseek');
+        if (selProv === 'anthropic') return p === 'anthropic' || id.startsWith('claude');
+        if (selProv === 'ollama') return p === 'ollama';
+        return p === selProv;
+      });
+    };
+
+    const chatOpts = filterByProv(avail.chat || []).map(m => ({ value: m.id, label: m.name || m.id }));
+    const proOpts = filterByProv(avail.pro || []).map(m => ({ value: m.id, label: m.name || m.id }));
+    const compOpts = filterByProv(avail.computer_use || []).map(m => ({ value: m.id, label: m.name || m.id }));
+    const sttOpts = filterByProv(avail.stt || []).map(m => ({ value: m.id, label: m.name || m.id }));
 
     G('gs-chat', {
-      options: chatOpts.length ? chatOpts : [{ value: '', label: 'Sin proveedor - Configura una API Key' }],
+      options: chatOpts.length ? chatOpts : [{ value: '', label: 'Sin modelos disponibles para este filtro' }],
       value: cur.chat,
       label: 'Chat',
       onChange: v => { cur.chat = v; }
+    });
+    G('gs-pro', {
+      options: proOpts.length ? proOpts : (chatOpts.length ? chatOpts : [{ value: '', label: 'Sin modelos pro disponibles' }]),
+      value: cur.pro || cur.chat,
+      label: 'Pro / Código',
+      onChange: v => { cur.pro = v; }
     });
     G('gs-comp', {
       options: compOpts.length ? compOpts : [{ value: '', label: 'Sin proveedor de visión' }],
@@ -3043,7 +3100,7 @@ function mount() {
       onHold: async () => {
         const ok = await window.Bridge?.saveModelsConfig?.(cur);
         showToast(ok ? 'Modelos de IA actualizados' : 'Error al guardar modelos');
-        loadBackendData();
+        await loadBackendData();
       }
     });
   }
@@ -3360,7 +3417,7 @@ function mount() {
 
 /* Deslizamiento automático en hover para cualquier texto que se desborde del botón o recuadro */
 document.addEventListener('mouseover', e => {
-  const el = e.target.closest('.marquee-wrap, .gs-o span.n, .gs-t span.l, .cat span, .sec-btn');
+  const el = e.target.closest('.marquee-wrap, .gs-t span.l, .cat span, .sec-btn');
   if (!el) return;
   const target = el.querySelector('.marquee-text') || el;
   const dist = target.scrollWidth - el.clientWidth;
@@ -3373,7 +3430,7 @@ document.addEventListener('mouseover', e => {
   }
 });
 document.addEventListener('mouseout', e => {
-  const el = e.target.closest('.marquee-wrap, .gs-o span.n, .gs-t span.l, .cat span, .sec-btn');
+  const el = e.target.closest('.marquee-wrap, .gs-t span.l, .cat span, .sec-btn');
   if (!el) return;
   const target = el.querySelector('.marquee-text') || el;
   target.style.transition = 'transform 0.35s ease';
@@ -3416,6 +3473,10 @@ const typing = () => !!document.activeElement?.closest?.('.tx-in');
 
 function onMsg(m) {
   if (!m) return;
+  if (m.type === 'core_connected' || m.k === 'core_connected') {
+    loadBackendData();
+    return;
+  }
   if (m.k == 'cfg') { Object.assign(CFG, m.cfg); render(); }
   else if (m.k == 'agents') {
     const sa = ls.get('miku_agents', null);
@@ -3457,22 +3518,31 @@ window.addEventListener('storage', e => {
   }
 });
 
+let _backendPollTimer = null;
 async function loadBackendData() {
+  let backendOnline = false;
   try {
     if (window.Bridge?.getConfigKeys) {
       const res = await window.Bridge.getConfigKeys();
-      STATE.keys = res.keys || {};
+      if (res && res.keys) {
+        STATE.keys = res.keys;
+        backendOnline = true;
+      }
     }
     if (window.Bridge?.getAgents) {
       const aRes = await window.Bridge.getAgents();
       if (aRes?.agents && aRes.agents.length > 0) {
         AG = aRes.agents;
         ls.set('miku_agents', AG);
+        backendOnline = true;
       }
     }
     if (window.Bridge?.getModelsConfig) {
       const res = await window.Bridge.getModelsConfig();
-      STATE.models = res || { current: {}, available: {} };
+      if (res && res.current) {
+        STATE.models = res;
+        backendOnline = true;
+      }
     }
     if (window.Bridge?.getMcpServers) {
       const res = await window.Bridge.getMcpServers();
@@ -3524,6 +3594,27 @@ async function loadBackendData() {
     console.warn("Error loading backend data in settings:", err);
   }
   render();
+
+  // Si el backend aún no estaba listo al abrir la ventana, reintentar automáticamente en segundo plano
+  if (!backendOnline && !_backendPollTimer) {
+    let attempts = 0;
+    _backendPollTimer = setInterval(async () => {
+      attempts++;
+      if (attempts > 20) {
+        clearInterval(_backendPollTimer);
+        _backendPollTimer = null;
+        return;
+      }
+      try {
+        const testRes = await window.Bridge?.getModelsConfig?.();
+        if (testRes && testRes.current) {
+          clearInterval(_backendPollTimer);
+          _backendPollTimer = null;
+          loadBackendData();
+        }
+      } catch (_) {}
+    }, 1200);
+  }
 }
 
 // Controles de ventana minimalista
