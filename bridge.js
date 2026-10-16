@@ -1,0 +1,950 @@
+/* =========================================================================
+   bridge.js — Universal Bridge for Miku Dynamic Island & Settings
+   Connects miku_v6.html and miku_settings.html with the Python backend
+   (server.py) over WebSocket and REST APIs.
+   ========================================================================= */
+
+const Bridge = (() => {
+  "use strict";
+
+  // In Tauri on Windows, location.hostname is "tauri.localhost", which does NOT resolve in Windows DNS.
+  // We must explicitly use 127.0.0.1 for local communication.
+  const isLocal = !location.hostname || 
+                  location.hostname === "localhost" || 
+                  location.hostname === "127.0.0.1" || 
+                  location.hostname.endsWith(".localhost") || 
+                  location.hostname.includes("tauri");
+  const HOST = isLocal ? "127.0.0.1" : location.hostname;
+  const BACKEND_PORT = "8000";
+  const PORT = BACKEND_PORT;
+  const BASE_URL = `http://${HOST}:${BACKEND_PORT}`;
+  const WS_URL = `ws://${HOST}:${BACKEND_PORT}/ws`;
+  const API_KEY = "miku_secure_key_2026";
+
+  let ws = null;
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
+  const MAX_RECONNECT_DELAY = 8000;
+
+  // BroadcastChannel for cross-window sync (Island <-> Settings)
+  const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("miku") : null;
+
+  async function apiFetch(path, options = {}) {
+    const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
+    const headers = Object.assign({
+      "x-api-key": API_KEY
+    }, options.headers || {});
+    return fetch(url, { ...options, headers });
+  }
+
+  function init() {
+    connectWS();
+    initLocalIp();
+    initMouseTracker();
+    fetchMediaStatus();
+    initSettingsSync();
+    fetchAgents();
+  }
+
+  function fetchAgents() {
+    apiFetch("/api/agents")
+      .then(r => r.json())
+      .then(data => {
+        if (data && Array.isArray(data.agents) && data.agents.length) {
+          window.feed?.({ type: "agents", list: data.agents });
+        }
+      })
+      .catch(() => {});
+  }
+
+  function fetchMediaStatus() {
+    apiFetch("/api/media/status")
+      .then(r => r.json())
+      .then(data => {
+        if (data) {
+          window.feed?.({ type: "music", ...data });
+        }
+      })
+      .catch(() => {});
+  }
+
+  /* ---------------- WEBSOCKET ---------------- */
+  function connectWS() {
+    if (ws && ws.readyState <= 1) return;
+    try {
+      ws = new WebSocket(`${WS_URL}?token=${API_KEY}`);
+    } catch (e) {
+      console.warn("[Bridge] WebSocket init error:", e);
+      scheduleReconnect();
+      return;
+    }
+
+    ws.onopen = () => {
+      console.log("[Bridge] ✅ WebSocket connected to Miku Core");
+      reconnectAttempts = 0;
+      window.feed?.({ type: "ws", ok: true });
+      window.feed?.({ type: "api", ok: true });
+
+      // Emote happy when connected
+      if (window.buddy?.emote) {
+        window.buddy.emote("happy", 1200);
+      }
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleIncomingMessage(data);
+      } catch (e) {
+        console.warn("[Bridge] Failed to parse WS message:", e);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("[Bridge] WebSocket disconnected");
+      window.feed?.({ type: "ws", ok: false });
+      scheduleReconnect();
+    };
+
+    ws.onerror = (err) => {
+      console.warn("[Bridge] WebSocket error:", err);
+      try { ws.close(); } catch (_) {}
+    };
+  }
+
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), MAX_RECONNECT_DELAY);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connectWS();
+    }, delay);
+  }
+
+  function sendWS(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(typeof data === "string" ? data : JSON.stringify(data));
+        return true;
+      } catch (err) {
+        console.warn("[Bridge] ws.send error:", err);
+      }
+    }
+    console.warn("[Bridge] Cannot send WS message (state: " + ws?.readyState + "):", data);
+    return false;
+  }
+
+  /* ---------------- INCOMING MESSAGE ROUTER ---------------- */
+  function handleIncomingMessage(data) {
+    if (!data) return;
+
+    // 1. Proactive Alerts from Server (Gaming, Work, Social, etc.)
+    if (data.type === "proactive_alert") {
+      console.log("[Bridge] Received Proactive Alert:", data);
+      window.feed?.({
+        type: "scene",
+        name: "alert",
+        args: {
+          title: data.title || "Notificación de Miku",
+          text: data.text || data.message || "",
+          badge: data.badge || "Salud Digital"
+        }
+      });
+      if (window.buddy?.emote) {
+        window.buddy.emote("alert", 2500);
+      }
+      return;
+    }
+
+    // Handle ui_command from backend tools (e.g. hacer_pregunta_opciones)
+    if (data.type === "ui_command") {
+      if (data.action === "show_scene" && data.scene === "question") {
+        const params = data.params || {};
+        window.feed?.({
+          type: "ask",
+          title: params.title || "Pregunta de Miku",
+          text: params.q || params.pregunta || "",
+          options: params.options || []
+        });
+        return;
+      } else if (data.action === "show_scene" && data.scene === "mail") {
+        const params = data.params || {};
+        window.feed?.({
+          type: "ask",
+          title: params.subject || "Borrador de Correo",
+          text: `Para: ${params.to}\n\n${params.message}`,
+          options: ["enviar_correo", "cancelar"]
+        });
+        return;
+      }
+    }
+
+    // 2. Direct feed forward
+    if (data.type) {
+      if (data.type === "state" && window.buddy?.emote) {
+        window.buddy.emote(data.name || "idle", data.dur || 2000);
+      }
+      if (data.type === "ui_command" && data.action === "status_update") {
+        handleStatusUpdate(data.text);
+      }
+      window.feed?.(data);
+      return;
+    }
+
+    // 3. Audio Player Event (TTS from Miku)
+    if (data.audio_url) {
+      console.log("[Bridge] Playing backend TTS audio:", data.audio_url);
+      const audio = new Audio(`${BASE_URL}${data.audio_url}`);
+      let vVol = 80;
+      try {
+        const cfg = JSON.parse(localStorage.getItem("miku_cfg") || "{}");
+        if (cfg.voice_volume != null) vVol = Number(cfg.voice_volume);
+      } catch (_) {}
+      audio.volume = Math.max(0, Math.min(1, vVol / 100));
+      window.__miku_tts_audio = audio;
+      audio.play().catch(e => console.warn("[Bridge] Audio playback blocked:", e));
+      window.feed?.({ type: "state", name: "talking" });
+      audio.onended = () => {
+        window.feed?.({ type: "state", name: "idle" });
+      };
+      return;
+    }
+
+    // 4. Status updates from backend
+    if (data.status) {
+      handleStatusUpdate(data.status);
+    }
+
+    // 5. Hooks / Agent events
+    if (data.event) {
+      const ev = data.event;
+      const agent = data.agent_id || data.agent || "claude";
+      const payload = data.payload || {};
+      const prompt = payload.prompt || payload.query || "";
+      const tool = payload.tool_name || payload.tool || "";
+
+      if (ev === "Notification") {
+        window.feed?.({
+          type: "scene",
+          name: "notify",
+          args: {
+            title: payload.title || "Notificación",
+            text: payload.message || payload.text || ""
+          }
+        });
+      } else if (ev === "PermissionRequest") {
+        window.feed?.({
+          type: "ask",
+          title: "Permiso solicitado",
+          text: `${agent} quiere ejecutar: ${tool}`,
+          actions: ["Permitir", "Rechazar"],
+          id: payload.request_id || "req_1"
+        });
+      } else if (ev === "UserPromptSubmit") {
+        window.feed?.({ type: "state", name: "thinking" });
+        window.feed?.({ type: "prompt_active", agent, prompt });
+      } else if (ev === "PreToolUse") {
+        window.feed?.({ type: "state", name: "working" });
+        window.feed?.({ type: "scene", name: "tool_use", args: { label: tool || "Ejecutando herramienta", badge: agent } });
+      } else if (ev === "Stop") {
+        window.feed?.({ type: "state", name: "happy" });
+        setTimeout(() => window.feed?.({ type: "state", name: "idle" }), 4000);
+      } else if (ev === "StopFailure") {
+        window.feed?.({ type: "state", name: "error" });
+        setTimeout(() => window.feed?.({ type: "state", name: "idle" }), 4000);
+      }
+      return;
+    }
+  }
+
+  function handleStatusUpdate(rawText) {
+    const text = (rawText || "").toLowerCase().trim();
+    if (!text || text === "idle" || text === "lista") {
+      window.feed?.({ type: "state", name: "idle" });
+      window.feed?.({ type: "mic", on: false });
+      return;
+    }
+
+    if (text.includes("pensando") || text.includes("thinking")) {
+      window.feed?.({ type: "state", name: "thinking" });
+    } else if (text.includes("escuchando") || text.includes("listening")) {
+      window.feed?.({ type: "state", name: "listening" });
+      window.feed?.({ type: "mic", on: true });
+    } else if (text.includes("hablando") || text.includes("talking")) {
+      window.feed?.({ type: "state", name: "talking" });
+    } else if (text.includes("buscando") || text.includes("searching")) {
+      window.feed?.({ type: "state", name: "searching" });
+    } else if (text.includes("pantalla") || text.includes("clic") || text.includes("escribiendo")) {
+      window.feed?.({ type: "state", name: "working" });
+      window.feed?.({ type: "scene", name: "tool_use", args: { label: rawText, badge: "Computer Use" } });
+    } else if (text.includes("error")) {
+      window.feed?.({ type: "state", name: "error" });
+    } else {
+      window.feed?.({ type: "state", name: "working" });
+    }
+  }
+
+  /* ---------------- MIKU-LINK PAIRING QR ---------------- */
+  async function generatePairingUrl() {
+    try {
+      const res = await apiFetch("/api/desktop/info");
+      let ip = HOST;
+      if (res.ok) {
+        const info = await res.json();
+        if (info.ip && info.ip !== "127.0.0.1") {
+          ip = info.ip;
+        }
+      }
+
+      // Generar sesión aleatoria de 8 caracteres
+      const sessionId = Math.random().toString(36).substring(2, 10);
+
+      // Registrar sesión en backend
+      await apiFetch("/api/pair/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+
+      // Formato esperado por miku_app (devices.tsx): miku://pair?s={session}&ip={ip}
+      const pairUrl = `miku://pair?s=${sessionId}&ip=${ip}`;
+      console.log("[Bridge] Generated valid Miku-Link QR URL:", pairUrl);
+      window.setPairUrl?.(pairUrl);
+      return pairUrl;
+    } catch (e) {
+      console.warn("[Bridge] Error generating pair URL:", e);
+      const fallbackUrl = `miku://pair?s=offline&ip=${HOST}`;
+      window.setPairUrl?.(fallbackUrl);
+      return fallbackUrl;
+    }
+  }
+
+  function initLocalIp() {
+    generatePairingUrl();
+  }
+
+  /* ---------------- GLOBAL CURSOR TRACKER (Optional) ---------------- */
+  function initMouseTracker() {
+    let lastX = 0, lastY = 0;
+    setInterval(async () => {
+      // 1. In Tauri: use instant native Windows API GetCursorPos
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          const [gx, gy] = await window.__TAURI__.core.invoke('get_cursor_position');
+          if (gx !== lastX || gy !== lastY) {
+            lastX = gx;
+            lastY = gy;
+            window.feed?.(gx, gy);
+          }
+        } catch (_) {}
+        return;
+      }
+
+      // 2. In pywebview / browser: fallback to backend /mouse
+      if (!document.hasFocus() && window.feed) {
+        try {
+          const res = await apiFetch("/mouse");
+          if (res.ok) {
+            const pt = await res.json();
+            if (pt.x !== lastX || pt.y !== lastY) {
+              lastX = pt.x;
+              lastY = pt.y;
+              window.feed(pt.x, pt.y);
+            }
+          }
+        } catch (_) {}
+      }
+    }, 40);
+  }
+
+  /* ---------------- OUTGOING BRIDGE METHODS ---------------- */
+
+  // 1. Send chat prompt per agent
+  function sendChat(text, agent, attachment = null) {
+    if (!text || !text.trim()) return;
+    const ag = agent || { id: "miku", name: "Miku" };
+    window.feed?.({ type: "state", name: "thinking" });
+
+    const payload = {
+      message: text,
+      source: "desktop",
+      agent_id: ag.id,
+      agent_name: ag.name,
+      agent_prompt: ag.prompt || "",
+      agent_mcp: ag.mcp || null,
+      silent: (ag.id !== "miku")
+    };
+
+    if (attachment) {
+      payload.attachment_name = attachment.name;
+      payload.attachment_path = attachment.filePath || null;
+      payload.attachment_analysis = attachment.analysis || null;
+      payload.attachment_data = attachment.dataUrl || null;
+      payload.attachment_content = attachment.content || null;
+    }
+
+    apiFetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data && data.reply && !data.reply.includes("[IGNORAR]")) {
+          window.feed?.({
+            type: "agent_reply",
+            agent_id: ag.id,
+            agent_name: ag.name,
+            text: data.reply
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("[Bridge] Error sending chat:", err);
+        const ch = window.getAgChat ? window.getAgChat(ag.id) : null;
+        if (ch && !ch.busy && ch.lastA && !ch.lastA.startsWith('Error')) {
+          console.log("[Bridge] Reply was already delivered via WebSocket, suppressing HTTP error.");
+          return;
+        }
+        window.feed?.({
+          type: "agent_reply",
+          agent_id: ag.id,
+          agent_name: ag.name,
+          error: err.message,
+          text: "Error de conexión: " + err.message
+        });
+      });
+  }
+
+  function stopSpeech() {
+    apiFetch("/api/speech/stop", { method: "POST" }).catch(() => {});
+  }
+
+  // 2. Dictate toggle
+  function dictate(active) {
+    if (active) {
+      window.feed?.({ type: "state", name: "listening" });
+      window.feed?.({ type: "mic", on: true });
+    } else {
+      window.feed?.({ type: "state", name: "idle" });
+      window.feed?.({ type: "mic", on: false });
+    }
+  }
+
+  // 3. Send text to phone (via clipboard endpoint)
+  function sendToPhone(text) {
+    if (!text) return;
+    apiFetch("/api/device/clipboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    }).catch(err => console.warn("[Bridge] sendToPhone error:", err));
+  }
+
+  // 4. Quick chip action
+  function chipAction(action, contextText) {
+    if (action === "summarize") {
+      sendChat(`Resume en pocas líneas el siguiente resultado:\n${contextText}`);
+    } else if (action === "explain") {
+      sendChat(`Explícame esto de forma más sencilla:\n${contextText}`);
+    }
+  }
+
+  // 5. Cancel / Stop
+  function cancel() {
+    apiFetch("/api/stop", {
+      method: "POST"
+    }).catch(err => console.warn("[Bridge] Stop error:", err));
+    window.feed?.({ type: "state", name: "idle" });
+  }
+
+  // 5b. Floating question choice
+  function choice(id, value) {
+    const payload = {
+      type: "ui_event",
+      action: "button_clicked",
+      data: value
+    };
+    sendWS(payload);
+    apiFetch("/api/ui_event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).catch(e => console.warn("[Bridge] HTTP ui_event fallback error:", e));
+  }
+
+  // 6. Media / Music controls
+  function media(action, param = null) {
+    apiFetch("/api/media/control", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ action, param })
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.current) {
+          window.feed?.({ type: "music", ...res.current });
+        }
+      })
+      .catch(err => console.warn("[Bridge] Media control error:", err));
+  }
+
+  // 7. Save Keys (API Key Management in settings)
+  const KEY_MAPPING = {
+    anthropic: "ANTHROPIC_API_KEY",
+    google: "GEMINI_API_KEY",
+    openai: "OPENAI_API_KEY",
+    openrouter: "OPENROUTER_API_KEY",
+    groq: "GROQ_API_KEY",
+    elevenlabs: "ELEVENLABS_API_KEY",
+    github: "GITHUB_TOKEN",
+    stripe: "STRIPE_SECRET_KEY"
+  };
+
+  function setKey(serviceId, keyValue) {
+    const envKey = KEY_MAPPING[serviceId] || `${serviceId.toUpperCase()}_API_KEY`;
+    const secrets = {};
+    if (Array.isArray(keyValue)) {
+      secrets[envKey] = keyValue[0] || "";
+    } else {
+      secrets[envKey] = keyValue || "";
+    }
+
+    apiFetch("/api/secrets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ secrets })
+    })
+      .then(r => r.json())
+      .then(res => console.log("[Bridge] Secret saved:", res))
+      .catch(err => console.warn("[Bridge] Error saving secret:", err));
+  }
+
+  /* ---------------- CONFIGURATION API ---------------- */
+  async function getConfigKeys() {
+    try {
+      const res = await apiFetch("/api/config/keys");
+      return res.ok ? await res.json() : { keys: {} };
+    } catch (e) {
+      console.warn("[Bridge] getConfigKeys error:", e);
+      return { keys: {} };
+    }
+  }
+
+  async function saveConfigKeys(keys) {
+    try {
+      const res = await apiFetch("/api/config/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys })
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("[Bridge] saveConfigKeys error:", e);
+      return false;
+    }
+  }
+
+  async function getModelsConfig() {
+    try {
+      const res = await apiFetch("/api/config/models");
+      return res.ok ? await res.json() : { current: {}, available: {} };
+    } catch (e) {
+      console.warn("[Bridge] getModelsConfig error:", e);
+      return { current: {}, available: {} };
+    }
+  }
+
+  async function saveModelsConfig(models) {
+    try {
+      const res = await apiFetch("/api/config/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(models)
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("[Bridge] saveModelsConfig error:", e);
+      return false;
+    }
+  }
+
+  async function getMcpServers() {
+    try {
+      const res = await apiFetch("/api/config/mcp");
+      return res.ok ? await res.json() : { servers: [] };
+    } catch (e) {
+      console.warn("[Bridge] getMcpServers error:", e);
+      return { servers: [] };
+    }
+  }
+
+  async function addMcpServer(name, command, args = []) {
+    try {
+      const res = await apiFetch("/api/config/mcp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, command, args })
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("[Bridge] addMcpServer error:", e);
+      return false;
+    }
+  }
+
+  async function deleteMcpServer(name) {
+    try {
+      const res = await apiFetch(`/api/config/mcp/${encodeURIComponent(name)}`, {
+        method: "DELETE"
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("[Bridge] deleteMcpServer error:", e);
+      return false;
+    }
+  }
+
+  async function getAlertsConfig() {
+    try {
+      const res = await apiFetch("/api/config/alerts");
+      return res.ok ? await res.json() : { alerts: {} };
+    } catch (e) {
+      console.warn("[Bridge] getAlertsConfig error:", e);
+      return { alerts: {} };
+    }
+  }
+
+  async function saveAlertsConfig(alerts) {
+    try {
+      const res = await apiFetch("/api/config/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alerts })
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("[Bridge] saveAlertsConfig error:", e);
+      return false;
+    }
+  }
+
+  async function getDetectableApps() {
+    try {
+      const res = await apiFetch("/api/apps/detectable");
+      return res.ok ? await res.json() : { apps: [] };
+    } catch (e) {
+      console.warn("[Bridge] getDetectableApps error:", e);
+      return { apps: [] };
+    }
+  }
+
+  async function getRunningApps() {
+    try {
+      const res = await apiFetch("/api/apps/running");
+      return res.ok ? await res.json() : { apps: [] };
+    } catch (e) {
+      console.warn("[Bridge] getRunningApps error:", e);
+      return { apps: [] };
+    }
+  }
+
+  async function getDesktopStatus() {
+    try {
+      const res = await apiFetch("/api/desktop/status");
+      return res.ok ? await res.json() : {};
+    } catch (e) {
+      console.warn("[Bridge] getDesktopStatus error:", e);
+      return {};
+    }
+  }
+
+  async function getAudioDevices() {
+    try {
+      const res = await apiFetch("/api/audio/devices");
+      return res.ok ? await res.json() : { devices: [] };
+    } catch (e) {
+      console.warn("[Bridge] getAudioDevices error:", e);
+      return { devices: [] };
+    }
+  }
+
+  async function setAudioDevice(index) {
+    try {
+      const res = await apiFetch("/api/audio/device", {
+        method: "POST",
+        body: JSON.stringify({ index })
+      });
+      return res.ok ? await res.json() : { status: "error" };
+    } catch (e) {
+      console.warn("[Bridge] setAudioDevice error:", e);
+      return { status: "error", message: String(e) };
+    }
+  }
+
+  async function browseExe() {
+    try {
+      const res = await apiFetch("/api/system/browse_exe", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        return data.path || "";
+      }
+      return "";
+    } catch (e) {
+      console.warn("[Bridge] browseExe error:", e);
+      return "";
+    }
+  }
+
+  // 9. Send Dropped File
+  function sendFile(file) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+
+    apiFetch("/api/send_to_phone", {
+      method: "POST",
+      body: formData
+    })
+      .then(r => r.json())
+      .then(res => console.log("[Bridge] File sent:", res))
+      .catch(err => console.warn("[Bridge] sendFile error:", err));
+  }
+
+  function sendFilePath(filePath) {
+    if (!filePath) return;
+    apiFetch("/api/desktop/file_drop", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ path: filePath })
+    })
+      .then(r => r.json())
+      .then(res => console.log("[Bridge] File path handled:", res))
+      .catch(e => console.warn("[Bridge] Error sending file path:", e));
+  }
+
+  // 10. Open Settings Window
+  function openSettings() {
+    if (window.__TAURI__?.core?.invoke) {
+      window.__TAURI__.core.invoke('open_settings_window').catch(() => {
+        window.__TAURI__.core.invoke('open_settings').catch(() => {
+          window.open("miku_settings.html", "miku_settings", "width=980,height=740");
+        });
+      });
+      return;
+    }
+    const pw = window.pywebview?.api;
+    if (pw?.open_settings) {
+      pw.open_settings();
+    } else {
+      window.open("miku_settings.html", "miku_settings", "width=980,height=740");
+    }
+  }
+
+  // 11. Settings Sync
+  function setSetting(k, v) {
+    try {
+      localStorage.setItem(`miku_${k}`, JSON.stringify(v));
+      channel?.postMessage({ k: "cfg_item", key: k, value: v });
+      apiFetch("/api/setting", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ key: k, value: v })
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
+  // 12. Volume Control (Solo voz de Miku, sin afectar volumen de música ni Windows)
+  function setVolume(val) {
+    const v = Math.max(0, Math.min(100, Math.round(Number(val))));
+    setSetting("voice_volume", v);
+    if (window.__miku_tts_audio) {
+      window.__miku_tts_audio.volume = v / 100;
+    }
+  }
+
+  // 13. Eliminar Clave de API
+  async function deleteConfigKey(keyName) {
+    try {
+      const res = await apiFetch(`/api/config/keys/${keyName}`, {
+        method: "DELETE"
+      });
+      return res.ok ? await res.json() : { error: "Error al eliminar clave" };
+    } catch (e) {
+      console.warn("[Bridge] deleteConfigKey error:", e);
+      return { error: String(e) };
+    }
+  }
+
+  // 14. Aplicaciones en ejecución (Estilo Discord)
+  async function getRunningApps() {
+    try {
+      const res = await apiFetch("/api/apps/running");
+      return res.ok ? await res.json() : { apps: [] };
+    } catch (e) {
+      console.warn("[Bridge] getRunningApps error:", e);
+      return { apps: [] };
+    }
+  }
+
+  function initSettingsSync() {
+    if (channel) {
+      channel.onmessage = (e) => {
+        const msg = e.data;
+        if (msg && msg.k === "cfg_item") {
+          window.feed?.({ type: "cfg_updated", key: msg.key, value: msg.value });
+        }
+      };
+    }
+  }
+
+  async function getElevenLabsVoices() {
+    try {
+      const res = await apiFetch("/api/elevenlabs/voices");
+      return await res.json();
+    } catch (e) {
+      return { status: "error", message: e.message, voices: [] };
+    }
+  }
+
+  return {
+    init,
+    sendChat,
+    dictate,
+    sendToPhone,
+    chipAction,
+    cancel,
+    choice,
+    media,
+    setKey,
+    sendFile,
+    sendFilePath,
+    openSettings,
+    setSetting,
+    setVolume,
+    initLocalIp,
+    generatePairingUrl,
+    getConfigKeys,
+    saveConfigKeys,
+    deleteConfigKey,
+    getModelsConfig,
+    saveModelsConfig,
+    getMcpServers,
+    addMcpServer,
+    deleteMcpServer,
+    getAlertsConfig,
+    saveAlertsConfig,
+    getDetectableApps,
+    getRunningApps,
+    getDesktopStatus,
+    getAudioDevices,
+    setAudioDevice,
+    browseExe,
+    getElevenLabsVoices,
+    stopSpeech,
+    stopSpeaking: stopSpeech,
+    async getAgents() {
+      try {
+        const res = await apiFetch("/api/agents");
+        return res.ok ? await res.json() : { agents: [] };
+      } catch (e) {
+        return { agents: [] };
+      }
+    },
+    async getAgents() {
+      try {
+        const res = await apiFetch("/api/agents");
+        return res.ok ? await res.json() : { agents: [] };
+      } catch (e) {
+        return { agents: [] };
+      }
+    },
+    async saveAgents(agentsList) {
+      return this.saveAgentsBackend(agentsList);
+    },
+    async saveAgentsBackend(agentsList) {
+      try {
+        const res = await apiFetch("/api/agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agents: agentsList })
+        });
+        return res.ok;
+      } catch (e) {
+        return false;
+      }
+    },
+    async uploadFile(filename, content, isBase64 = false) {
+      try {
+        const res = await apiFetch("/api/upload_file", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename, content, is_base64: isBase64 })
+        });
+        return res.ok ? await res.json() : { status: "error" };
+      } catch (e) {
+        return { status: "error", message: e.message };
+      }
+    },
+    async checkUpdate() {
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          const res = await window.__TAURI__.core.invoke("check_update");
+          return res || { available: false };
+        } catch (err) {
+          console.warn("[Bridge] check_update error:", err);
+          return { available: false, error: err.toString() };
+        }
+      }
+      try {
+        const resp = await fetch("https://api.github.com/repos/cxmlo/miku/releases/latest");
+        if (resp.ok) {
+          const rel = await resp.json();
+          const tag = (rel.tag_name || "").replace(/^v/, "");
+          const current = "0.1.1";
+          const isNewer = tag && tag !== current && tag > current;
+          return { available: !!isNewer, version: tag, url: rel.html_url };
+        }
+      } catch (_) {}
+      return { available: false };
+    },
+    async installUpdate() {
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          return await window.__TAURI__.core.invoke("install_update");
+        } catch (err) {
+          console.warn("[Bridge] install_update error:", err);
+          return { error: err.toString() };
+        }
+      }
+      return { error: "Tauri no disponible" };
+    }
+  };
+})();
+
+// Auto-initialize when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => Bridge.init());
+} else {
+  Bridge.init();
+}
+
+window.addEventListener("beforeunload", () => {
+  try {
+    Bridge.stopSpeech();
+  } catch (_) {}
+});
+
+window.Bridge = Bridge;
