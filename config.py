@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
+from miku_paths import get_env_path
 
-load_dotenv()
+load_dotenv(get_env_path())
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
@@ -22,6 +23,10 @@ ENABLE_BARGE_IN = os.getenv("ENABLE_BARGE_IN", "True").lower() in ("true", "1", 
 BARGE_IN_MODE = os.getenv("BARGE_IN_MODE", "hybrid")
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 
 

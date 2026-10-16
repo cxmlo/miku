@@ -185,13 +185,17 @@ class ChatResponse(BaseModel):
 from datetime import datetime
 import json
 
+from miku_paths import (
+    get_chat_history_dir, get_daily_chat_history_file,
+    get_env_path, get_models_config_path, get_mcp_config_path,
+    get_agents_config_path, get_alerts_config_path, sync_env_to_workspace
+)
+
 # Memoria de Chat Global Diaria
-CHAT_HISTORY_DIR = "chat_history"
-os.makedirs(CHAT_HISTORY_DIR, exist_ok=True)
+CHAT_HISTORY_DIR = get_chat_history_dir()
 
 def get_daily_history_file():
-    today = datetime.now().strftime("%Y-%m-%d")
-    return os.path.join(CHAT_HISTORY_DIR, f"history_{today}.json")
+    return get_daily_chat_history_file()
 
 def get_chat_history():
     file_path = get_daily_history_file()
@@ -763,7 +767,7 @@ class SecretRequest(BaseModel):
 async def save_secret(req: SecretRequest, api_key: str = Security(get_api_key)):
     try:
         from dotenv import set_key
-        env_path = os.path.join(os.path.dirname(__file__), ".env")
+        env_path = get_env_path()
         if not os.path.exists(env_path):
             with open(env_path, "w") as f: pass
         
@@ -801,6 +805,8 @@ MANAGED_KEYS = [
     "GOOGLE_CLOUD_LOCATION",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "OPENROUTER_API_KEY",
     "NVIDIA_API_KEY",
     "GITHUB_TOKEN",
     "ELEVENLABS_API_KEY",
@@ -834,7 +840,7 @@ class UpdateKeysRequest(BaseModel):
 @app.post("/api/config/keys")
 async def update_config_keys(req: UpdateKeysRequest, api_key: str = Security(get_api_key)):
     """Actualiza las API keys en el archivo .env y recarga las variables de entorno."""
-    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    env_path = get_env_path()
     
     existing_lines = []
     if os.path.exists(env_path):
@@ -866,6 +872,7 @@ async def update_config_keys(req: UpdateKeysRequest, api_key: str = Security(get
         
         with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(new_lines)
+        sync_env_to_workspace(new_lines)
         
         try:
             import importlib
@@ -883,7 +890,7 @@ async def update_config_keys(req: UpdateKeysRequest, api_key: str = Security(get
 async def delete_config_key(key_name: str, api_key: str = Security(get_api_key)):
     """Elimina una API key del archivo .env y del entorno de ejecución con confirmación."""
     try:
-        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        env_path = get_env_path()
         existing_lines = []
         if os.path.exists(env_path):
             with open(env_path, "r", encoding="utf-8") as f:
@@ -900,6 +907,7 @@ async def delete_config_key(key_name: str, api_key: str = Security(get_api_key))
             
         with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(new_lines)
+        sync_env_to_workspace(new_lines)
             
         if key_name in os.environ:
             del os.environ[key_name]
@@ -1079,75 +1087,24 @@ async def get_elevenlabs_voices():
         return {"status": "error", "message": str(e), "voices": []}
 
 # ==========================================
-# CONFIGURACIÓN DE MODELOS (ROUTER)
+# CONFIGURACIÓN DE MODELOS (ROUTER DINÁMICO)
 # ==========================================
-MODELS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models_config.json")
-
-AVAILABLE_MODELS = {
-    "chat": [
-        {"id": "gemini-flash-lite-latest", "name": "Gemini Flash Lite (Recomendado - Rápido)", "provider": "google"},
-        {"id": "gemini-3.8-flash", "name": "Gemini 3.8 Flash (Google AI Studio)", "provider": "google"},
-        {"id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash (Google AI Studio)", "provider": "google"},
-        {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Razonamiento Complejo)", "provider": "google"},
-        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Vertex AI)", "provider": "google"},
-        {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B (Groq - Ultra Veloz)", "provider": "groq"},
-        {"id": "openai/gpt-oss-120b", "name": "GPT-OSS 120B (Groq)", "provider": "groq"},
-        {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet (Recomendado Código)", "provider": "anthropic"},
-        {"id": "gpt-4o", "name": "GPT-4o (OpenAI)", "provider": "openai"},
-        {"id": "gpt-4o-mini", "name": "GPT-4o Mini (OpenAI)", "provider": "openai"},
-    ],
-    "computer_use": [
-        {"id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash (Visión y Pantalla - Recomendado)", "provider": "google"},
-        {"id": "gemini-2.5-computer-use-preview-10-2025", "name": "Gemini 2.5 Computer Use (Vertex AI)", "provider": "google"},
-        {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Vertex AI)", "provider": "google"},
-        {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet (Computer Use)", "provider": "anthropic"},
-        {"id": "gpt-4o", "name": "GPT-4o (OpenAI)", "provider": "openai"},
-    ],
-    "stt": [
-        {"id": "whisper-large-v3", "name": "Whisper Large v3 (Groq - Recomendado)", "provider": "groq"},
-        {"id": "whisper-large-v3-turbo", "name": "Whisper Large v3 Turbo (Groq)", "provider": "groq"},
-        {"id": "whisper-1", "name": "Whisper v1 (OpenAI)", "provider": "openai"},
-    ]
-}
+MODELS_FILE = get_models_config_path()
 
 def get_active_providers():
-    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-    env_keys = {}
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            for line in f:
-                stripped = line.strip()
-                if stripped and not stripped.startswith("#") and "=" in stripped:
-                    k, v = stripped.split("=", 1)
-                    env_keys[k.strip()] = v.strip().strip('"').strip("'")
-    active = set()
-    if env_keys.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY"):
-        active.add("groq")
-    if env_keys.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") or env_keys.get("GOOGLE_CLOUD_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT"):
-        active.add("google")
-    if env_keys.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY"):
-        active.add("openai")
-    if env_keys.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY"):
-        active.add("anthropic")
-    if env_keys.get("NVIDIA_API_KEY") or os.getenv("NVIDIA_API_KEY"):
-        active.add("nvidia")
-    return active
+    from models_provider import get_active_providers as _gap
+    return _gap()
 
 @app.get("/api/config/models")
 async def get_models_config():
-    current = {"chat": "gemini-2.5-pro", "computer_use": "gemini-3.5-flash", "stt": "whisper-large-v3"}
-    if os.path.exists(MODELS_FILE):
-        try:
-            with open(MODELS_FILE, "r", encoding="utf-8") as f:
-                current.update(json.load(f))
-        except Exception as e:
-            logger.error(f"Error reading models_config.json: {e}")
-            
-    active_providers = get_active_providers()
-    filtered_available = {}
-    for cat, models in AVAILABLE_MODELS.items():
-        eligible = [m for m in models if m.get("provider") in active_providers]
-        filtered_available[cat] = eligible
+    from models_provider import get_available_models, get_configured_models, get_active_providers as _gap
+    current = get_configured_models()
+    active_providers = _gap()
+    available = get_available_models()
+
+    # Si el modelo guardado no existe en los disponibles reales, seleccionar el primero disponible
+    for cat in ["chat", "computer_use", "stt"]:
+        eligible = available.get(cat, [])
         if eligible:
             eligible_ids = [m["id"] for m in eligible]
             if current.get(cat) not in eligible_ids:
@@ -1157,7 +1114,7 @@ async def get_models_config():
 
     return {
         "current": current,
-        "available": filtered_available,
+        "available": available,
         "active_providers": list(active_providers),
         "has_providers": len(active_providers) > 0
     }
@@ -1169,18 +1126,13 @@ class UpdateModelsRequest(BaseModel):
 
 @app.post("/api/config/models")
 async def update_models_config(req: UpdateModelsRequest):
-    current = {"chat": "gemini-2.5-pro", "computer_use": "gemini-3.5-flash", "stt": "whisper-large-v3"}
-    if os.path.exists(MODELS_FILE):
-        try:
-            with open(MODELS_FILE, "r", encoding="utf-8") as f:
-                current.update(json.load(f))
-        except Exception:
-            pass
-    if req.chat:
+    from models_provider import get_configured_models
+    current = get_configured_models()
+    if req.chat is not None:
         current["chat"] = req.chat
-    if req.computer_use:
+    if req.computer_use is not None:
         current["computer_use"] = req.computer_use
-    if req.stt:
+    if req.stt is not None:
         current["stt"] = req.stt
     with open(MODELS_FILE, "w", encoding="utf-8") as f:
         json.dump(current, f, indent=2, ensure_ascii=False)
@@ -1459,7 +1411,7 @@ async def desktop_file_drop(req: FileDropRequest):
 # ==========================================
 # CONFIGURACIÓN DE SERVIDORES MCP
 # ==========================================
-MCP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mcp_config.json")
+MCP_FILE = get_mcp_config_path()
 
 @app.get("/api/config/mcp")
 async def get_mcp_config():
@@ -1592,7 +1544,7 @@ async def generate_agent_prompt(req: GenerateAgentPromptReq):
 # ==========================================
 # CONFIGURACIÓN DE ALERTAS PROACTIVAS
 # ==========================================
-ALERTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "alerts_config.json")
+ALERTS_FILE = get_alerts_config_path()
 
 DEFAULT_ALERTS = {}
 

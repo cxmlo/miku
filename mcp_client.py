@@ -10,9 +10,11 @@ from mcp.types import CallToolResult
 
 logger = logging.getLogger("MCPManager")
 
+from miku_paths import get_mcp_config_path
+
 class MikuMCPManager:
-    def __init__(self, config_path: str = "mcp_config.json"):
-        self.config_path = config_path
+    def __init__(self, config_path: str = None):
+        self.config_path = config_path or get_mcp_config_path()
         self.servers_config = {}
         self.sessions: Dict[str, ClientSession] = {}
         self.tools_schema_extension = []

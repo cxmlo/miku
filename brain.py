@@ -79,7 +79,7 @@ def get_groq_client():
     selected_key = keys[_current_groq_key_idx % len(keys)]
     try:
         from groq import Groq
-        return Groq(api_key=selected_key), "openai/gpt-oss-120b"
+        return Groq(api_key=selected_key), "llama-3.3-70b-versatile"
     except Exception as e:
         logger.error(f"Error inicializando Groq: {e}")
         return None, None
@@ -96,28 +96,31 @@ def rotate_groq_key():
 
 
 def load_llm_history(target_agent="miku"):
-    from datetime import datetime
     import os
     import json
-    today = datetime.now().strftime("%Y-%m-%d")
-    file_path = os.path.join("chat_history", f"history_{today}.json")
+    from miku_paths import get_daily_chat_history_file
+    file_path = get_daily_chat_history_file()
     if not os.path.exists(file_path):
         return []
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         llm_hist = []
-        for msg in data[-20:]: # Solo los últimos 20 para no saturar tokens
-            m_agent = msg.get("agent_id") or msg.get("sender") or "miku"
+        for msg in data[-20:]:  # Solo los últimos 20 para no saturar tokens
             sender = msg.get("sender")
+            msg_agent = msg.get("agent_id") or ("miku" if sender == "user" else sender)
+            
             if sender == "user":
-                llm_hist.append({"role": "user", "content": msg.get("text", "")})
+                # Cada agente solo debe cargar mensajes que el usuario le envió a él
+                target_match = (msg_agent == target_agent) or (target_agent == "miku" and not msg.get("agent_id"))
+                if target_match:
+                    llm_hist.append({"role": "user", "content": msg.get("text", "")})
             else:
                 if target_agent == "miku":
-                    if m_agent == "miku" or sender == "miku":
+                    if msg_agent == "miku" or sender == "miku":
                         llm_hist.append({"role": "assistant", "content": msg.get("text", "")})
                 else:
-                    if m_agent == target_agent or sender == target_agent:
+                    if msg_agent == target_agent or sender == target_agent:
                         llm_hist.append({"role": "assistant", "content": msg.get("text", "")})
         return llm_hist
     except:
@@ -159,24 +162,38 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
         
     active_client = None
     active_model = None
+    provider_name = "unknown"
     use_fallback = False
 
-    # 1. Prioridad: Google AI Studio directo con API Key
-    gemini_cl, gemini_mod = get_gemini_client()
-    if gemini_cl:
-        active_client = gemini_cl
-        active_model = gemini_mod
-        logger.info(f"Cerebro activo: Google AI Studio ({active_model})")
-    else:
-        try:
-            active_client = get_vertex_client()
-            if active_client:
-                active_model = "google/gemini-2.5-flash"
-        except Exception as e:
-            logger.warning(f"No se pudo inicializar Vertex AI: {e}")
-            use_fallback = True
+    # 1. Obtener cliente y modelo según la configuración activa (models_config.json)
+    try:
+        from models_provider import get_client_and_model
+        active_client, active_model, provider_name = get_client_and_model(category="chat")
+        if active_client:
+            logger.info(f"Cerebro activo: {provider_name.upper()} ({active_model})")
+    except Exception as e:
+        logger.warning(f"Error resolviendo cliente desde models_provider: {e}")
 
-    if active_client and not use_fallback:
+    # Si no se pudo obtener cliente del proveedor configurado, intentar los fallbacks tradicionales
+    if not active_client:
+        gemini_cl, gemini_mod = get_gemini_client()
+        if gemini_cl:
+            active_client = gemini_cl
+            active_model = gemini_mod
+            provider_name = "google"
+            logger.info(f"Cerebro activo (fallback directo): Google AI Studio ({active_model})")
+        else:
+            try:
+                active_client = get_vertex_client()
+                if active_client:
+                    active_model = "google/gemini-2.5-flash"
+                    provider_name = "vertex"
+            except Exception as e:
+                logger.warning(f"No se pudo inicializar Vertex AI: {e}")
+                use_fallback = True
+
+    # 2. Router Semántico dinámico si estamos en Google
+    if active_client and provider_name == "google" and not use_fallback:
         try:
             router_prompt = f"""Eres el instinto de Miku. Analiza la petición del usuario: "{user_input}"
 Responde ÚNICAMENTE con UNA de estas 3 palabras:
@@ -195,18 +212,12 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
             content = getattr(message, 'content', None)
             decision = content.strip().upper() if content else "BASE"
             
-            if gemini_cl:
-                if "PRO" in decision:
-                    active_model = "gemini-3.1-flash-lite"
-                elif "COMPUTE" in decision:
-                    active_model = "gemini-flash-lite-latest"
-                else:
-                    active_model = "gemini-flash-lite-latest"
+            if "PRO" in decision:
+                active_model = "gemini-2.5-pro"
+            elif "COMPUTE" in decision:
+                active_model = "gemini-2.5-flash"
             else:
-                if "PRO" in decision:
-                    active_model = "google/gemini-2.5-pro"
-                elif "COMPUTE" in decision:
-                    active_model = "google/gemini-3.5-flash"
+                active_model = active_model or "gemini-2.5-flash"
                 
             logger.info(f"Router Semántico: Decisión '{decision}' -> Activando modo {active_model}")
         except Exception as e:
@@ -220,10 +231,11 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
         groq_cl, groq_mod = get_groq_client()
         if groq_cl:
             active_client = groq_cl
-            active_model = groq_mod
+            active_model = "llama-3.3-70b-versatile"
+            provider_name = "groq"
             logger.info(f"Cerebro activo: Groq ({active_model})")
         else:
-            return "Error: Vertex AI requiere habilitar facturación en Google Cloud Console, y no se pudo conectar con el respaldo de Groq."
+            return "Error: No se encontró ningún cliente de IA activo. Por favor configura tu API Key en Ajustes."
     
     import time
     try:

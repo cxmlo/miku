@@ -5,7 +5,8 @@ import logging
 import requests
 
 logger = logging.getLogger("Agentes")
-AGENTS_CONFIG_FILE = "agents_config.json"
+from miku_paths import get_agents_config_path
+AGENTS_CONFIG_FILE = get_agents_config_path()
 
 DEFAULT_AGENTS = [
     {
