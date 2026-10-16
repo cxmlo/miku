@@ -9,6 +9,7 @@
 
 ## 🐛 Correcciones de Errores
 - Corregido el problema donde la insignia `Core 8000` permanecía en rojo al abrir el `.exe` instalado por falta del servidor activo.
+- **Corrección en Menús Desplegables**: Resuelto el problema por el cual al seleccionar una opción en los menús desplegables se seleccionaba la de abajo. La selección ahora detecta con exactitud milimétrica el elemento presionado (`getOptIndex`) y soporta desplazamiento automático con teclado.
 - Soporte para rutas en ejecutables congelados con PyInstaller mediante `sys._MEIPASS` en `miku_paths.py` y `audio_handler.py`.
 
 ---
