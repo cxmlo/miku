@@ -108,6 +108,128 @@ async fn install_update(app: tauri::AppHandle) -> Result<String, String> {
     Ok("no_update".into())
 }
 
+use std::sync::Mutex;
+use std::process::Child;
+use std::net::TcpStream;
+use std::path::{Path, PathBuf};
+
+static BACKEND_CHILD: Mutex<Option<Child>> = Mutex::new(None);
+
+fn is_port_open(port: u16) -> bool {
+    TcpStream::connect(("127.0.0.1", port)).is_ok()
+}
+
+fn start_backend() {
+    if is_port_open(8000) {
+        eprintln!("[INFO] Miku Core backend port 8000 is already active.");
+        return;
+    }
+
+    let current_exe = std::env::current_exe().unwrap_or_default();
+    let exe_dir = current_exe.parent().unwrap_or_else(|| Path::new(""));
+
+    // 1. Check production sidecar binary next to miku_ui.exe
+    let sidecar_candidates = [
+        exe_dir.join("miku-core.exe"),
+        exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc.exe"),
+        exe_dir.join("resources").join("miku-core.exe"),
+    ];
+
+    for sidecar in &sidecar_candidates {
+        if sidecar.exists() {
+            eprintln!("[INFO] Starting Miku Core sidecar binary: {:?}", sidecar);
+            let mut cmd = std::process::Command::new(sidecar);
+            cmd.current_dir(exe_dir);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+            match cmd.spawn() {
+                Ok(child) => {
+                    if let Ok(mut lock) = BACKEND_CHILD.lock() {
+                        *lock = Some(child);
+                    }
+                    return;
+                }
+                Err(e) => {
+                    eprintln!("[ERROR] Failed to spawn sidecar: {:?}", e);
+                }
+            }
+        }
+    }
+
+    // 2. Development fallback: search workspace for server.py and venv
+    let mut search_dirs = Vec::new();
+    search_dirs.push(exe_dir.to_path_buf());
+    if let Some(p1) = exe_dir.parent() { search_dirs.push(p1.to_path_buf()); }
+    if let Some(p2) = exe_dir.parent().and_then(|p| p.parent()) { search_dirs.push(p2.to_path_buf()); }
+    if let Some(p3) = exe_dir.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) { search_dirs.push(p3.to_path_buf()); }
+    search_dirs.push(PathBuf::from(r"c:\Users\cxmluwu\Desktop\pryecto mascota\miku V2"));
+
+    for dir in search_dirs {
+        let server_py = dir.join("server.py");
+        if server_py.exists() {
+            let venv_python = dir.join("venv").join("Scripts").join("python.exe");
+            let python_bin = if venv_python.exists() {
+                venv_python
+            } else {
+                PathBuf::from("python")
+            };
+
+            eprintln!("[INFO] Starting Miku server via Python: {:?} (working dir: {:?})", python_bin, dir);
+            let mut cmd = std::process::Command::new(python_bin);
+            cmd.arg("server.py");
+            cmd.current_dir(&dir);
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            }
+            match cmd.spawn() {
+                Ok(child) => {
+                    if let Ok(mut lock) = BACKEND_CHILD.lock() {
+                        *lock = Some(child);
+                    }
+                    return;
+                }
+                Err(e) => {
+                    eprintln!("[ERROR] Failed to start server.py: {:?}", e);
+                }
+            }
+        }
+    }
+
+    eprintln!("[WARN] Could not find miku-core.exe or server.py to start backend.");
+}
+
+fn stop_backend() {
+    stop_speech_silent();
+
+    // 1. Solicitud de apagado limpio al Gateway FastAPI
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/system/shutdown -Method Post -Headers @{'x-api-key'='miku_secure_key_2026'} -TimeoutSec 1 -ErrorAction SilentlyContinue"]);
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        let _ = cmd.spawn();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = std::process::Command::new("curl")
+            .args(["-s", "-X", "POST", "-H", "x-api-key: miku_secure_key_2026", "http://127.0.0.1:8000/api/system/shutdown"])
+            .spawn();
+    }
+
+    // 2. Terminar proceso hijo si fue iniciado por Tauri
+    if let Ok(mut lock) = BACKEND_CHILD.lock() {
+        if let Some(mut child) = lock.take() {
+            let _ = child.kill();
+        }
+    }
+}
+
 fn stop_speech_silent() {
     #[cfg(target_os = "windows")]
     {
@@ -206,6 +328,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
+            // Auto-iniciar el servidor Core si no está activo
+            start_backend();
+
             if let Some(window) = app.get_webview_window("main") {
                 if let Ok(Some(monitor)) = window.current_monitor() {
                     let sf = monitor.scale_factor();
@@ -230,7 +355,7 @@ pub fn run() {
                         open_settings_window(app.clone());
                     }
                     "quit" => {
-                        stop_speech_silent();
+                        stop_backend();
                         std::process::exit(0);
                     }
                     _ => {}
@@ -246,7 +371,7 @@ pub fn run() {
                     }
                 }
                 if let tauri::WindowEvent::Destroyed = event {
-                    stop_speech_silent();
+                    stop_backend();
                 }
             }
             if window.label() == "settings" {

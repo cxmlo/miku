@@ -12,7 +12,10 @@ import logging
 
 logger = logging.getLogger("MikuPaths")
 
-WORKSPACE_DIR = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, "frozen", False):
+    WORKSPACE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+else:
+    WORKSPACE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_miku_data_dir() -> str:
     """

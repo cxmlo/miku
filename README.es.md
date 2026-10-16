@@ -12,14 +12,14 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.1-cyan)](https://github.com/cxmlo/miku/releases)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.2-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
 > [!TIP]
-> **Novedades en v0.1.1**: **Actualizador automático en 1 clic** con firmas criptográficas Minisign, **Chat Multagente aislado**, menú líquido desplegable (`+`) y alertas por aplicación.
+> **Novedades en v0.1.2**: **Servidor Core autónomo integrado (Sidecar PyInstaller)** con auto-arranque y apagado limpio invisible, sincronización en vivo del guardarropa de Miku entre la Isla y Ajustes, y descripciones completas en actualizaciones.
 
 ---
 

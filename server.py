@@ -186,6 +186,7 @@ from datetime import datetime
 import json
 
 from miku_paths import (
+    WORKSPACE_DIR,
     get_chat_history_dir, get_daily_chat_history_file,
     get_env_path, get_models_config_path, get_mcp_config_path,
     get_agents_config_path, get_alerts_config_path, sync_env_to_workspace
@@ -794,6 +795,17 @@ async def get_desktop_info():
         except Exception:
             pass
     return {"hostname": socket.gethostname(), "ip": local_ip}
+
+@app.post("/api/system/shutdown")
+async def shutdown_system(api_key: str = Security(get_api_key)):
+    """Permite que Tauri o la interfaz solicite el apagado limpio del servidor."""
+    logger.info("Recibida solicitud de apagado del sistema (shutdown).")
+    def _delayed_exit():
+        time.sleep(0.5)
+        os._exit(0)
+    import threading
+    threading.Thread(target=_delayed_exit, daemon=True).start()
+    return {"status": "shutting_down"}
 
 # ==========================================
 # CONFIGURACIÓN DE API KEYS Y MODELOS
@@ -2241,7 +2253,7 @@ async def startup_event():
 
     # Iniciar túnel de Cloudflare automáticamente si existe el ejecutable
     try:
-        cf_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cloudflared.exe")
+        cf_local = os.path.join(WORKSPACE_DIR, "cloudflared.exe")
         cf_system = r"C:\Program Files (x86)\cloudflared\cloudflared.exe"
         cf_path = cf_local if os.path.exists(cf_local) else (cf_system if os.path.exists(cf_system) else None)
         

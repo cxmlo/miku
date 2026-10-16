@@ -81,3 +81,5 @@ cloudflared.exe
 *.wav
 backups/
 miku_glow_preview.png
+build/
+miku_ui/src-tauri/binaries/

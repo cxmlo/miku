@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Configuración · Miku v0.1.1</title>
+<title>Configuración · Miku v0.1.2</title>
 <script src="bridge.js"></script>
 <script src="sound_fx.js"></script>
 <style>
@@ -710,7 +710,7 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none}
     <div class="chrome-title" data-tauri-drag-region>
       <span class="chrome-dot"></span>
       <span class="chrome-text">Miku Desktop</span>
-      <div class="chrome-badge">v0.1.1</div>
+      <div class="chrome-badge">v0.1.2</div>
     </div>
     <div class="win-ctrls">
       <span id="hb-win-update" style="display:none;margin-right:8px" title="Mantén pulsado para reiniciar y aplicar actualización"></span>
@@ -731,7 +731,7 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none}
         <div class="sidebar-footer">
           <div class="sidebar-status-pill">
             <span class="pulse-dot"></span>
-            <span>Listo · v0.1.1</span>
+            <span>Listo · v0.1.2</span>
           </div>
         </div>
       </aside>
@@ -1932,7 +1932,7 @@ V.general = () => `
 </section>
 <section>
   <h2>Actualizaciones de Software</h2>
-  ${row('Miku Desktop v0.1.1', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
+  ${row('Miku Desktop v0.1.2', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
   <div id="update-status" style="margin-top:6px;font-size:12.5px;color:var(--mut)"></div>
 </section>
 <section>
@@ -2551,7 +2551,7 @@ function mount() {
           } else {
             btnUpdate.disabled = false;
             btnUpdate.textContent = 'Buscar actualización';
-            if (stUpdate) stUpdate.textContent = 'Miku está actualizada a la última versión (v0.1.1).';
+            if (stUpdate) stUpdate.textContent = 'Miku está actualizada a la última versión (v0.1.2).';
             showToast('Miku está en la versión más reciente');
           }
         } catch (e) {
@@ -3252,10 +3252,37 @@ function onMsg(m) {
   else if (m.k == 'select') { selAgent(m.who || 'miku', 1); if (CAT == 'agentes' && !typing()) render(); }
   else if (m.k == 'pair') { STATE.pairUrl = m.url; if (CAT == 'link') render(); }
   else if (m.k == 'link') { STATE.linkConnected = !!m.ok; STATE.linkName = m.name || ''; if (CAT == 'link') render(); }
+  else if (m.k == 'outfit') {
+    if (m.who == 'miku' || !m.who) {
+      PROUT = m.v || 'none';
+      try { localStorage.setItem('miku_outfit', PROUT); } catch (_) {}
+    } else {
+      const ag = AG.find(x => x.id == m.who);
+      if (ag) { ag.outfit = m.v || 'none'; ls.set('miku_agents', AG); }
+    }
+    if (!typing()) render();
+  }
 }
 
 if (BC) BC.onmessage = e => onMsg(e.data);
 try { window.__TAURI__?.event?.listen('miku', e => onMsg(e.payload)); } catch (_) {}
+
+window.addEventListener('focus', () => {
+  try {
+    const cur = localStorage.getItem('miku_outfit') || 'none';
+    if (cur !== PROUT) {
+      PROUT = cur;
+      if (!typing()) render();
+    }
+  } catch (_) {}
+  emit({ k: 'hello' });
+});
+window.addEventListener('storage', e => {
+  if (e.key === 'miku_outfit' && e.newValue) {
+    PROUT = e.newValue;
+    if (!typing()) render();
+  }
+});
 
 async function loadBackendData() {
   try {

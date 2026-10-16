@@ -1,0 +1,115 @@
+"""
+scripts/build_sidecar.py - Compilador automatizado del backend de Miku para Tauri
+Genera el binario independiente (sidecar) miku-core-x86_64-pc-windows-msvc.exe
+utilizando PyInstaller para que la app instalada no dependa de tener Python instalado.
+"""
+
+import os
+import sys
+import shutil
+import subprocess
+
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+WORKSPACE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BINARIES_DIR = os.path.join(WORKSPACE_DIR, "miku_ui", "src-tauri", "binaries")
+TARGET_NAME = "miku-core-x86_64-pc-windows-msvc.exe"
+LOCAL_APP_DIR = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Miku Desktop")
+
+def run():
+    print("=" * 60)
+    print("[Miku Build] Construyendo Miku Core Sidecar para Tauri 2...")
+    print("=" * 60)
+
+    os.makedirs(BINARIES_DIR, exist_ok=True)
+
+    # Buscar el ejecutable de PyInstaller
+    venv_pyinstaller = os.path.join(WORKSPACE_DIR, "venv", "Scripts", "pyinstaller.exe")
+    if os.path.exists(venv_pyinstaller):
+        pyinstaller_bin = venv_pyinstaller
+    else:
+        pyinstaller_bin = "pyinstaller"
+
+    cmd = [
+        pyinstaller_bin,
+        "--name=miku-core",
+        "--onefile",
+        "--noconsole",
+        "--clean",
+        "--distpath=" + BINARIES_DIR,
+        "--workpath=" + os.path.join(WORKSPACE_DIR, "build", "pyinstaller"),
+        "--specpath=" + os.path.join(WORKSPACE_DIR, "build"),
+        # Archivos de datos y configuraciones iniciales
+        f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.onnx')};.",
+        f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.tflite')};.",
+        f"--add-data={os.path.join(WORKSPACE_DIR, 'wake.wav')};.",
+        f"--add-data={os.path.join(WORKSPACE_DIR, 'agents_config.json')};.",
+        f"--add-data={os.path.join(WORKSPACE_DIR, 'models_config.json')};.",
+        f"--add-data={os.path.join(WORKSPACE_DIR, 'settings_config.json')};.",
+        f"--add-data={os.path.join(WORKSPACE_DIR, 'mcp_config.json')};.",
+        # Hidden imports clave para Uvicorn y FastAPI
+        "--hidden-import=uvicorn.logging",
+        "--hidden-import=uvicorn.loops",
+        "--hidden-import=uvicorn.loops.auto",
+        "--hidden-import=uvicorn.protocols",
+        "--hidden-import=uvicorn.protocols.http",
+        "--hidden-import=uvicorn.protocols.http.auto",
+        "--hidden-import=uvicorn.protocols.websockets",
+        "--hidden-import=uvicorn.protocols.websockets.auto",
+        "--hidden-import=uvicorn.lifespan",
+        "--hidden-import=uvicorn.lifespan.on",
+        "--hidden-import=engineio.async_drivers.asgi",
+        "--hidden-import=sqlite3",
+        "--hidden-import=openwakeword",
+        "--hidden-import=sounddevice",
+        "--hidden-import=pygame",
+        "--hidden-import=fastapi",
+        "--hidden-import=pydantic",
+        os.path.join(WORKSPACE_DIR, "server.py")
+    ]
+
+    # Incluir cloudflared.exe si existe en el workspace
+    cf = os.path.join(WORKSPACE_DIR, "cloudflared.exe")
+    if os.path.exists(cf):
+        cmd.insert(cmd.index(os.path.join(WORKSPACE_DIR, "server.py")), f"--add-data={cf};.")
+
+    print(f"[1/3] Ejecutando PyInstaller...")
+    ret = subprocess.run(cmd, cwd=WORKSPACE_DIR)
+    if ret.returncode != 0:
+        print("[ERROR] Error al compilar con PyInstaller.")
+        sys.exit(ret.returncode)
+
+    raw_exe = os.path.join(BINARIES_DIR, "miku-core.exe")
+    triple_exe = os.path.join(BINARIES_DIR, TARGET_NAME)
+
+    if not os.path.exists(raw_exe):
+        print(f"[ERROR] No se encontró el binario generado en {raw_exe}")
+        sys.exit(1)
+
+    print(f"[2/3] Generando binario con target triple para Tauri: {TARGET_NAME}")
+    shutil.copy2(raw_exe, triple_exe)
+
+    # Copiar también a la carpeta de la app instalada en la máquina si existe
+    if os.path.exists(LOCAL_APP_DIR):
+        dest_local = os.path.join(LOCAL_APP_DIR, "miku-core.exe")
+        print(f"[3/3] Copiando binario a la app instalada en {dest_local}...")
+        try:
+            shutil.copy2(raw_exe, dest_local)
+            print("[OK] Copiado exitosamente a la carpeta de la app instalada.")
+        except Exception as e:
+            print(f"[AVISO] No se pudo copiar directamente a {LOCAL_APP_DIR}: {e}")
+
+    print("=" * 60)
+    print("[EXITO] Compilación de Miku Core Sidecar finalizada!")
+    print(f"Ubicación: {triple_exe}")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    run()

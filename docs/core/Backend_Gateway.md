@@ -22,7 +22,9 @@ Ubicado en `server.py`, el Gateway es el corazón de las comunicaciones de Miku.
   - `POST /pair_init`, `POST /pair_confirm`: Endpoints de vinculación de dispositivos seguros usando JWT y llaves públicas. 👉 [[Database_and_Security]]
   - `GET /api/config/models`, `POST /api/config/models`: Motor de descubrimiento en vivo de modelos de IA (`models_provider.py`). Consulta los endpoints oficiales de Google Gemini, Groq, DeepSeek, OpenAI, Anthropic y Ollama local para listar únicamente modelos 100% reales asociados a las API Keys configuradas en el `.env`.
   - **Aislamiento Multi-Agente (`brain.py`)**: `load_llm_history(target_agent)` filtra estrictamente los mensajes de usuario y respuestas por `agent_id`, impidiendo que un agente (como Antigravity) responda a solicitudes previas dirigidas a Miku u otros agentes.
-  - **Persistencia en AppData (`miku_paths.py`)**: Centraliza las rutas de datos en `%APPDATA%/Miku` (`.env`, `chat_history/`, `models_config.json`, `agents_config.json`, `mcp_config.json`), asegurando que las API keys y conversaciones sobrevivan intactas a actualizaciones o reinstalaciones del ejecutable compilado.
+  - **Persistencia en AppData (`miku_paths.py`)**: Centraliza las rutas de datos en `%APPDATA%/Miku` (`.env`, `chat_history/`, `models_config.json`, `agents_config.json`, `mcp_config.json`), asegurando que las API keys y conversaciones sobrevivan intactas a actualizaciones o reinstalaciones del ejecutable compilado. Soporta modo congelado (`sys.frozen`) con PyInstaller.
+  - **Apagado Limpio (`POST /api/system/shutdown`)**: Permite a Tauri solicitar el cierre controlado del servidor FastAPI y liberación del puerto 8000 al cerrar la ventana o salir de la bandeja del sistema.
+  - **Tauri Sidecar (`scripts/build_sidecar.py`)**: Empaqueta el Gateway completo en `miku-core-x86_64-pc-windows-msvc.exe` mediante PyInstaller, permitiendo que la aplicación instalada funcione sin requerir Python en la máquina del usuario. `lib.rs` gestiona su inicio invisible (`CREATE_NO_WINDOW`) y ciclo de vida.
 
 - **Endpoints Nativos / PC**:
   - `GET /wallpaper`: Devuelve el fondo de pantalla actual de Windows en Base64 (vía `ctypes`).

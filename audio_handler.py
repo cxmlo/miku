@@ -61,7 +61,10 @@ def get_oww_model():
     if _oww_model is None:
         try:
             from openwakeword.model import Model
-            _oww_model = Model(wakeword_models=["Miku_20260622_080146.onnx"], inference_framework="onnx")
+            from miku_paths import WORKSPACE_DIR
+            model_candidate = os.path.join(WORKSPACE_DIR, "Miku_20260622_080146.onnx")
+            target_model = model_candidate if os.path.exists(model_candidate) else "Miku_20260622_080146.onnx"
+            _oww_model = Model(wakeword_models=[target_model], inference_framework="onnx")
         except Exception as e:
             logger.error(f"Error cargando openWakeWord: {e}")
     return _oww_model
