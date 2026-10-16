@@ -23,8 +23,12 @@ La IA tiene acceso al mapeo directo de funciones (centralizado en `tools.py`) en
 4. **Hardware e IoT (`tools_hardware.py`)**:
    - Peticiones asíncronas no bloqueantes (`queue.Queue`) para ESP32, permitiendo que Miku controle servos y expresiones faciales en hardware físico de forma simultánea.
 
-5. **Miku Core Tools (`tools_miku.py`)**: 
+5. **Miku Core Tools & Multi-Agente (`tools_miku.py`)**: 
    Herramientas meta-cognitivas y de interacción propia de la asistente:
+   - `listar_agentes_disponibles()`: Consulta los agentes configurados y activos en el equipo.
+   - `delegar_a_agente(agente, tarea)`: Delega tareas en segundo plano a sub-agentes especializados (Antigravity, GitHub) y notifica al completar.
+   - `abrir_chat_con_agente(agente)`: Transfiere la vista activa del chat en la interfaz al sub-agente indicado.
+   - `crear_o_actualizar_agente(id, nombre, rol, color)`: Registra o reconfigura agentes en el sistema persistente.
    - `hablar_al_usuario()`: Emite texto a voz.
    - `mostrar_widget_clima()`, `mostrar_widget_reloj()`, `mostrar_tarjeta_visual()`: Llama a los widgets en pantalla vía WebSocket HTTP REST hacia el Server.
    - `aprender_sobre_usuario()`, `guardar_enlace_memoria()`, `buscar_en_memoria()`: Modifican o leen el Knowledge Graph de ChromaDB.

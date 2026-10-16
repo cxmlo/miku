@@ -36,6 +36,11 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
   - Acabado translúcido con efecto lente (`backdrop-filter: blur(36px-40px) saturate(210%)`), bisel especular superior de 1px (`rgba(255, 255, 255, 0.22)`), y gradientes radiales sutiles.
   - **Cierre universal al hacer clic afuera**: Cierre instantáneo a `compact` al perder foco o pulsar en cualquier ventana o monitor (`window-blur`, `tauri://blur`, `onFocusChanged`).
   - **Animación "Pensando" compacta**: Al enviar un mensaje, la isla se minimiza inmediatamente mostrando el cronómetro y la animación de Miku pensando, expandiéndose directamente al chat (`result`) al llegar la respuesta.
+  - **Burbujas de Chat estilo Apple iOS & Siri**: Tarjetas de respuesta translúcidas (`backdrop-filter: blur(20px) saturate(180%)`), radio de borde asimétrico estilo iPhone (`18px 18px 18px 5px`), cabecera con badge de agente y punto brillante, formateo enriquecido de markdown (`**negrita**`, viñetas `•` alineadas, código en píldora) y burbuja de usuario en azul iMessage (`linear-gradient(145deg, #0A84FF, #0066d6)`).
+  - **Orejas de la Isla Sin Costuras (Seamless Ears)**: Unificación matemática del arco de 1px (`radial-gradient`) y eliminación de la espiga vertical superior mediante sombreado de inserción y `border-top: none !important`.
+  - **Tipografía Minimalista Apple SF Pro / Inter**: Pila tipográfica limpia con renderizado optimizado y tracking de `-0.012em` que reemplaza por completo la tipografía por defecto de Windows.
+  - **Motor de Efectos de Sonido Táctil (`sound_fx.js`)**: Módulo sin dependencias que sintetiza en tiempo real mediante Web Audio API micro-sonidos Apple (clics mecánicos, pops de menús, alternadores de switch, pestañas, envío de mensajes y campana armónica de dos tonos al recibir respuestas de IA).
+  - **Deslizamiento Marquee en Selectores (`GlideSelect`)**: Estructura desacoplada `.gs-wrap` + `.gs-track` con cálculo dinámico de `scrollWidth` que elimina el corte brusco con puntos suspensivos (`...`) y genera un paneo infinito suave de extremo a extremo.
   - **Chat ampliado verticalmente con Liquid Create Menu**: Panel de respuesta ampliado (580px ancho, min-height 230px, hasta 380px de lectura) para una visualización holgada y cómoda; se eliminó el modal de opciones de mensaje y se incorporó el **Liquid Create Menu** en el botón `+` del chat, con animación elástica de resorte y esquinas concéntricas para adjuntar archivos, analizar pantalla (visión), pegar del portapapeles y alternar agentes.
   - **Componentes unificados con `HoldButton` por defecto**: Todos los botones de acción crítica en la configuración (crear agente, eliminar agente, guardar/eliminar claves API, añadir/quitar servidores MCP, activar alertas y restablecer) utilizan `HoldButton` con retroalimentación háptica visual progresiva.
   - **Paleta de colores fríos y bloqueo de tema**: Colores de halo y acento actualizados a tonos fríos, opacos y mate (Nordic slate, ámbar frío, lavanda helada, esmeralda nórdico, carmesí apagado, etc.) que se fijan y bloquean como tema activo de toda la ventana de ajustes (`--ac`).
@@ -63,6 +68,32 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
     - Detección y gestión tolerante a fallos: respuesta 404 de GitHub tratada como sistema al día en lugar de arrojar error.
     - Interfaz gráfica en Configuración (`miku_settings.html`): tarjeta en la sección General con botón interactivo, spinner de búsqueda, aviso de versión y botón de instalación con reinicio asistido.
     - CI/CD en GitHub Actions (`.github/workflows/release.yml`): generación de `latest.json`, firma automática del instalador y creación del alias `Miku_Setup.exe` para descarga directa desde la landing page al empujar etiquetas `v*`.
+
+  - **Refinamiento Miku 2.0 (Desplegables `GlideSelect`)**:
+    - Se resolvió el solapamiento de menús con secciones y tarjetas inferiores mediante elevación de contexto de apilamiento dinámico (`section:has(.gs-m.open), .card:has(.gs-m.open) { z-index: 999999 !important; }`), despliegue inteligente hacia arriba (`.gs-m.up`) y escucha de clics directa.
+    - Se eliminó el cuadro/pill flotante desalineado de hover (`.gs-p { display: none !important }`) y se implementó hover nativo Apple Liquid Glass (`rgba(255,255,255,0.14)`) con resplandor superior de 1px.
+  - **Paridad de Paleta de Color de Agentes**:
+    - La sección de personalización de agentes en `miku_settings.html` utiliza exactamente los 8 tonos vibrantes de la isla dinámica (`['#F2A765','#F06CF0','#6C63FF','#FF5C66','#4FD3B1','#3B9EFF','#FFD84D','#9BE15D']`).
+  - **Control de Volumen con Clic Sostenido (`SmoothSlider`) en Isla y Ajustes**:
+    - Arrastre continuo mejorado: la captura de puntero y los listeners `pointermove` y `pointerup` en `window` se activan desde cualquier punto de la barra del control de volumen (excluyendo solo los iconos de silenciar/100%), permitiendo deslizar fluidamente manteniendo pulsado el clic en tiempo real.
+    - La vista de ajustes rápidos de la isla (`scene: 'settings'`) ahora integra el mismo componente `SmoothSlider` para la fila "Sonido y voz", reemplazando el slider anterior y ofreciendo paridad visual total.
+  - **Formateo de Micrófonos idéntico a Discord**:
+    - Detección de dispositivos mediante `DirectSound` para evitar nombres truncados de 32 caracteres de MME y permitir sample rates nativos de 16 kHz.
+    - Formato desacoplado: `Windows Default (Controlador)`, `Controlador · Endpoint` (ej. `Realtek(R) Audio · Micrófono`, `Realtek(R) Audio · Varios micrófonos`), replicando fielmente la interfaz de Discord.
+  - **Envío Instantáneo y Lectura de Archivos para Modelos de IA**:
+    - Lectura instantánea en frontend con `f.text()` para archivos de código, HTML y texto, evitando desfases asíncronos y pasando el contenido por `attachment_content` directamente a la petición `/chat` para que Gemini/LLM reciba el 100% del archivo.
+  - **Aislamiento Multagente y Control de Voz**:
+    - Corte instantáneo de voz (`stopSpeaking()`) al alternar entre agentes o recibir respuestas en segundo plano.
+    - La animación de "pensando" se encuentra ligada al estado `busy` del agente en pantalla (`curAg().id`), impidiendo que el agente entrante herede la animación de pensando de otro agente.
+  - **Burbuja de Chat Dinámica con el Color del Agente Activo**:
+    - La burbuja del usuario ya no es azul iMessage estático: se vincula dinámicamente al color del agente activo (`style="--pc:${agentColor}"`), luciendo un acabado Liquid Frosted Glass con gradiente perlado o del tono del agente (blanco para Miku, esmeralda para GitHub, cian para Antigravity) con reborde y resplandor a tono.
+    - El archivo adjunto se presenta como un chip compacto Apple dentro de la burbuja y la píldora previa en la barra de entrada se elimina inmediatamente tras pulsar enviar.
+  - **Protección de la Isla Dinámica al Adjuntar Archivos y Contexto LLM**:
+    - Apertura del selector de archivos nativo protegida con `window.__pickingFile = true` y validación centralizada mediante `collapse()`, impidiendo que la isla se cierre o repliegue al perder foco por abrir el explorador de Windows.
+    - El endpoint `/chat` en `server.py` y `bridge.js` recibe `attachment_name`, `attachment_path` y `attachment_data`, guardando si es necesario en almacenamiento temporal e inyectando `[ARCHIVO ADJUNTADO]` junto con el análisis de contenido generado por `analizar_archivo_silencioso` directamente en el prompt del LLM.
+  - **Ventana de Ajustes Movible pero No Redimensionable**:
+    - Bloqueo estricto del redimensionado (`resizable: false` tanto en `tauri.conf.json` como en `WebviewWindowBuilder::new(...).resizable(false)` en `lib.rs`), conservando el arrastre fluido desde la cabecera minimalista (`data-tauri-drag-region` y `startDragging()`).
+    - Componentes renovados a **Apple Liquid Glass** sobre fondo negro puro (`#000000`), con gradientes de refracción curvados estilo gota de agua y biselado especular.
 
 ---
 👉 **Volver al Menú Principal:** [[Home]]

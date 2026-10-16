@@ -80,3 +80,5 @@ cloudflared.exe
 *.whl
 *.zip
 *.wav
+backups/
+miku_glow_preview.png

@@ -1,4 +1,4 @@
-﻿
+
 > notch-buddy.html:449:<script>
   notch-buddy.html:450:(()=>{
   notch-buddy.html:451:const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -358,7 +358,7 @@ requêtes lentes','Index sur les cours','Écriture des tests']},
 Brief',steps:['Collecte des sources','Résumé par Claude','Envoi Gmail']},
   notch-buddy.html:684:  ig:{name:'Publication IG',tool:'n8n',color:'#A78BFA',short:'Publication IG',steps:['Rendu du 
 carousel','Planification']},
-  notch-buddy.html:685:  folio:{name:'louisraille.fr',tool:'Claude 
+  notch-buddy.html:685:  folio:{name:'miku.local',tool:'Claude 
 Code',color:'#38BDF8',short:'Portfolio',steps:['Refonte du scroll','Optimisation des images']}
   notch-buddy.html:686:};
   notch-buddy.html:687:const app={piste:'mochi',mode:'hidden',view:'overview',tasks:[],focus:null,present:true,lastMove

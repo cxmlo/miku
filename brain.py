@@ -95,7 +95,7 @@ def rotate_groq_key():
     return False
 
 
-def load_llm_history():
+def load_llm_history(target_agent="miku"):
     from datetime import datetime
     import os
     import json
@@ -108,21 +108,30 @@ def load_llm_history():
             data = json.load(f)
         llm_hist = []
         for msg in data[-20:]: # Solo los últimos 20 para no saturar tokens
-            role = "user" if msg.get("sender") == "user" else "assistant"
-            llm_hist.append({"role": role, "content": msg.get("text", "")})
+            m_agent = msg.get("agent_id") or msg.get("sender") or "miku"
+            sender = msg.get("sender")
+            if sender == "user":
+                llm_hist.append({"role": "user", "content": msg.get("text", "")})
+            else:
+                if target_agent == "miku":
+                    if m_agent == "miku" or sender == "miku":
+                        llm_hist.append({"role": "assistant", "content": msg.get("text", "")})
+                else:
+                    if m_agent == target_agent or sender == target_agent:
+                        llm_hist.append({"role": "assistant", "content": msg.get("text", "")})
         return llm_hist
     except:
         return []
 
-conversation_history = load_llm_history()
+conversation_history = load_llm_history("miku")
 agent_conversation_histories = {}
 
-def get_llm_response(user_input: str, system_prompt: str = "", status_callback=None, interrupt_event=None, agent_id: str = "miku") -> str:
+def get_llm_response(user_input: str, system_prompt: str = "", status_callback=None, interrupt_event=None, agent_id: str = "miku", agent_mcp: str = None) -> str:
     global conversation_history, agent_conversation_histories
     
     if agent_id and agent_id != "miku":
         if agent_id not in agent_conversation_histories:
-            agent_conversation_histories[agent_id] = []
+            agent_conversation_histories[agent_id] = load_llm_history(agent_id)
         active_hist = agent_conversation_histories[agent_id]
     else:
         active_hist = conversation_history
@@ -219,8 +228,53 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
     import time
     try:
         from mcp_client import mcp_manager
-        combined_tools = tools_schema + mcp_manager.get_dynamic_tools_schema()
+        if not agent_id or agent_id == "miku":
+            combined_tools = tools_schema + mcp_manager.get_dynamic_tools_schema()
+        else:
+            # Sub-agentes especializados: herramientas base del sistema para trabajar
+            sub_allowed = [
+                "ejecutar_comando_sistema", "escribir_y_ejecutar_python",
+                "buscar_en_internet", "leer_pagina_web", "navegar_web_autonomo",
+                "abrir_aplicacion", "tomar_captura_pantalla"
+            ]
+            base_tools = [t for t in tools_schema if t.get("function", {}).get("name") in sub_allowed]
+            
+            target_mcp = agent_mcp
+            if not target_mcp or target_mcp.lower() in ("none", "ninguno", ""):
+                if agent_id.lower() == "github":
+                    target_mcp = "github"
+            
+            mcp_tools = []
+            if target_mcp and target_mcp.lower() not in ("none", "ninguno", ""):
+                mcp_tools = mcp_manager.get_dynamic_tools_schema(server_filter=target_mcp)
+            
+            combined_tools = base_tools + mcp_tools
         
+        def _execute_completion(cl, mod, hist):
+            # Limpiar mensajes para evitar error 400 en Groq o Vertex por campos extraños
+            clean_messages = []
+            for m in hist:
+                if isinstance(m, dict):
+                    clean_m = {}
+                    for k in ("role", "content", "name", "tool_calls", "tool_call_id"):
+                        if k in m and m[k] is not None:
+                            clean_m[k] = m[k]
+                    if "content" not in clean_m or clean_m["content"] is None:
+                        clean_m["content"] = ""
+                    clean_messages.append(clean_m)
+                else:
+                    clean_messages.append(m)
+
+            call_kwargs = {
+                "messages": clean_messages,
+                "model": mod,
+                "temperature": 0.4,
+                "max_tokens": 4096
+            }
+            if combined_tools:
+                call_kwargs["tools"] = combined_tools
+            return cl.chat.completions.create(**call_kwargs)
+
         consecutive_errors = 0
         for iteration in range(15): # Límite a 15 para tareas complejas sin llegar al infinito
             
@@ -240,13 +294,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                                     msg["content"][i] = {"type": "text", "text": "[Imagen antigua liberada de la memoria para no saturar]"}
                                 
             try:
-                response = active_client.chat.completions.create(
-                    messages=active_hist,
-                    model=active_model,
-                    temperature=0.4,
-                    max_tokens=4096,
-                    tools=combined_tools
-                )
+                response = _execute_completion(active_client, active_model, active_hist)
             except Exception as client_err:
                 err_text = str(client_err)
                 response = None
@@ -257,13 +305,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                             active_client = gemini_cl
                             logger.info("Reintentando petición con clave Gemini de respaldo...")
                             try:
-                                response = active_client.chat.completions.create(
-                                    messages=active_hist,
-                                    model=active_model,
-                                    temperature=0.4,
-                                    max_tokens=4096,
-                                    tools=combined_tools
-                                )
+                                response = _execute_completion(active_client, active_model, active_hist)
                             except Exception as re_err:
                                 err_text = str(re_err)
                                 use_fallback = True
@@ -279,13 +321,7 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                     if groq_cl:
                         active_client = groq_cl
                         active_model = groq_mod
-                        response = active_client.chat.completions.create(
-                            messages=active_hist,
-                            model=active_model,
-                            temperature=0.4,
-                            max_tokens=4096,
-                            tools=combined_tools
-                        )
+                        response = _execute_completion(active_client, active_model, active_hist)
                     else:
                         raise client_err
             

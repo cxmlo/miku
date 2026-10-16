@@ -12,7 +12,10 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "."
+        "c:\\Users\\cxmluwu\\Desktop\\pryecto mascota\\miku V2",
+        "C:\\Users\\cxmluwu\\.gemini\\antigravity-ide",
+        "C:\\Users\\cxmluwu\\Desktop",
+        "C:\\Users\\cxmluwu\\Downloads"
       ]
     },
     "google-drive": {
@@ -34,6 +37,13 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-memory"
+      ]
+    },
+    "sqlite": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sqlite"
       ]
     }
   }

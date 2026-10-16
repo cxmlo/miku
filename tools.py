@@ -8,7 +8,8 @@ from tools_media import reproducir_en_youtube, controlar_multimedia
 from tools_spotify import buscar_y_reproducir_spotify as reproducir_en_spotify, controlar_spotify, que_suena_en_spotify
 from tools_miku import (
     analizar_archivo_silencioso,
-    ver_pantalla, delegar_tarea, guardar_ultimo_reporte_en_escritorio,
+    ver_pantalla, delegar_tarea, delegar_a_agente, listar_agentes_disponibles,
+    abrir_chat_con_agente, crear_o_actualizar_agente, guardar_ultimo_reporte_en_escritorio,
     aprender_sobre_usuario, guardar_enlace_memoria, buscar_en_memoria,
     hablar_al_usuario, enviar_mensaje_a_agente, mostrar_widget_info, mostrar_widget_clima, mostrar_widget_reloj,
     modificar_estado_widget, obtener_clima, enviar_archivo_a_celular, enviar_imagen_a_chat,
@@ -46,6 +47,10 @@ available_functions = {
     "monitorear_actividad_pc": monitorear_actividad_pc,
     "tomar_captura_pantalla": tomar_captura_pantalla,
     "delegar_tarea": delegar_tarea,
+    "delegar_a_agente": delegar_a_agente,
+    "listar_agentes_disponibles": listar_agentes_disponibles,
+    "abrir_chat_con_agente": abrir_chat_con_agente,
+    "crear_o_actualizar_agente": crear_o_actualizar_agente,
     "enviar_archivo_a_celular": enviar_archivo_a_celular,
     "enviar_imagen_a_chat": enviar_imagen_a_chat,
     "ejecutar_intent_android": ejecutar_intent_android,
@@ -542,6 +547,84 @@ tools_schema = [
                     }
                 },
                 "required": ["ruta_imagen", "mensaje"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "listar_agentes_disponibles",
+            "description": "Lista todos los agentes secundarios configurados en el ecosistema Miku (ej. Antigravity, GitHub, Claude Code, Vercel), detallando su rol, especialidad y si están libres o trabajando.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delegar_a_agente",
+            "description": "Delega una tarea técnica o especializada a un agente secundario específico (ej. 'antigravity', 'github'). El agente ejecutará la tarea en segundo plano con herramientas autónomas. Al terminar, le notificará al usuario y a Miku.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "agente": {
+                        "type": "string",
+                        "description": "Nombre o ID del agente ('antigravity', 'github')"
+                    },
+                    "tarea": {
+                        "type": "string",
+                        "description": "Instrucción técnica detallada o tarea a ejecutar en segundo plano"
+                    }
+                },
+                "required": ["agente", "tarea"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "abrir_chat_con_agente",
+            "description": "Cambia la vista activa de la interfaz de la isla dinámica al chat de un agente específico (ej. 'antigravity', 'github', o 'miku' para la orquestadora principal).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "agente": {
+                        "type": "string",
+                        "description": "Nombre o ID del agente al cual cambiar la pantalla ('antigravity', 'github', 'miku')"
+                    }
+                },
+                "required": ["agente"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "crear_o_actualizar_agente",
+            "description": "Crea un nuevo agente secundario o actualiza el rol de uno existente en el ecosistema Miku.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Identificador único en minúsculas (ej. 'designer', 'tester')"
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "description": "Nombre visible del agente"
+                    },
+                    "rol": {
+                        "type": "string",
+                        "description": "Rol, especialidad o descripción de funciones del agente"
+                    },
+                    "color": {
+                        "type": "string",
+                        "description": "Color hexadecimal para su avatar (opcional, ej. '#4FD3B1')"
+                    }
+                },
+                "required": ["id", "nombre", "rol"]
             }
         }
     },

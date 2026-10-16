@@ -1,0 +1,24 @@
+[
+  {
+    "id": "github",
+    "name": "GitHub",
+    "c": "#A86CA8",
+    "role": "Control de versiones, commits, ramas, pull requests y estado de repositorios",
+    "model": "google/gemini-2.5-flash",
+    "hooks": 1,
+    "active": 1,
+    "isl": 1,
+    "outfit": "shades"
+  },
+  {
+    "id": "antigravity",
+    "name": "Antigravity",
+    "c": "#00D2FF",
+    "role": "Desarrollo frontend, interfaz reactiva, animación y diseño UI/UX",
+    "model": "google/gemini-2.5-pro",
+    "hooks": 1,
+    "active": 1,
+    "isl": 2,
+    "outfit": "crown"
+  }
+]

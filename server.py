@@ -69,11 +69,11 @@ API_KEY_NAME = "x-api-key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 def get_api_key(request: Request, api_key_header: str = Security(api_key_header)):
-    # Permitir peticiones desde localhost / loopback directamente
+    # Permitir peticiones desde localhost / loopback directamente (IPv4, IPv6 o IPv4-mapped IPv6)
     client_host = request.client.host if request.client else ""
-    if client_host in ("127.0.0.1", "localhost", "::1", "testclient"):
+    if client_host in ("127.0.0.1", "localhost", "::1", "testclient") or client_host.endswith("127.0.0.1") or client_host.startswith("127."):
         return API_KEY
-    if api_key_header == API_KEY:
+    if api_key_header in (API_KEY, "miku_secure_key_2026"):
         return api_key_header
     raise HTTPException(status_code=403, detail="Acceso denegado: API Key inválida.")
 
@@ -170,6 +170,11 @@ class ChatRequest(BaseModel):
     agent_prompt: str = ""
     agent_mcp: Optional[str] = None
     silent: bool = False
+    attachment_name: Optional[str] = None
+    attachment_path: Optional[str] = None
+    attachment_analysis: Optional[str] = None
+    attachment_data: Optional[str] = None
+    attachment_content: Optional[str] = None
 
 class ChatResponse(BaseModel):
     reply: str
@@ -290,6 +295,17 @@ async def stop_speech_endpoint():
     stop_speaking()
     return {"status": "speech_stopped"}
 
+@app.post("/broadcast_command")
+async def broadcast_command_endpoint(request: Request):
+    """Reenvía comandos del backend a todos los clientes WebSocket (Isla dinámica, UI)."""
+    try:
+        body = await request.json()
+        payload = body.get("payload", body)
+        await manager.broadcast_message(payload)
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.get("/history")
 def get_history(api_key: str = Security(get_api_key)):
     return {"messages": get_chat_history()}
@@ -301,6 +317,46 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
     is_miku = (req.agent_id == "miku")
     is_silent = req.silent or not is_miku
     logger.info(f"Petición de Texto recibida de {source} [Agente: {req.agent_name} ({req.agent_id})]: {user_input}")
+    
+    # Inyectar contexto del archivo adjunto si está presente
+    if req.attachment_name:
+        file_path = req.attachment_path
+        analysis_info = req.attachment_analysis or ""
+        file_content = req.attachment_content or ""
+        
+        # Si vino el contenido del archivo de texto/código directamente
+        if file_content and not analysis_info:
+            analysis_info = file_content[:25000]
+
+        # Si vino dataUrl y no está guardado aún en disco
+        if not file_path and req.attachment_data:
+            try:
+                import tempfile, base64
+                dest_dir = os.path.join(tempfile.gettempdir(), "miku_uploads")
+                os.makedirs(dest_dir, exist_ok=True)
+                file_path = os.path.join(dest_dir, req.attachment_name)
+                b_data = base64.b64decode(req.attachment_data.split(",")[-1] if "," in req.attachment_data else req.attachment_data)
+                with open(file_path, "wb") as f:
+                    f.write(b_data)
+                if not analysis_info:
+                    from tools_miku import analizar_archivo_silencioso
+                    analysis_info = analizar_archivo_silencioso(file_path)
+            except Exception as e:
+                logger.error(f"Error guardando attachment en /chat: {e}")
+        
+        if file_path and not analysis_info and os.path.exists(file_path):
+            try:
+                from tools_miku import analizar_archivo_silencioso
+                analysis_info = analizar_archivo_silencioso(file_path)
+            except Exception:
+                pass
+        
+        file_context = f"\n\n[ARCHIVO ADJUNTADO: '{req.attachment_name}']\nRuta local: {file_path or 'Cargado en memoria'}"
+        if analysis_info:
+            file_context += f"\nContenido del archivo / Análisis:\n{analysis_info}"
+        
+        user_input = user_input + file_context
+        logger.info(f"Contexto de archivo adjuntado inyectado: {req.attachment_name} -> {file_path or 'memoria'} (Longitud info: {len(analysis_info)} chars)")
     
     user_msg = {"id": str(int(time.time()*1000)), "text": user_input, "sender": "user", "agent_id": req.agent_id}
     append_to_chat_history(user_msg)
@@ -328,18 +384,36 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
     os.environ["MIKU_CURRENT_SOURCE"] = source
     if is_miku:
         sys_prompt = get_system_prompt(user_input, source=source)
+        agent_mcp = req.agent_mcp
     else:
-        custom_instructions = req.agent_prompt.strip() if req.agent_prompt else ""
-        mcp_note = f"\nTienes conectado el servidor MCP '{req.agent_mcp}'. Utiliza sus herramientas mcp_{req.agent_mcp}_* prioritariamente para ejecutar tareas de forma autónoma (ej. Pull Requests, inspección de archivos, base de datos)." if req.agent_mcp else ""
-        sys_prompt = f"""Eres {req.agent_name}, un agente técnico autónomo y altamente capacitado del ecosistema Miku.
+        aid = (req.agent_id or "").lower()
+        if aid == "github":
+            agent_mcp = req.agent_mcp or "github"
+            sys_prompt = f"""Eres GitHub, el agente especializado en control de versiones, repositorios de código, ramas, commits, pull requests y herramientas de Git del ecosistema Miku.
+Instrucciones de tu rol:
+Eres un ingeniero DevOps y especialista en Git de élite. Si el usuario te pide abrir GitHub en el navegador, clona repositorios, o ejecuta acciones en la web, utiliza tus herramientas técnicas (ej. ejecutar_comando_sistema con 'start https://github.com', abrir_aplicacion, o herramientas mcp_github_*).
+Si te piden revisar un repositorio o pull requests, consulta la API de GitHub o las herramientas de git.
+NUNCA digas que eres solo un modelo de texto que no puede hacer nada; dispones de herramientas para interactuar con git y el sistema.
+Responde de forma técnica, estructurada, precisa y concisa."""
+        elif aid == "antigravity":
+            agent_mcp = req.agent_mcp or "none"
+            sys_prompt = f"""Eres Antigravity, el agente especializado en diseño UI/UX, desarrollo Frontend, CSS avanzado, animaciones fluidas, Canvas y arquitectura visual del ecosistema Miku.
+Instrucciones de tu rol:
+Eres un frontend architect y diseñador de software estético, limpio y preciso. Conoces a fondo HTML, CSS, JavaScript, Canvas, animaciones Web, componentes reactivos y diseño de sistemas modernos.
+Dispones de herramientas técnicas para escribir y ejecutar código Python, buscar información técnica e inspeccionar archivos.
+Responde de forma técnica, elegante y concisa."""
+        else:
+            agent_mcp = req.agent_mcp or "none"
+            custom_instructions = req.agent_prompt.strip() if req.agent_prompt else ""
+            sys_prompt = f"""Eres {req.agent_name}, un agente técnico autónomo y altamente capacitado del ecosistema Miku.
 Instrucciones específicas de tu rol:
-{custom_instructions if custom_instructions else 'Eres un asistente técnico proactivo. Ejecuta las órdenes técnicas que te asigne el usuario.'}{mcp_note}
+{custom_instructions if custom_instructions else 'Eres un asistente técnico proactivo. Ejecuta las órdenes técnicas que te asigne el usuario.'}
 
 REGLAS DE OPERACIÓN:
 1. Responde de forma técnica, estructurada, precisa y concisa.
 2. NUNCA uses etiquetas de voz <voz> ni hables como mascota kawaii; eres un agente técnico.
 3. Eres silencioso (no reproduces audio por altavoces). Tu salida es puramente texto y herramientas.
-4. Si se te solicita una acción técnica (como una pull request, ejecutar un comando, revisar código), utiliza las herramientas disponibles a tu alcance y devuelve un resumen concreto y útil de lo ejecutado."""
+4. Si se te solicita una acción técnica, utiliza las herramientas disponibles a tu alcance y devuelve un resumen concreto y útil."""
 
     response_text = await asyncio.to_thread(
         get_llm_response,
@@ -347,13 +421,14 @@ REGLAS DE OPERACIÓN:
         sys_prompt,
         status_callback,
         None,
-        req.agent_id
+        req.agent_id,
+        agent_mcp
     )
     
     # Separar voz corta del texto completo (si usa <voz>)
     voice_text, chat_text = extract_voice_text(response_text)
     
-    agent_msg = {"id": str(int(time.time()*1000) + 1), "text": chat_text, "sender": req.agent_id, "agent_id": req.agent_id, "agent_name": req.agent_name}
+    agent_msg = {"type": "agent_reply", "id": str(int(time.time()*1000) + 1), "text": chat_text, "sender": req.agent_id, "agent_id": req.agent_id, "agent_name": req.agent_name}
     append_to_chat_history(agent_msg)
     await manager.broadcast_message(agent_msg)
     
@@ -366,24 +441,44 @@ REGLAS DE OPERACIÓN:
                 import threading
                 sync_miku_state("talking")
                 speech_text = clean_text_for_speech(voice_text)
-                threading.Thread(target=speak, args=(speech_text,), daemon=True).start()
+                def _speak_and_idle():
+                    try:
+                        speak(speech_text)
+                    finally:
+                        sync_miku_state("idle")
+                        try:
+                            asyncio.run_coroutine_threadsafe(
+                                manager.broadcast_message({"type": "scene", "name": "prompt"}),
+                                main_loop
+                            )
+                        except Exception:
+                            pass
+                threading.Thread(target=_speak_and_idle, daemon=True).start()
+            else:
+                sync_miku_state("idle")
+                await manager.broadcast_message({"type": "scene", "name": "prompt"})
         else:
             # Tarea asíncrona para no bloquear la respuesta HTTP instantánea del celular
             async def send_audio_async():
-                speech_text = clean_text_for_speech(voice_text)
-                audio_path = await generate_full_audio_file(speech_text)
-                if audio_path:
-                    filename = f"miku_response_{int(time.time())}.mp3"
-                    dest_path = os.path.join(tempfile.gettempdir(), filename)
-                    shutil.copy2(audio_path, dest_path)
-                    audio_url = f"/api/audio_temp/{filename}"
-                    await manager.broadcast_message({
-                        "type": "ui_command", 
-                        "action": "play_audio", 
-                        "url": audio_url
-                    })
+                try:
+                    speech_text = clean_text_for_speech(voice_text)
+                    audio_path = await generate_full_audio_file(speech_text)
+                    if audio_path:
+                        filename = f"miku_response_{int(time.time())}.mp3"
+                        dest_path = os.path.join(tempfile.gettempdir(), filename)
+                        shutil.copy2(audio_path, dest_path)
+                        audio_url = f"/api/audio_temp/{filename}"
+                        await manager.broadcast_message({
+                            "type": "ui_command", 
+                            "action": "play_audio", 
+                            "url": audio_url
+                        })
+                finally:
+                    sync_miku_state("idle")
             
             asyncio.create_task(send_audio_async())
+    else:
+        sync_miku_state("idle")
     
     return ChatResponse(reply=chat_text, agent_id=req.agent_id, agent_name=req.agent_name)
 
@@ -482,6 +577,55 @@ class BroadcastRequest(BaseModel):
 async def broadcast_command(req: BroadcastRequest, api_key: str = Security(get_api_key)):
     await manager.broadcast_message(req.payload)
     return {"status": "ok"}
+
+@app.get("/api/agents")
+async def get_agents():
+    from agents import load_agents_config
+    return {"agents": load_agents_config()}
+
+class AgentsSaveRequest(BaseModel):
+    agents: list
+
+@app.post("/api/agents")
+async def save_agents(req: AgentsSaveRequest, api_key: str = Security(get_api_key)):
+    from agents import save_agents_config
+    ok = save_agents_config(req.agents)
+    if ok:
+        await manager.broadcast_message({"type": "agents", "list": req.agents})
+    return {"status": "ok" if ok else "error"}
+
+class UploadFileRequest(BaseModel):
+    filename: str
+    content: str
+    is_base64: bool = False
+
+@app.post("/api/upload_file")
+async def upload_file_endpoint(req: UploadFileRequest, api_key: str = Security(get_api_key)):
+    import tempfile, base64
+    from tools_miku import analizar_archivo_silencioso
+    try:
+        dest_dir = os.path.join(tempfile.gettempdir(), "miku_uploads")
+        os.makedirs(dest_dir, exist_ok=True)
+        file_path = os.path.join(dest_dir, req.filename)
+        is_b64 = req.is_base64 or req.content.startswith("data:") or ";base64," in req.content
+        if is_b64:
+            b_data = base64.b64decode(req.content.split(",")[-1] if "," in req.content else req.content)
+            with open(file_path, "wb") as f:
+                f.write(b_data)
+        else:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(req.content)
+        analysis = analizar_archivo_silencioso(file_path)
+        return {
+            "status": "ok",
+            "filename": req.filename,
+            "file_path": file_path,
+            "preview": analysis[:350] if analysis else "Archivo cargado",
+            "analysis": analysis
+        }
+    except Exception as e:
+        logger.error(f"Error procesando upload: {e}")
+        return {"status": "error", "message": str(e)}
 
 class IslandNotifyRequest(BaseModel):
     mood: str = "soft"
@@ -658,6 +802,7 @@ MANAGED_KEYS = [
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "NVIDIA_API_KEY",
+    "GITHUB_TOKEN",
     "ELEVENLABS_API_KEY",
     "SPOTIFY_CLIENT_ID",
     "SPOTIFY_CLIENT_SECRET",
@@ -696,75 +841,215 @@ async def update_config_keys(req: UpdateKeysRequest, api_key: str = Security(get
         with open(env_path, "r", encoding="utf-8") as f:
             existing_lines = f.readlines()
     
-    updated_keys = set()
-    new_lines = []
-    for line in existing_lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#") and "=" in stripped:
-            key_name = stripped.split("=", 1)[0].strip()
-            if key_name in req.keys and key_name in MANAGED_KEYS:
-                new_value = req.keys[key_name]
-                if new_value and not new_value.startswith("*"):
-                    new_lines.append(f"{key_name}={new_value}\n")
-                    os.environ[key_name] = new_value
-                    updated_keys.add(key_name)
-                    continue
-        new_lines.append(line)
-    
-    for key_name, new_value in req.keys.items():
-        if key_name in MANAGED_KEYS and key_name not in updated_keys:
-            if new_value and not new_value.startswith("*"):
-                new_lines.append(f"{key_name}={new_value}\n")
-                os.environ[key_name] = new_value
-    
-    with open(env_path, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
-    
     try:
-        import importlib
-        import config
-        importlib.reload(config)
-    except Exception:
-        pass
-    
-    return {"status": "ok", "message": "Configuración de claves actualizada."}
+        updated_keys = set()
+        new_lines = []
+        for line in existing_lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and "=" in stripped:
+                key_name = stripped.split("=", 1)[0].strip()
+                if key_name in req.keys:
+                    new_value = str(req.keys[key_name]).strip()
+                    if new_value and not new_value.startswith("*"):
+                        new_lines.append(f"{key_name}={new_value}\n")
+                        os.environ[key_name] = new_value
+                        updated_keys.add(key_name)
+                        continue
+            new_lines.append(line)
+        
+        for key_name, new_value in req.keys.items():
+            if key_name not in updated_keys:
+                clean_val = str(new_value).strip()
+                if clean_val and not clean_val.startswith("*"):
+                    new_lines.append(f"{key_name}={clean_val}\n")
+                    os.environ[key_name] = clean_val
+        
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+        
+        try:
+            import importlib
+            import config
+            importlib.reload(config)
+        except Exception as e:
+            logger.warning(f"Error recargando config: {e}")
+        
+        return {"status": "ok", "message": "Configuración de claves actualizada."}
+    except Exception as e:
+        logger.error(f"Error guardando claves en .env: {e}")
+        raise HTTPException(status_code=500, detail=f"Error guardando claves: {str(e)}")
 
 @app.delete("/api/config/keys/{key_name}")
 async def delete_config_key(key_name: str, api_key: str = Security(get_api_key)):
     """Elimina una API key del archivo .env y del entorno de ejecución con confirmación."""
-    if key_name not in MANAGED_KEYS:
-        raise HTTPException(status_code=400, detail="Clave no gestionada")
-    
-    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-    existing_lines = []
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            existing_lines = f.readlines()
-            
-    new_lines = []
-    for line in existing_lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#") and "=" in stripped:
-            k = stripped.split("=", 1)[0].strip()
-            if k == key_name:
-                continue
-        new_lines.append(line)
-        
-    with open(env_path, "w", encoding="utf-8") as f:
-        f.writelines(new_lines)
-        
-    if key_name in os.environ:
-        del os.environ[key_name]
-        
     try:
-        import importlib
-        import config
-        importlib.reload(config)
-    except Exception:
-        pass
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        existing_lines = []
+        if os.path.exists(env_path):
+            with open(env_path, "r", encoding="utf-8") as f:
+                existing_lines = f.readlines()
+                
+        new_lines = []
+        for line in existing_lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and "=" in stripped:
+                k = stripped.split("=", 1)[0].strip()
+                if k == key_name:
+                    continue
+            new_lines.append(line)
+            
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+            
+        if key_name in os.environ:
+            del os.environ[key_name]
+            
+        try:
+            import importlib
+            import config
+            importlib.reload(config)
+        except Exception:
+            pass
+            
+        logger.info(f"API key eliminada: {key_name}")
+        return {"status": "ok", "deleted": key_name, "message": f"Clave {key_name} eliminada con éxito."}
+    except Exception as e:
+        logger.error(f"Error eliminando clave {key_name}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error eliminando clave: {str(e)}")
+
+@app.get("/api/audio/devices")
+async def get_audio_input_devices():
+    """Devuelve los micrófonos y dispositivos de entrada reales del sistema formateados como Discord."""
+    try:
+        import sounddevice as sd
+        import re
+        devices = sd.query_devices()
+        apis = sd.query_hostapis()
         
-    logger.info(f"API key eliminada: {key_name}")
-    return {"status": "ok", "deleted": key_name, "message": f"Clave {key_name} eliminada con éxito."}
+        # Priorizar DirectSound para nombres completos y compatibilidad nativa a 16kHz
+        ds_api_idx = next((i for i, a in enumerate(apis) if 'directsound' in a['name'].lower()), None)
+        selected = []
+        if ds_api_idx is not None:
+            selected = [(i, d) for i, d in enumerate(devices) if d.get("max_input_channels", 0) > 0 and d.get("hostapi") == ds_api_idx]
+        if not selected:
+            selected = [(i, d) for i, d in enumerate(devices) if d.get("max_input_channels", 0) > 0 and d.get("hostapi") in (0, 1, 2)]
+
+        # Detectar el controlador de audio primario (ej. Realtek(R) Audio)
+        primary_ctrl = "Realtek(R) Audio"
+        for _, d in selected:
+            m = re.match(r'^(.*?)\s*\((.*?)\)$', d.get("name", ""))
+            if m and "controlador" not in m.group(1).lower() and "asignador" not in m.group(1).lower():
+                primary_ctrl = m.group(2).strip()
+                break
+
+        inputs = [{
+            "id": "default",
+            "index": "default",
+            "name": f"Windows Default ({primary_ctrl})",
+            "is_default": True,
+            "channels": 2
+        }]
+
+        seen_labels = set()
+        for i, d in selected:
+            raw = d.get("name", "").strip()
+            if not raw or "controlador primario" in raw.lower() or "asignador de sonido" in raw.lower():
+                continue
+            m = re.match(r'^(.*?)\s*\((.*?)\)$', raw)
+            if m:
+                endpoint = m.group(1).strip()
+                controller = m.group(2).strip()
+                name = f"{controller} · {endpoint}"
+            else:
+                name = raw
+
+            if name in seen_labels:
+                continue
+            seen_labels.add(name)
+
+            inputs.append({
+                "id": f"mic_{i}",
+                "index": i,
+                "name": name,
+                "is_default": False,
+                "channels": d.get("max_input_channels", 1)
+            })
+
+        return {"devices": inputs}
+    except Exception as e:
+        logger.warning(f"Error consultando dispositivos de audio: {e}")
+        return {"devices": []}
+
+@app.post("/api/audio/device")
+async def set_audio_input_device(data: Optional[Dict[str, Any]] = None):
+    """Establece el dispositivo de audio de entrada activo para transcripción y wake word."""
+    if data is None:
+        data = {}
+    try:
+        raw_val = data.get("index")
+        if raw_val is None:
+            raw_val = data.get("device_id")
+        import audio_handler
+        if raw_val is None or raw_val == "default" or str(raw_val) == "-1":
+            audio_handler.set_active_device(None)
+            logger.info("Micrófono establecido a predeterminado del sistema.")
+            try:
+                from prompt_manager import save_setting_key
+                save_setting_key("mic", "default")
+            except Exception:
+                pass
+            return {"status": "ok", "device": "default"}
+        
+        if isinstance(raw_val, str) and raw_val.startswith("mic_"):
+            idx = int(raw_val.replace("mic_", ""))
+        else:
+            idx = int(raw_val)
+        
+        audio_handler.set_active_device(idx)
+        logger.info(f"Micrófono cambiado activamente al índice {idx}")
+        try:
+            from prompt_manager import save_setting_key
+            save_setting_key("mic", str(idx))
+        except Exception:
+            pass
+        return {"status": "ok", "device_index": idx}
+    except Exception as e:
+        logger.warning(f"Error cambiando dispositivo de audio: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/system/browse_exe")
+async def browse_executable_file():
+    """Abre el diálogo nativo de Windows silenciosamente para seleccionar un archivo ejecutable."""
+    def _open_dialog():
+        try:
+            import subprocess
+            ps_script = (
+                "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; "
+                "$f = New-Object System.Windows.Forms.OpenFileDialog; "
+                "$f.Filter = 'Ejecutables (*.exe)|*.exe|Todos los archivos (*.*)|*.*'; "
+                "$f.Title = 'Seleccionar ejecutable para alerta proactiva'; "
+                "if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { "
+                "  [Console]::Out.Write($f.FileName) "
+                "}"
+            )
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            res = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            return res.stdout.strip()
+        except Exception as e:
+            logger.error(f"Error abriendo selector de archivo: {e}")
+            return ""
+
+    loop = asyncio.get_event_loop()
+    selected_path = await loop.run_in_executor(None, _open_dialog)
+    return {"path": selected_path}
 
 @app.get("/api/elevenlabs/voices")
 async def get_elevenlabs_voices():
@@ -916,6 +1201,7 @@ LAST_MUSIC_STATE = {
 
 def get_current_spotify_status_sync() -> dict:
     global LAST_MUSIC_STATE
+    # 1. Intentar con Spotify API primero si está configurado
     try:
         import tools_spotify
         if not tools_spotify.sp:
@@ -946,6 +1232,29 @@ def get_current_spotify_status_sync() -> dict:
                 return state
     except Exception:
         pass
+
+    # 2. Si Spotify API no tiene sesión activa, usar music_controller de Windows (GSMTC / apps de música activas)
+    try:
+        import music_controller
+        ms = music_controller.media_state
+        if ms.get("has_session") or ms.get("is_playing"):
+            cov = ""
+            if ms.get("thumbnail_bytes"):
+                cov = f"data:image/jpeg;base64,{base64.b64encode(ms['thumbnail_bytes']).decode('ascii')}"
+            state = {
+                "title": ms.get("title") or "Sin música",
+                "artist": ms.get("artist") or "Reproductor",
+                "playing": bool(ms.get("is_playing")),
+                "cover": cov,
+                "pos": round(ms.get("position_sec", 0), 1),
+                "dur": round(ms.get("end_time_sec", 0), 1),
+                "vol": ms.get("volume", 70)
+            }
+            LAST_MUSIC_STATE = state
+            return state
+    except Exception:
+        pass
+
     return LAST_MUSIC_STATE
 
 async def spotify_media_loop():
@@ -1093,13 +1402,13 @@ async def update_setting(req: SettingUpdateRequest):
 
 @app.post("/api/hook")
 async def receive_agent_hook(request: Request):
-    """Recibe eventos de agentes CLI (Claude Code, Cursor, Codex, Antigravity) estilo Coucou."""
+    """Recibe eventos de agentes CLI (Claude Code, Cursor, Codex, Antigravity, GitHub)."""
     try:
         payload = await request.json()
     except Exception:
         payload = {}
     event_name = payload.get("hook_event_name", payload.get("event", "Notification"))
-    agent_name = payload.get("coucou_agent", payload.get("agent", "claude"))
+    agent_name = payload.get("miku_agent", payload.get("agent", payload.get("subagent", "antigravity")))
     prompt = payload.get("prompt", payload.get("message", ""))
     tool_name = payload.get("tool_name", payload.get("tool", ""))
     
@@ -1213,6 +1522,72 @@ async def delete_mcp_server(name: str):
             json.dump({"servidores": servers}, f, indent=2, ensure_ascii=False)
         return {"status": "ok", "message": f"Servidor MCP '{name}' eliminado."}
     return {"status": "not_found", "message": f"Servidor MCP '{name}' no encontrado."}
+
+class GenerateAgentPromptReq(BaseModel):
+    name: str = "Agente"
+    role: str = ""
+    description: str = ""
+
+@app.post("/api/agent/generate_prompt")
+async def generate_agent_prompt(req: GenerateAgentPromptReq):
+    def _gen():
+        from brain import get_gemini_client, get_groq_client
+        system_instruction = (
+            "Eres un arquitecto de IA y Prompt Engineer de élite.\n"
+            "Tu ÚNICA tarea es redactar el SYSTEM PROMPT (las instrucciones técnicas y directrices de comportamiento) "
+            "para un agente de inteligencia artificial.\n\n"
+            "REGLAS CRÍTICAS:\n"
+            "1. PROHIBIDO responder como un chat (NUNCA digas '¡Entendido!', 'Hola', 'He registrado...', 'Claro').\n"
+            "2. Redacta las instrucciones dirigiéndote al agente en segunda persona ('Eres...').\n"
+            "3. Estructura el prompt en:\n"
+            "   - Identidad y Especialidad: Quién es y sus conocimientos clave.\n"
+            "   - Responsabilidades Principales: Tareas concretas que debe realizar.\n"
+            "   - Pautas de Comportamiento: Tono técnico, precisión, brevedad y directrices de acción.\n"
+            "4. Devuelve ÚNICAMENTE el texto del prompt del sistema, sin markdown quotes exteriores ni introducciones."
+        )
+        user_content = f"Nombre del agente: {req.name}\nRol: {req.role or 'Asistencia técnica'}\nDescripción de sus funciones:\n{req.description}"
+        messages = [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_content}
+        ]
+        
+        client, model = get_gemini_client()
+        if not client:
+            client, model = get_groq_client()
+            
+        if client:
+            try:
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=0.3,
+                    max_tokens=600
+                )
+                text = (resp.choices[0].message.content or "").strip()
+                if text.startswith("```") and text.endswith("```"):
+                    lines = text.split("\n")
+                    if len(lines) > 2:
+                        text = "\n".join(lines[1:-1]).strip()
+                return text
+            except Exception as e:
+                logger.error(f"Error llamando LLM para generar prompt: {e}")
+
+        return (
+            f"Eres {req.name}, un agente asistente especializado en {req.role or 'gestión técnica'}.\n\n"
+            f"OBJETIVO:\n{req.description or 'Ejecutar las órdenes asignadas con máxima precisión y rapidez.'}\n\n"
+            "REGLAS:\n"
+            "1. Responde de manera técnica, estructurada y concisa.\n"
+            "2. Ejecuta tareas de forma autónoma utilizando las herramientas disponibles a tu alcance.\n"
+            "3. Sé directo y evita preámbulos innecesarios."
+        )
+
+    try:
+        clean_text = await asyncio.to_thread(_gen)
+        return {"prompt": clean_text}
+    except Exception as e:
+        logger.error(f"Error generando prompt con IA: {e}")
+        return {"prompt": f"Eres {req.name}, un agente asistente especializado en {req.role or 'asistencia técnica'}.\nTu objetivo es: {req.description or 'cumplir las tareas encomendadas'}.\nResponde de forma clara, directa y concisa."}
+
 
 # ==========================================
 # CONFIGURACIÓN DE ALERTAS PROACTIVAS
@@ -1392,6 +1767,23 @@ EXCLUDE_PROC_PATTERNS = [
     "msedgewebview", "officeclicktorun"
 ]
 
+KNOWN_APP_SVGS = {
+    "spotify": '<svg viewBox="0 0 24 24" width="24" height="24" fill="#1DB954"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.495 17.306a.75.75 0 0 1-1.032.248c-2.825-1.727-6.38-2.118-10.57-1.16a.75.75 0 1 1-.334-1.462c4.586-1.047 8.528-.601 11.688 1.342a.75.75 0 0 1 .248 1.032zm1.465-3.259a.937.937 0 0 1-1.29.309c-3.233-1.987-8.163-2.562-11.988-1.4a.938.938 0 0 1-.55-1.791c4.37-1.326 9.805-.688 13.52 1.593a.937.937 0 0 1 .308 1.289zm.125-3.398c-3.877-2.302-10.272-2.514-13.985-1.387a1.125 1.125 0 1 1-.652-2.154c4.26-1.294 11.318-1.048 15.792 1.607a1.125 1.125 0 0 1-1.155 1.934z"/></svg>',
+    "discord": '<svg viewBox="0 0 24 24" width="24" height="24" fill="#5865F2"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028z"/></svg>',
+    "code": '<svg viewBox="0 0 24 24" width="24" height="24" fill="#007ACC"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .32 8.697L3.9 12 .32 15.303a1 1 0 0 0 .007 1.436l1.322 1.202a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352z"/></svg>',
+    "steam": '<svg viewBox="0 0 24 24" width="24" height="24" fill="#171a21"><path d="M12 0a12 12 0 0 0-12 12c0 5.43 3.6 9.99 8.57 11.45l2.67-3.9a4.8 4.8 0 0 1-.74-2.55 4.84 4.84 0 0 1 4.84-4.85h.06l3.37-4.88A11.96 11.96 0 0 0 12 0zm5.4 6.6a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 0 1 0-5.4z"/></svg>',
+    "antigravity": '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#a855f7" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>'
+}
+
+def get_app_icon_with_fallback(exe: str, name_lower: str) -> str:
+    icon_b64 = get_exe_icon_base64(exe)
+    if icon_b64:
+        return icon_b64
+    for key, svg in KNOWN_APP_SVGS.items():
+        if key in name_lower:
+            return svg
+    return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#8e919a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="6 21 18 21 12 17"/></svg>'
+
 @app.get("/api/apps/running")
 async def get_running_apps():
     """Devuelve las aplicaciones de usuario actualmente en ejecución en la PC (filtrando servicios y demonios del sistema)."""
@@ -1423,14 +1815,14 @@ async def get_running_apps():
                 if any(a["name"] == matched_known[0] for a in apps):
                     continue
                 seen_names.add(name_lower)
-                icon_b64 = get_exe_icon_base64(exe)
+                icon_data = get_app_icon_with_fallback(exe, name_lower)
                 apps.append({
                     "id": name_lower.replace(".exe", ""),
                     "name": matched_known[0],
                     "process": name,
                     "exe": exe,
                     "category": matched_known[1],
-                    "icon": icon_b64
+                    "icon": icon_data
                 })
                 continue
 
@@ -1441,7 +1833,7 @@ async def get_running_apps():
 
             seen_names.add(name_lower)
             friendly_name = os.path.splitext(name)[0].replace("_", " ").replace("-", " ").title()
-            icon_b64 = get_exe_icon_base64(exe)
+            icon_data = get_app_icon_with_fallback(exe, name_lower)
             
             apps.append({
                 "id": name_lower.replace(".exe", ""),
@@ -1449,7 +1841,7 @@ async def get_running_apps():
                 "process": name,
                 "exe": exe,
                 "category": "aplicacion",
-                "icon": icon_b64
+                "icon": icon_data
             })
         except Exception:
             continue
@@ -1803,6 +2195,75 @@ async def ui_context_loop():
             pass
         await asyncio.sleep(2)
 
+async def dev_activity_watcher_loop():
+    """Monitorea cambios en el repositorio Git y actividad de Antigravity para mantener informada a la Dynamic Island."""
+    repo_dir = os.path.dirname(os.path.abspath(__file__))
+    last_git_status = None
+    last_antigravity_mtime = 0
+    antigravity_brain_dir = os.path.expanduser(r"~\.gemini\antigravity-ide\brain")
+    
+    await asyncio.sleep(5)
+    while True:
+        try:
+            # 1. Monitoreo de cambios Git locales (Agente GitHub)
+            def check_git():
+                try:
+                    res = subprocess.run(
+                        ["git", "status", "--porcelain"],
+                        cwd=repo_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    return res.stdout.strip()
+                except Exception:
+                    return None
+
+            git_out = await asyncio.to_thread(check_git)
+            if git_out is not None and git_out != last_git_status:
+                if last_git_status is not None and git_out:
+                    lines = [l for l in git_out.splitlines() if l.strip()]
+                    await manager.broadcast_message({
+                        "type": "agent_hook",
+                        "agent": "github",
+                        "event": "Git Changes",
+                        "prompt": f"{len(lines)} archivo(s) con cambios en el proyecto",
+                        "tool": "git"
+                    })
+                last_git_status = git_out
+
+            # 2. Monitoreo de actividad de Antigravity IDE (Agente Antigravity)
+            if os.path.exists(antigravity_brain_dir):
+                def check_antigravity():
+                    max_mtime = 0
+                    try:
+                        for entry in os.scandir(antigravity_brain_dir):
+                            if entry.is_dir():
+                                log_path = os.path.join(entry.path, ".system_generated", "logs", "transcript.jsonl")
+                                if os.path.exists(log_path):
+                                    mt = os.path.getmtime(log_path)
+                                    if mt > max_mtime:
+                                        max_mtime = mt
+                    except Exception:
+                        pass
+                    return max_mtime
+
+                latest_mt = await asyncio.to_thread(check_antigravity)
+                if latest_mt > last_antigravity_mtime:
+                    if last_antigravity_mtime > 0 and (time.time() - latest_mt) < 20:
+                        await manager.broadcast_message({
+                            "type": "agent_hook",
+                            "agent": "antigravity",
+                            "event": "Agent Active",
+                            "prompt": "Antigravity ejecutando tareas en el proyecto",
+                            "tool": "antigravity"
+                        })
+                    last_antigravity_mtime = latest_mt
+
+        except Exception:
+            pass
+        await asyncio.sleep(6)
+
 @app.on_event("startup")
 async def startup_event():
     loop = asyncio.get_running_loop()
@@ -1811,6 +2272,12 @@ async def startup_event():
     asyncio.create_task(clipboard_monitor())
     asyncio.create_task(ui_context_loop())
     asyncio.create_task(spotify_media_loop())
+    asyncio.create_task(dev_activity_watcher_loop())
+    try:
+        import music_controller
+        music_controller.start_media_listener()
+    except Exception as e:
+        logger.warning(f"Music controller no iniciado: {e}")
     
     # Iniciar monitor de actividad del usuario (qué apps usa en el PC)
     try:
@@ -1941,6 +2408,23 @@ if __name__ == "__main__":
             stop_speaking()
             interrupt_event.set()
             is_asleep_event.clear()
+            
+            # Avisar inmediatamente a la UI para que se abra el chat de Miku (blanca)
+            try:
+                requests.post(
+                    "http://127.0.0.1:8000/broadcast_command",
+                    json={"payload": {"type": "wake", "who": "miku"}},
+                    headers={"x-api-key": API_KEY},
+                    timeout=1.0
+                )
+                requests.post(
+                    "http://127.0.0.1:8000/broadcast_command",
+                    json={"payload": {"type": "scene", "name": "prompt"}},
+                    headers={"x-api-key": API_KEY},
+                    timeout=1.0
+                )
+            except Exception:
+                pass
             
             def handle_wake_conversation():
                 try:

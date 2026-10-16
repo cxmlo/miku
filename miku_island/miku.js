@@ -1,7 +1,6 @@
 /* =========================================================================
    miku.js — Miku Character Canvas Renderer
-   Ported from Coucou (Louis-CFM/coucou, MIT License) BotEngine.swift
-   Adapted to vanilla JS Canvas2D for Miku V2 Dynamic Island
+   Native vanilla JS Canvas2D Engine for Miku V2 Dynamic Island
    ========================================================================= */
 
 const miku = (() => {

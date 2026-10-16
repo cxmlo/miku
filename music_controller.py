@@ -1,48 +1,103 @@
 import asyncio
 import threading
-from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus
-from winrt.windows.storage.streams import Buffer
 import time
+import ctypes
+
+WINRT_AVAILABLE = False
+try:
+    from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager, GlobalSystemMediaTransportControlsSessionPlaybackStatus
+    from winrt.windows.storage.streams import Buffer
+    WINRT_AVAILABLE = True
+except Exception:
+    WINRT_AVAILABLE = False
 
 # Estado compartido en memoria
 media_state = {
     "is_playing": False,
     "has_session": False,
-    "title": "",
+    "title": "Sin música",
     "artist": "",
     "position_sec": 0,
     "end_time_sec": 0,
     "last_update_time": 0,
     "app_id": "",
     "thumbnail_bytes": None,
-    "session_id": ""
+    "session_id": "",
+    "volume": 70
 }
 
 manager = None
 _loop = None
 
+# Windows Virtual Keys for media
+VK_MEDIA_NEXT_TRACK = 0xB0
+VK_MEDIA_PREV_TRACK = 0xB1
+VK_MEDIA_STOP = 0xB2
+VK_MEDIA_PLAY_PAUSE = 0xB3
+VK_VOLUME_MUTE = 0xAD
+VK_VOLUME_DOWN = 0xAE
+VK_VOLUME_UP = 0xAF
+
+def _send_vk(code):
+    try:
+        user32 = ctypes.windll.user32
+        user32.keybd_event(code, 0, 0, 0)
+        time.sleep(0.05)
+        user32.keybd_event(code, 0, 2, 0) # KEYEVENTF_KEYUP
+    except Exception as e:
+        print("[Music] Error sending key event:", e)
+
 def _get_target_session(mgr):
+    if not mgr:
+        return None
     try:
         sessions = mgr.get_sessions()
         if not sessions:
             return None
-        # Prioridad 1: Reproductores de música nativos (Spotify, iTunes, Windows Media)
         for s in sessions:
             if s and hasattr(s, 'source_app_user_model_id') and s.source_app_user_model_id:
                 app_id = str(s.source_app_user_model_id).lower()
-                if "spotify" in app_id or "music" in app_id or "itunes" in app_id or "aimp" in app_id:
+                if any(k in app_id for k in ["spotify", "music", "itunes", "aimp", "chrome"]):
                     return s
-        # Prioridad 2: Si no hay música nativa, tomar el reproductor por defecto activo
         return mgr.get_current_session()
     except Exception:
-        return mgr.get_current_session()
+        try:
+            return mgr.get_current_session()
+        except Exception:
+            return None
 
 async def _media_loop():
     global manager
+    if not WINRT_AVAILABLE:
+        # Fallback polling loop when winrt is not installed
+        while True:
+            try:
+                # Check running processes with psutil for known media players
+                import psutil
+                running_players = []
+                for p in psutil.process_iter(['name']):
+                    pname = (p.info['name'] or '').lower()
+                    if 'spotify' in pname:
+                        running_players.append('Spotify')
+                    elif 'itunes' in pname:
+                        running_players.append('iTunes')
+                if running_players:
+                    media_state["has_session"] = True
+                    if media_state["title"] == "Sin música":
+                        media_state["title"] = f"{running_players[0]}"
+                        media_state["artist"] = "Reproductor activo"
+                else:
+                    if not media_state.get("manual_play"):
+                        media_state["has_session"] = False
+            except Exception:
+                pass
+            await asyncio.sleep(2)
+        return
+
     try:
         manager = await GlobalSystemMediaTransportControlsSessionManager.request_async()
     except Exception as e:
-        print("MUSIC ERROR: No se pudo obtener el SessionManager", e)
+        print("[Music] No se pudo obtener SessionManager WinRT:", e)
         return
 
     while True:
@@ -60,62 +115,57 @@ async def _media_loop():
             timeline = session.get_timeline_properties()
             playback = session.get_playback_info()
             
-            is_playing = (playback.playback_status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.PLAYING)
+            is_playing = (playback.playback_status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.PLAYING) if playback else False
             
-            # Detectar cambio a "Play" para reiniciar el timer
             if is_playing and not media_state["is_playing"]:
                 media_state["last_update_time"] = time.time()
                 
             media_state["is_playing"] = is_playing
-            media_state["title"] = info.title if info.title else "Desconocido"
-            media_state["artist"] = info.artist if info.artist else ""
+            media_state["title"] = (info.title if (info and info.title) else "Desconocido")
+            media_state["artist"] = (info.artist if (info and info.artist) else "")
             
-            # Los tiempos en winrt vienen en ticks de 100 nanosegundos.
-            # 1 segundo = 10,000,000 ticks.
-            import datetime
-            pos = timeline.position
-            end = timeline.end_time
-            
-            if isinstance(pos, datetime.timedelta):
-                new_pos_sec = pos.total_seconds()
-            else:
-                pos_val = pos.duration if hasattr(pos, 'duration') else pos
-                new_pos_sec = pos_val / 10000000.0 if pos_val else 0
-                
-            if isinstance(end, datetime.timedelta):
-                media_state["end_time_sec"] = end.total_seconds()
-            else:
-                end_val = end.duration if hasattr(end, 'duration') else end
-                media_state["end_time_sec"] = end_val / 10000000.0 if end_val else 0
-                
-            # Solo actualizar timestamp si el OS realmente actualizó la posición (ej. cada 5 seg o al saltar)
-            if abs(new_pos_sec - media_state["position_sec"]) > 0.5:
-                media_state["position_sec"] = new_pos_sec
-                media_state["last_update_time"] = time.time()
-                
-            media_state["app_id"] = session.source_app_user_model_id
-            
-            # Solo actualizar la carátula si cambió la canción para no saturar memoria
-            session_id = f"{info.title}-{info.artist}"
-            if session_id != media_state["session_id"]:
-                media_state["session_id"] = session_id
-                if info.thumbnail:
-                    stream = await info.thumbnail.open_read_async()
-                    buffer = Buffer(stream.size)
-                    await stream.read_async(buffer, buffer.capacity, 0)
-                    media_state["thumbnail_bytes"] = bytes(buffer)
+            if timeline:
+                import datetime
+                pos = timeline.position
+                end = timeline.end_time
+                if isinstance(pos, datetime.timedelta):
+                    new_pos_sec = pos.total_seconds()
                 else:
-                    media_state["thumbnail_bytes"] = None
+                    pos_val = getattr(pos, 'duration', pos)
+                    new_pos_sec = pos_val / 10000000.0 if pos_val else 0
                     
-        except Exception as e:
-            # Ignorar errores silenciosos que ocurren si el reproductor se cierra abruptamente
+                if isinstance(end, datetime.timedelta):
+                    media_state["end_time_sec"] = end.total_seconds()
+                else:
+                    end_val = getattr(end, 'duration', end)
+                    media_state["end_time_sec"] = end_val / 10000000.0 if end_val else 0
+                    
+                if abs(new_pos_sec - media_state["position_sec"]) > 0.5:
+                    media_state["position_sec"] = new_pos_sec
+                    media_state["last_update_time"] = time.time()
+                    
+            if session:
+                media_state["app_id"] = getattr(session, 'source_app_user_model_id', '')
+                
+            if info:
+                session_id = f"{info.title}-{info.artist}"
+                if session_id != media_state["session_id"]:
+                    media_state["session_id"] = session_id
+                    if getattr(info, 'thumbnail', None):
+                        stream = await info.thumbnail.open_read_async()
+                        buffer = Buffer(stream.size)
+                        await stream.read_async(buffer, buffer.capacity, 0)
+                        media_state["thumbnail_bytes"] = bytes(buffer)
+                    else:
+                        media_state["thumbnail_bytes"] = None
+                        
+        except Exception:
             pass
             
-        await asyncio.sleep(0.5) # Consultar cada 500ms
+        await asyncio.sleep(0.5)
 
 def _run_loop():
     global _loop
-    # Crear un nuevo event loop para este thread
     _loop = asyncio.new_event_loop()
     asyncio.set_event_loop(_loop)
     _loop.run_until_complete(_media_loop())
@@ -126,25 +176,54 @@ def start_media_listener():
     t.start()
 
 async def _do_toggle():
-    session = _get_target_session(manager)
-    if session: await session.try_toggle_play_pause_async()
+    if WINRT_AVAILABLE and manager:
+        session = _get_target_session(manager)
+        if session:
+            try:
+                await session.try_toggle_play_pause_async()
+                return
+            except Exception:
+                pass
+    _send_vk(VK_MEDIA_PLAY_PAUSE)
+    media_state["is_playing"] = not media_state["is_playing"]
 
 async def _do_next():
-    session = _get_target_session(manager)
-    if session: await session.try_skip_next_async()
+    if WINRT_AVAILABLE and manager:
+        session = _get_target_session(manager)
+        if session:
+            try:
+                await session.try_skip_next_async()
+                return
+            except Exception:
+                pass
+    _send_vk(VK_MEDIA_NEXT_TRACK)
 
 async def _do_prev():
-    session = _get_target_session(manager)
-    if session: await session.try_skip_previous_async()
+    if WINRT_AVAILABLE and manager:
+        session = _get_target_session(manager)
+        if session:
+            try:
+                await session.try_skip_previous_async()
+                return
+            except Exception:
+                pass
+    _send_vk(VK_MEDIA_PREV_TRACK)
 
 def toggle_play_pause():
-    if manager and _loop:
+    if _loop and _loop.is_running():
         asyncio.run_coroutine_threadsafe(_do_toggle(), _loop)
+    else:
+        _send_vk(VK_MEDIA_PLAY_PAUSE)
+        media_state["is_playing"] = not media_state["is_playing"]
 
 def next_track():
-    if manager and _loop:
+    if _loop and _loop.is_running():
         asyncio.run_coroutine_threadsafe(_do_next(), _loop)
+    else:
+        _send_vk(VK_MEDIA_NEXT_TRACK)
 
 def prev_track():
-    if manager and _loop:
+    if _loop and _loop.is_running():
         asyncio.run_coroutine_threadsafe(_do_prev(), _loop)
+    else:
+        _send_vk(VK_MEDIA_PREV_TRACK)

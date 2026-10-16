@@ -1,3 +1,4 @@
+import json
 import wave
 import time
 import re
@@ -31,7 +32,7 @@ except Exception as e:
 
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-active_device_index = None
+# active_device_index se resuelve con resolve_best_device() más abajo
 
 _is_speaking = False
 _interrupt_speaking = threading.Event()
@@ -75,11 +76,58 @@ def get_input_devices():
         logger.error(f"Error al obtener micrófonos: {e}")
         return []
 
+def resolve_best_device(preferred_index=None):
+    """Resuelve el mejor dispositivo de entrada disponible para captura de voz y wake word."""
+    try:
+        if preferred_index is not None and str(preferred_index).isdigit():
+            return int(preferred_index)
+        
+        cfg_file = "settings_config.json"
+        if os.path.exists(cfg_file):
+            with open(cfg_file, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+                saved_mic = cfg.get("mic")
+                if saved_mic and saved_mic != "default" and str(saved_mic).lstrip("-").isdigit():
+                    idx = int(saved_mic)
+                    if idx >= 0:
+                        return idx
+        
+        devices = sd.query_devices()
+        candidates = []
+        for i, d in enumerate(devices):
+            if d.get('max_input_channels', 0) > 0:
+                name = d.get('name', '').lower()
+                api = d.get('hostapi', -1)
+                # Priorizar MME (0) o DirectSound (1) para compatibilidad nativa a 16kHz en Windows
+                if api in (0, 1):
+                    prio = 1
+                    if 'varios micr' in name or 'array' in name:
+                        prio = 10
+                    elif 'micr' in name and 'stereo' not in name and 'mezcla' not in name and 'altavoz' not in name:
+                        prio = 5
+                    candidates.append((prio, i, d['name']))
+        if candidates:
+            candidates.sort(key=lambda x: -x[0])
+            chosen = candidates[0][1]
+            logger.info(f"Micrófono auto-detectado óptimo: [{chosen}] {candidates[0][2]}")
+            return chosen
+    except Exception as e:
+        logger.warning(f"Error resolviendo mejor micrófono: {e}")
+    return None
+
+active_device_index = resolve_best_device()
+
 def set_active_device(index):
     """Establece el micrófono activo."""
     global active_device_index
-    active_device_index = index
-    logger.info(f"Micrófono activo cambiado al índice {index}")
+    if index is None or index == "default" or str(index) == "-1":
+        active_device_index = resolve_best_device()
+    else:
+        try:
+            active_device_index = int(index)
+        except Exception:
+            active_device_index = resolve_best_device()
+    logger.info(f"Micrófono activo cambiado al índice {active_device_index}")
 
 def set_barge_in_callback(callback):
     """Registra el callback a ejecutar cuando se detecta una interrupción por voz mientras Miku habla."""
@@ -495,10 +543,10 @@ def wait_for_wake_word(callback, is_asleep_event):
         stream = sd.InputStream(samplerate=fs, channels=1, dtype='int16', device=active_device_index, blocksize=chunk_size)
         stream.start()
     except Exception as e:
-        logger.warning(f"Error iniciando micrófono {active_device_index} para wake word: {e}. Volviendo al predeterminado.")
-        active_device_index = None
-        current_device = None
-        stream = sd.InputStream(samplerate=fs, channels=1, dtype='int16', device=None, blocksize=chunk_size)
+        logger.warning(f"Error iniciando micrófono {active_device_index} para wake word: {e}. Resolviendo mejor alternativa.")
+        active_device_index = resolve_best_device()
+        current_device = active_device_index
+        stream = sd.InputStream(samplerate=fs, channels=1, dtype='int16', device=active_device_index, blocksize=chunk_size)
         stream.start()
 
     while True:
@@ -512,9 +560,9 @@ def wait_for_wake_word(callback, is_asleep_event):
                     stream.start()
                 except Exception as e:
                     logger.warning(f"Error cambiando micrófono en wake word: {e}")
-                    active_device_index = None
-                    current_device = None
-                    stream = sd.InputStream(samplerate=fs, channels=1, dtype='int16', device=None, blocksize=chunk_size)
+                    active_device_index = resolve_best_device()
+                    current_device = active_device_index
+                    stream = sd.InputStream(samplerate=fs, channels=1, dtype='int16', device=active_device_index, blocksize=chunk_size)
                     stream.start()
                     
             if not is_asleep_event.is_set():

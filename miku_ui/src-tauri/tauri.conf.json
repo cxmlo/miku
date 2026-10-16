@@ -26,15 +26,15 @@
         "label": "settings",
         "title": "Configuración · Miku",
         "url": "miku_settings.html",
-        "width": 960,
-        "height": 740,
-        "resizable": true,
+        "width": 1080,
+        "height": 780,
+        "resizable": false,
         "minWidth": 760,
         "visible": false,
         "center": true,
         "decorations": false,
         "transparent": true,
-        "shadow": true
+        "shadow": false
       }
     ],
     "security": {

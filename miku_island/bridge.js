@@ -43,6 +43,18 @@ const Bridge = (() => {
     initMouseTracker();
     fetchMediaStatus();
     initSettingsSync();
+    fetchAgents();
+  }
+
+  function fetchAgents() {
+    apiFetch("/api/agents")
+      .then(r => r.json())
+      .then(data => {
+        if (data && Array.isArray(data.agents) && data.agents.length) {
+          window.feed?.({ type: "agents", list: data.agents });
+        }
+      })
+      .catch(() => {});
   }
 
   function fetchMediaStatus() {
@@ -172,6 +184,9 @@ const Bridge = (() => {
     if (data.type) {
       if (data.type === "state" && window.buddy?.emote) {
         window.buddy.emote(data.name || "idle", data.dur || 2000);
+      }
+      if (data.type === "ui_command" && data.action === "status_update") {
+        handleStatusUpdate(data.text);
       }
       window.feed?.(data);
       return;
@@ -346,25 +361,35 @@ const Bridge = (() => {
   /* ---------------- OUTGOING BRIDGE METHODS ---------------- */
 
   // 1. Send chat prompt per agent
-  function sendChat(text, agent) {
+  function sendChat(text, agent, attachment = null) {
     if (!text || !text.trim()) return;
     const ag = agent || { id: "miku", name: "Miku" };
     window.feed?.({ type: "state", name: "thinking" });
+
+    const payload = {
+      message: text,
+      source: "desktop",
+      agent_id: ag.id,
+      agent_name: ag.name,
+      agent_prompt: ag.prompt || "",
+      agent_mcp: ag.mcp || null,
+      silent: (ag.id !== "miku")
+    };
+
+    if (attachment) {
+      payload.attachment_name = attachment.name;
+      payload.attachment_path = attachment.filePath || null;
+      payload.attachment_analysis = attachment.analysis || null;
+      payload.attachment_data = attachment.dataUrl || null;
+      payload.attachment_content = attachment.content || null;
+    }
 
     apiFetch("/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        message: text,
-        source: "desktop",
-        agent_id: ag.id,
-        agent_name: ag.name,
-        agent_prompt: ag.prompt || "",
-        agent_mcp: ag.mcp || null,
-        silent: (ag.id !== "miku")
-      })
+      body: JSON.stringify(payload)
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -380,6 +405,11 @@ const Bridge = (() => {
       })
       .catch((err) => {
         console.warn("[Bridge] Error sending chat:", err);
+        const ch = window.getAgChat ? window.getAgChat(ag.id) : null;
+        if (ch && !ch.busy && ch.lastA && !ch.lastA.startsWith('Error')) {
+          console.log("[Bridge] Reply was already delivered via WebSocket, suppressing HTTP error.");
+          return;
+        }
         window.feed?.({
           type: "agent_reply",
           agent_id: ag.id,
@@ -617,6 +647,16 @@ const Bridge = (() => {
     }
   }
 
+  async function getRunningApps() {
+    try {
+      const res = await apiFetch("/api/apps/running");
+      return res.ok ? await res.json() : { apps: [] };
+    } catch (e) {
+      console.warn("[Bridge] getRunningApps error:", e);
+      return { apps: [] };
+    }
+  }
+
   async function getDesktopStatus() {
     try {
       const res = await apiFetch("/api/desktop/status");
@@ -624,6 +664,43 @@ const Bridge = (() => {
     } catch (e) {
       console.warn("[Bridge] getDesktopStatus error:", e);
       return {};
+    }
+  }
+
+  async function getAudioDevices() {
+    try {
+      const res = await apiFetch("/api/audio/devices");
+      return res.ok ? await res.json() : { devices: [] };
+    } catch (e) {
+      console.warn("[Bridge] getAudioDevices error:", e);
+      return { devices: [] };
+    }
+  }
+
+  async function setAudioDevice(index) {
+    try {
+      const res = await apiFetch("/api/audio/device", {
+        method: "POST",
+        body: JSON.stringify({ index })
+      });
+      return res.ok ? await res.json() : { status: "error" };
+    } catch (e) {
+      console.warn("[Bridge] setAudioDevice error:", e);
+      return { status: "error", message: String(e) };
+    }
+  }
+
+  async function browseExe() {
+    try {
+      const res = await apiFetch("/api/system/browse_exe", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        return data.path || "";
+      }
+      return "";
+    } catch (e) {
+      console.warn("[Bridge] browseExe error:", e);
+      return "";
     }
   }
 
@@ -772,18 +849,76 @@ const Bridge = (() => {
     getDetectableApps,
     getRunningApps,
     getDesktopStatus,
+    getAudioDevices,
+    setAudioDevice,
+    browseExe,
     getElevenLabsVoices,
     stopSpeech,
+    stopSpeaking: stopSpeech,
+    async getAgents() {
+      try {
+        const res = await apiFetch("/api/agents");
+        return res.ok ? await res.json() : { agents: [] };
+      } catch (e) {
+        return { agents: [] };
+      }
+    },
+    async getAgents() {
+      try {
+        const res = await apiFetch("/api/agents");
+        return res.ok ? await res.json() : { agents: [] };
+      } catch (e) {
+        return { agents: [] };
+      }
+    },
+    async saveAgents(agentsList) {
+      return this.saveAgentsBackend(agentsList);
+    },
+    async saveAgentsBackend(agentsList) {
+      try {
+        const res = await apiFetch("/api/agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agents: agentsList })
+        });
+        return res.ok;
+      } catch (e) {
+        return false;
+      }
+    },
+    async uploadFile(filename, content, isBase64 = false) {
+      try {
+        const res = await apiFetch("/api/upload_file", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename, content, is_base64: isBase64 })
+        });
+        return res.ok ? await res.json() : { status: "error" };
+      } catch (e) {
+        return { status: "error", message: e.message };
+      }
+    },
     async checkUpdate() {
       if (window.__TAURI__?.core?.invoke) {
         try {
-          return await window.__TAURI__.core.invoke("check_update");
+          const res = await window.__TAURI__.core.invoke("check_update");
+          return res || { available: false };
         } catch (err) {
           console.warn("[Bridge] check_update error:", err);
           return { available: false, error: err.toString() };
         }
       }
-      return { available: false, error: "Tauri no disponible" };
+      try {
+        const resp = await fetch("https://api.github.com/repos/cxmlo/miku/releases/latest");
+        if (resp.ok) {
+          const rel = await resp.json();
+          const tag = (rel.tag_name || "").replace(/^v/, "");
+          const current = "0.1.1";
+          const isNewer = tag && tag !== current && tag > current;
+          return { available: !!isNewer, version: tag, url: rel.html_url };
+        }
+      } catch (_) {}
+      return { available: false };
     },
     async installUpdate() {
       if (window.__TAURI__?.core?.invoke) {

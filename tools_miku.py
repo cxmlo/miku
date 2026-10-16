@@ -1,4 +1,4 @@
-﻿import os
+import os
 import subprocess
 import requests
 from agents import agent_manager
@@ -32,9 +32,97 @@ def monitorear_actividad_pc() -> str:
     except Exception as e:
         return f"Error monitoreando actividad: {e}"
 
+def listar_agentes_disponibles() -> str:
+    """Lista todos los agentes secundarios configurados en el sistema (Antigravity, GitHub, Claude Code, Vercel, etc.) con sus roles y estado actual."""
+    try:
+        from agents import load_agents_config, agent_manager
+        agents = load_agents_config()
+        if not agents:
+            return "No hay agentes secundarios configurados en el sistema."
+        
+        lines = ["Agentes disponibles en el ecosistema Miku:"]
+        for i, a in enumerate(agents, 1):
+            aid = a.get("id", "desconocido")
+            aname = a.get("name", aid.capitalize())
+            arole = a.get("role", "Sin rol especificado")
+            amodel = a.get("model", "Gemini Flash").replace("google/", "").replace("groq/", "")
+            is_busy = agent_manager.is_agent_busy(aid)
+            status = "⚙️ TRABAJANDO EN SEGUNDO PLANO" if is_busy else "🟢 LISTO / DISPONIBLE"
+            lines.append(f"{i}. {aname} (ID: {aid}) - Estado: {status}\n   • Rol/Especialidad: {arole}\n   • Modelo: {amodel}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error consultando agentes: {e}"
+
+def delegar_a_agente(agente: str, tarea: str) -> str:
+    """Delega una tarea específica a un agente secundario (ej. 'antigravity', 'github').
+    El agente ejecutará la tarea en segundo plano con herramientas autónomas. Al terminar, le notificará al usuario y a Miku."""
+    return agent_manager.delegate(task=tarea, agent_id=agente)
+
+def abrir_chat_con_agente(agente: str) -> str:
+    """Cambia la vista activa de la interfaz de la isla dinámica al chat de un agente específico (ej. 'antigravity', 'github', o 'miku' para la orquestadora principal)."""
+    try:
+        from agents import load_agents_config, broadcast_ui_command
+        target = (agente or "").strip().lower()
+        if target in ("miku", "principal", "orquestador", "blanco", "blanca"):
+            broadcast_ui_command({"type": "switch_agent_chat", "agent_id": "miku"})
+            return "Cambiando la interfaz al chat principal de Miku."
+        
+        agents = load_agents_config()
+        matched = None
+        for a in agents:
+            if a.get("id", "").lower() == target or target in a.get("name", "").lower():
+                matched = a
+                break
+        
+        if not matched:
+            matched = agents[0] if agents else {"id": "antigravity", "name": "Antigravity"}
+            
+        broadcast_ui_command({"type": "switch_agent_chat", "agent_id": matched["id"]})
+        return f"Abriendo la pantalla de chat con el agente {matched.get('name', matched['id'])}."
+    except Exception as e:
+        return f"Error al abrir chat con agente: {e}"
+
+def crear_o_actualizar_agente(id: str, nombre: str, rol: str, color: str = None) -> str:
+    """Crea un nuevo agente secundario o actualiza el rol de uno existente en el ecosistema Miku."""
+    try:
+        from agents import load_agents_config, save_agents_config, broadcast_ui_command
+        agents = load_agents_config()
+        clean_id = id.strip().lower().replace(" ", "_")
+        found = False
+        for a in agents:
+            if a.get("id", "").lower() == clean_id:
+                a["name"] = nombre.strip()
+                a["role"] = rol.strip()
+                if color:
+                    a["c"] = color.strip()
+                found = True
+                break
+        
+        if not found:
+            preset_colors = ["#4FD3B1", "#3B9EFF", "#FFD84D", "#9BE15D", "#F06CF0", "#FF5C66"]
+            chosen_col = color if color else preset_colors[len(agents) % len(preset_colors)]
+            new_ag = {
+                "id": clean_id,
+                "name": nombre.strip(),
+                "role": rol.strip(),
+                "c": chosen_col,
+                "model": "google/gemini-2.5-flash",
+                "hooks": 1,
+                "active": 1,
+                "outfit": "none"
+            }
+            agents.append(new_ag)
+            
+        save_agents_config(agents)
+        broadcast_ui_command({"type": "agents", "list": agents})
+        action = "actualizado" if found else "creado"
+        return f"Agente '{nombre}' ({clean_id}) {action} exitosamente con el rol: {rol}."
+    except Exception as e:
+        return f"Error guardando agente: {e}"
+
 def delegar_tarea(tarea: str) -> str:
-    """Delega una tarea larga a un agente de fondo."""
-    return agent_manager.delegate(tarea)
+    """Delega una tarea larga a un agente de fondo (compatibilidad)."""
+    return agent_manager.delegate(task=tarea, agent_id="antigravity")
 
 def guardar_ultimo_reporte_en_escritorio(nombre_archivo: str) -> str:
     """Guarda el texto completo del Ãºltimo reporte generado por un agente en un bloc de notas en el escritorio."""

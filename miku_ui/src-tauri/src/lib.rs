@@ -108,6 +108,23 @@ async fn install_update(app: tauri::AppHandle) -> Result<String, String> {
     Ok("no_update".into())
 }
 
+fn stop_speech_silent() {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/speech/stop -Method Post -TimeoutSec 1 -ErrorAction SilentlyContinue"]);
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        let _ = cmd.spawn();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = std::process::Command::new("curl")
+            .args(["-s", "-X", "POST", "http://127.0.0.1:8000/api/speech/stop"])
+            .spawn();
+    }
+}
+
 #[tauri::command]
 fn open_settings_window(app: tauri::AppHandle) {
     if let Some(existing) = app.get_webview_window("settings") {
@@ -121,12 +138,12 @@ fn open_settings_window(app: tauri::AppHandle) {
         tauri::WebviewUrl::App("miku_settings.html".into())
     )
     .title("Configuración · Miku")
-    .inner_size(960.0, 740.0)
+    .inner_size(1080.0, 780.0)
     .min_inner_size(760.0, 600.0)
     .decorations(false)
     .transparent(true)
-    .shadow(true)
-    .resizable(true)
+    .shadow(false)
+    .resizable(false)
     .center();
 
     match builder.build() {
@@ -213,9 +230,7 @@ pub fn run() {
                         open_settings_window(app.clone());
                     }
                     "quit" => {
-                        let _ = std::process::Command::new("powershell")
-                            .args(["-NoProfile", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/speech/stop -Method Post -TimeoutSec 1"])
-                            .spawn();
+                        stop_speech_silent();
                         std::process::exit(0);
                     }
                     _ => {}
@@ -231,9 +246,7 @@ pub fn run() {
                     }
                 }
                 if let tauri::WindowEvent::Destroyed = event {
-                    let _ = std::process::Command::new("powershell")
-                        .args(["-NoProfile", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/speech/stop -Method Post -TimeoutSec 1"])
-                        .spawn();
+                    stop_speech_silent();
                 }
             }
             if window.label() == "settings" {

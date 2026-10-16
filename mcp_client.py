@@ -152,8 +152,13 @@ class MikuMCPManager:
             logger.error(f"Error al eliminar MCP {server_name}: {e}")
             return False
 
-    def get_dynamic_tools_schema(self) -> List[Dict]:
-        return self.tools_schema_extension
+    def get_dynamic_tools_schema(self, server_filter: str = None) -> List[Dict]:
+        if not server_filter or server_filter.lower() in ("all", "*", "miku"):
+            return self.tools_schema_extension
+        if server_filter.lower() in ("none", "ninguno", ""):
+            return []
+        prefix = f"mcp_{server_filter.lower()}_"
+        return [t for t in self.tools_schema_extension if t.get("function", {}).get("name", "").lower().startswith(prefix)]
 
     async def execute_tool(self, namespaced_tool_name: str, kwargs: dict) -> str:
         if namespaced_tool_name not in self.tool_routing_map:
