@@ -1,16 +1,16 @@
-## 🚀 Novedades Principales en v0.1.2
-- **Servidor Core Autónomo Integrado (Tauri Sidecar)**: El Gateway Python (`server.py`) ahora está empaquetado directamente en un binario autónomo (`miku-core.exe`) dentro del instalador. Ya no es necesario tener Python instalado ni abrir terminales manualmente; Miku arranca y apaga su propio servidor en segundo plano de manera 100% invisible.
-- **Sincronización en Vivo de Guardarropa**: La apariencia y accesorios de Miku (blanco) en la ventana de Ajustes y barra lateral ahora se sincronizan en tiempo real con las selecciones de la Isla Dinámica.
-- **Apagado Limpio y Seguro**: Cierre automático de procesos en segundo plano y liberación inmediata del puerto 8000 al cerrar la aplicación o salir desde la bandeja del sistema (`/api/system/shutdown`).
+## 🚀 Novedades Principales en v0.1.3
+- **Auto-Actualizador Fluido y Proactivo**: La aplicación ahora verifica automáticamente si existe una nueva versión nada más abrir la ventana de Ajustes o hacer clic en la alerta de la Isla Dinámica, permitiendo actualizar e instalar en 1 clic sin tener que descargar archivos manualmente desde la web.
+- **Servidor Core Autónomo Verificado (Puerto 8000)**: Corrección completa del empaquetado del sidecar `miku-core.exe`. Se resolvieron las dependencias dinámicas de ChromaDB (`chromadb.telemetry.product.posthog`) y los descriptores estándar I/O en Windows. Al iniciar Miku, el servidor arranca de forma 100% invisible y el indicador **Core 8000** se conecta en verde de inmediato.
 
 ## 🛠️ Mejoras y Optimización
-- **Versión Consistente**: Actualización integral de números de versión a `v0.1.2` en todos los paneles, barra de título e indicadores de la interfaz.
-- **Detección Inteligente de Entorno**: Capacidad en Rust (`lib.rs`) para detectar automáticamente ejecuciones locales en desarrollo (usando `venv`) o ejecuciones empaquetadas en producción (`miku-core.exe`).
+- **Navegación Inteligente de Actualizaciones**: Al pulsar el badge de actualización en la Isla, ahora te lleva directamente a la pestaña **General** de Ajustes con la tarjeta de actualización visible y lista para instalar.
+- **Sincronización de Versión**: Unificación de la versión `v0.1.3` en todos los archivos de configuración (`tauri.conf.json`, `Cargo.toml`, `package.json`, `miku_settings.html` y `bridge.js`).
+- **Resiliencia de Base de Datos Vectorial**: Inicialización tolerante a fallos en `memory.py` con telemetría desactivada y ruta persistente en `AppData/Miku Desktop/db`.
 
-## 🐛 Correcciones de Errores
-- Corregido el problema donde la insignia `Core 8000` permanecía en rojo al abrir el `.exe` instalado por falta del servidor activo.
-- **Corrección en Menús Desplegables**: Resuelto el problema por el cual al seleccionar una opción en los menús desplegables se seleccionaba la de abajo. La selección ahora detecta con exactitud milimétrica el elemento presionado (`getOptIndex`) y soporta desplazamiento automático con teclado.
-- Soporte para rutas en ejecutables congelados con PyInstaller mediante `sys._MEIPASS` en `miku_paths.py` y `audio_handler.py`.
+## 🐛 Correcciones de Errores (Fixes)
+- **Corrección en Menús Desplegables**: Solucionado el problema en todos los menús desplegables (`GlideSelect`) donde al hacer clic en una opción se seleccionaba erróneamente la de abajo debido a un desfase de cálculo en el índice.
+- **Descriptores I/O en PyInstaller**: Configuración de consola nativa oculta (`CREATE_NO_WINDOW`) que previene fallos silenciosos de Uvicorn y Logging en Windows.
+- **Importaciones Estáticas en Tools**: Sustitución de `__import__` dinámicos por importaciones estáticas para garantizar total compatibilidad con ejecutables congelados.
 
 ---
-**Instalación:** Descarga `Miku_Setup.exe` a continuación o usa el botón de "Buscar actualización" directamente desde **Ajustes → General** en tu app instalada.
+**Instalación:** Si ya tienes Miku instalada, ve a **Ajustes → General** y pulsa **Instalar v0.1.3**, o descarga directamente `Miku_Setup.exe` abajo.

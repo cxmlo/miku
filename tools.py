@@ -14,8 +14,11 @@ from tools_miku import (
     hablar_al_usuario, enviar_mensaje_a_agente, mostrar_widget_info, mostrar_widget_clima, mostrar_widget_reloj,
     modificar_estado_widget, obtener_clima, enviar_archivo_a_celular, enviar_imagen_a_chat,
     instalar_skill_mcp, solicitar_permiso_instalacion_mcp, abrir_panel_secretos_en_app, ejecutar_intent_android,
-    monitorear_actividad_pc, hacer_pregunta_opciones, preparar_correo
+    monitorear_actividad_pc, hacer_pregunta_opciones, preparar_correo, mostrar_tarjeta_visual
 )
+import computer_use
+import prompt_manager
+import contacts_memory
 
 def _actualizar_estado_wrapper(tarea_actual=None, paso_actual=None, parametros_json=None):
     from memory_temporal import memoria_temporal_global
@@ -65,25 +68,25 @@ available_functions = {
     "obtener_clima": obtener_clima,
     "guardar_enlace_memoria": guardar_enlace_memoria,
     "buscar_en_memoria": buscar_en_memoria,
-    "escanear_ventana_activa": __import__('computer_use').escanear_ventana_activa,
-    "hacer_clic_visual": __import__('computer_use').hacer_clic_visual,
-    "escribir_en_elemento": __import__('computer_use').escribir_en_elemento,
-    "mover_raton_visual": __import__('computer_use').mover_raton_visual,
+    "escanear_ventana_activa": computer_use.escanear_ventana_activa,
+    "hacer_clic_visual": computer_use.hacer_clic_visual,
+    "escribir_en_elemento": computer_use.escribir_en_elemento,
+    "mover_raton_visual": computer_use.mover_raton_visual,
     "instalar_skill_mcp": instalar_skill_mcp,
     "solicitar_permiso_instalacion_mcp": solicitar_permiso_instalacion_mcp,
-    "hacer_scroll": __import__('computer_use').hacer_scroll,
+    "hacer_scroll": computer_use.hacer_scroll,
     "atajo_teclado": atajo_teclado,
     "ejecutar_macro_teclado": ejecutar_macro_teclado,
     "esperar_segundos": esperar_segundos,
-    "memorizar_leccion": __import__('prompt_manager').memorizar_leccion,
-    "cambiar_personalidad": __import__('prompt_manager').cambiar_personalidad,
+    "memorizar_leccion": prompt_manager.memorizar_leccion,
+    "cambiar_personalidad": prompt_manager.cambiar_personalidad,
     "hablar_al_usuario": hablar_al_usuario,
     "analizar_archivo_silencioso": analizar_archivo_silencioso,
-    "asociar_contacto_app": __import__('contacts_memory').asociar_contacto_app,
+    "asociar_contacto_app": contacts_memory.asociar_contacto_app,
     "mostrar_widget_info": mostrar_widget_info,
     "mostrar_widget_clima": mostrar_widget_clima,
     "mostrar_widget_reloj": mostrar_widget_reloj,
-    "mostrar_tarjeta_visual": __import__('tools_miku').mostrar_tarjeta_visual,
+    "mostrar_tarjeta_visual": mostrar_tarjeta_visual,
     "modificar_estado_widget": modificar_estado_widget,
     "escribir_y_ejecutar_python": escribir_y_ejecutar_python,
     "abrir_panel_secretos_en_app": abrir_panel_secretos_en_app

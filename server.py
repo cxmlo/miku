@@ -21,9 +21,13 @@ import sys
 # Configure UTF-8 encoding for Windows standard output to avoid UnicodeEncodeError
 if sys.platform == "win32":
     try:
-        if hasattr(sys.stdout, 'reconfigure'):
+        if sys.stdout is None:
+            sys.stdout = open(os.devnull, "w", encoding="utf-8")
+        elif hasattr(sys.stdout, 'reconfigure'):
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        if hasattr(sys.stderr, 'reconfigure'):
+        if sys.stderr is None:
+            sys.stderr = open(os.devnull, "w", encoding="utf-8")
+        elif hasattr(sys.stderr, 'reconfigure'):
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
@@ -2358,6 +2362,8 @@ def start_fastapi():
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info", access_log=False)
 
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
     import threading
     import requests
     

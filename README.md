@@ -12,14 +12,14 @@ Watch your agents work, approve actions, listen to Spotify, drop files, and chat
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v0.1.2-cyan)](https://github.com/cxmlo/miku/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.3-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
 > [!TIP]
-> **New in v0.1.2**: **Autonomous Core Server (PyInstaller Sidecar)** with invisible auto-start and graceful shutdown, live Miku wardrobe synchronization, and rich release update descriptions.
+> **New in v0.1.3**: **Verified Autonomous Core Server (Port 8000)**, automatic 1-click updates from the Island, and fixed custom dropdown menus.
 
 ---
 
