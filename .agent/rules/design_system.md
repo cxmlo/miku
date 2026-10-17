@@ -66,4 +66,14 @@ Esta regla es de cumplimiento **OBLIGATORIO** para cualquier modificación en la
 ---
 
 ## 7. Versionado Visible
-- La versión oficial del sistema debe reflejarse visiblemente en el pie de la barra lateral de configuración (`v0.1.1`) y en el verificador de actualizaciones.
+- La versión visible debe coincidir con la versión vigente definida por el sistema de release. No fijar números históricos en esta regla ni mostrar versiones diferentes entre Ajustes y el actualizador.
+
+---
+
+## 8. Límites de Arquitectura y Evolución
+- **Escritorio**: Tauri 2 en `miku_ui/` es la aplicación oficial. `miku_ui/src/` es la fuente canónica del frontend empaquetado.
+- **Espejo de compatibilidad**: FastAPI todavía sirve `miku_island/`. No borrar esa ruta ni editar ambas copias a mano. Ejecutar `python scripts/sync_island.py` para verificar y `python scripts/sync_island.py --sync` para copiar desde la fuente canónica.
+- **Android**: `miku_android/` es un cliente nativo separado y aún está en migración. Mantener `miku_app/` (Expo) como rollback hasta validar la paridad que se necesita.
+- **Compose**: reutilizar `MikuPalette` y `MikuTheme`; separar UI, estado de pantalla, red y almacenamiento por responsabilidades reales, de forma incremental. No introducir capas vacías ni mover toda la app en un solo cambio.
+- **Assets y animaciones**: los packs cargables son una propuesta, no una función ya disponible. No ejecutar código de assets. Un futuro cargador debe validar formato, versión, rutas y tamaño y conservar recursos base de fallback.
+- **Documentación y validación**: consultar y mantener `docs/PROJECT_ARCHITECTURE_AND_DESIGN.md`; no declarar Android funcional sin ejecutar pruebas/build con JDK y Android SDK compatibles.

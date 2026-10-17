@@ -7,13 +7,16 @@ Esta guía mapea el directorio raíz de `miku V2` y orienta a desarrolladores y 
 ## 🏛️ Directorios Principales
 - **`miku_ui/`**: **Interfaz Oficial de Escritorio (Tauri 2)**.
   - `src-tauri/`: Aplicación nativa en Rust, configuración de ventanas, bandeja del sistema, actualizador criptográfico y orquestación del sidecar `miku-core.exe`.
-  - `src/`: Dynamic Island (`index.html`), Centro de Control (`miku_settings.html`), lógica de comunicación (`bridge.js`) y efectos de sonido (`sound_fx.js`). 👉 [[Desktop_Island_Tauri]]
-- **`miku_island/`**: Copia espejo directa de los assets estáticos de `miku_ui/src/`.
-- **`miku_app/`**: Aplicación móvil para Android e iOS en React Native (Expo SDK 54). Contiene la lógica del chat, sincronización de portapapeles y vinculación mediante QR. 👉 [[Mobile_App]]
+  - `src/`: fuente canónica del frontend Tauri: Dynamic Island (`index.html`), Centro de Control (`miku_settings.html`), puente (`bridge.js`) y efectos de sonido (`sound_fx.js`). 👉 [[Desktop_Island_Tauri]]
+- **`miku_android/`**: Nueva app móvil Android nativa (Kotlin/Jetpack Compose). Se conecta al Island mediante HTTP y WebSocket, con emparejamiento QR, chat, eventos de agentes y controles del teléfono. 👉 [[Mobile_App]]
+- **`miku_app/`**: Cliente anterior React Native/Expo, conservado intacto como legado y rollback durante la migración a Android nativo. No es la ruta activa para nuevas funciones móviles. 👉 [[Mobile_App]]
+- **`miku_island/`**: Espejo de compatibilidad que el backend aún publica en `/island`. Los archivos compartidos se verifican con `python scripts/sync_island.py` y se sincronizan desde `miku_ui/src/` con `python scripts/sync_island.py --sync`; no borrar mientras siga montado por FastAPI.
 - **`docs/`**: Grafo de conocimiento y documentación técnica en formato Obsidian. 👉 [[Home]]
 - **`scripts/`**: Scripts de construcción y automatización (`build_sidecar.py`).
 - **`assets/`**: Iconos, imágenes oficiales de la aplicación e ilustraciones de Miku.
-- **`venv/`**: Entorno virtual de Python con todas las dependencias del backend instaladas.
+- **`venv/`**: Entorno virtual de Python local; no forma parte del código fuente.
+
+La guía común de arquitectura, diseño, estructura objetivo de Android y propuesta de packs de contenido está en [[PROJECT_ARCHITECTURE_AND_DESIGN]].
 
 ---
 

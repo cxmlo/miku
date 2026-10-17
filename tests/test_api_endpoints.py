@@ -1,5 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
+from starlette.requests import Request
 import os
 import sys
 
@@ -7,6 +9,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from server import app
+import miku_db
+import server
 
 @pytest.fixture
 def client():
@@ -57,3 +61,275 @@ def test_detectable_apps_endpoint(client):
     data = response.json()
     assert "apps" in data
     assert len(data["apps"]) > 0
+
+def test_api_auth_accepts_registered_mobile_device(monkeypatch):
+    request = Request({
+        "type": "http",
+        "method": "GET",
+        "path": "/history",
+        "headers": [],
+        "client": ("192.168.1.20", 43120),
+    })
+    monkeypatch.setattr(miku_db, "is_valid_device", lambda device_id: device_id == "paired-device")
+
+    assert server.get_api_key(
+        request,
+        api_key_header=None,
+        x_device_id="paired-device",
+    ) == "paired-device"
+
+def test_api_auth_keeps_legacy_api_key_support():
+    request = Request({
+        "type": "http",
+        "method": "GET",
+        "path": "/history",
+        "headers": [],
+        "client": ("192.168.1.20", 43120),
+    })
+
+    assert server.get_api_key(
+        request,
+        api_key_header=server.API_KEY,
+        x_device_id=None,
+    ) == server.API_KEY
+
+def test_api_auth_rejects_unknown_mobile_device(monkeypatch):
+    request = Request({
+        "type": "http",
+        "method": "GET",
+        "path": "/history",
+        "headers": [],
+        "client": ("192.168.1.20", 43120),
+    })
+    monkeypatch.setattr(miku_db, "is_valid_device", lambda _device_id: False)
+
+    with pytest.raises(HTTPException) as error:
+        server.get_api_key(request, api_key_header=None, x_device_id="unknown-device")
+
+    assert error.value.status_code == 403
+
+def test_send_text_to_phone_broadcasts_mobile_clipboard(client, monkeypatch):
+    sent = []
+
+    async def capture_message(message):
+        sent.append(message)
+
+    monkeypatch.setattr(server.manager, "connected_mobile", lambda: {"type": "miku_link_connected"})
+    monkeypatch.setattr(server.manager, "broadcast_message", capture_message)
+
+    response = client.post(
+        "/api/device/send_to_phone",
+        headers={"x-api-key": server.API_KEY},
+        json={"text": "Texto para el teléfono"},
+    )
+
+    assert response.status_code == 200
+    assert sent == [{
+        "type": "ui_command",
+        "action": "sync_clipboard",
+        "text": "Texto para el teléfono",
+    }]
+
+def test_send_text_to_phone_reports_disconnected_device(client, monkeypatch):
+    monkeypatch.setattr(server.manager, "connected_mobile", lambda: None)
+
+    response = client.post(
+        "/api/device/send_to_phone",
+        headers={"x-api-key": server.API_KEY},
+        json={"text": "Texto para el teléfono"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "No hay un teléfono Miku conectado."
+
+def test_send_uploaded_file_to_phone_broadcasts_download(client, monkeypatch, tmp_path):
+    temp_dir = tmp_path / "outbox"
+    temp_dir.mkdir()
+    sent = []
+
+    async def capture_message(message):
+        sent.append(message)
+
+    monkeypatch.setattr(server.tempfile, "gettempdir", lambda: str(temp_dir))
+    monkeypatch.setattr(server.manager, "connected_mobile", lambda: {"type": "miku_link_connected"})
+    monkeypatch.setattr(server.manager, "broadcast_message", capture_message)
+
+    response = client.post(
+        "/api/send_to_phone",
+        headers={"x-api-key": server.API_KEY},
+        files={"file": ("test-image.png", b"image-content", "image/png")},
+    )
+
+    assert response.status_code == 200
+    assert (temp_dir / "test-image.png").read_bytes() == b"image-content"
+    assert sent == [{
+        "type": "ui_command",
+        "action": "download_file",
+        "filename": "test-image.png",
+    }]
+
+def test_send_desktop_path_to_phone_copies_file(client, monkeypatch, tmp_path):
+    source = tmp_path / "desktop-image.png"
+    source.write_bytes(b"image-content")
+    temp_dir = tmp_path / "outbox"
+    temp_dir.mkdir()
+    sent = []
+
+    async def capture_message(message):
+        sent.append(message)
+
+    monkeypatch.setattr(server.tempfile, "gettempdir", lambda: str(temp_dir))
+    monkeypatch.setattr(server.manager, "connected_mobile", lambda: {"type": "miku_link_connected"})
+    monkeypatch.setattr(server.manager, "broadcast_message", capture_message)
+
+    response = client.post(
+        "/api/desktop/send_file_to_phone",
+        headers={"x-api-key": server.API_KEY},
+        json={"path": str(source)},
+    )
+
+    assert response.status_code == 200
+    assert (temp_dir / source.name).read_bytes() == b"image-content"
+    assert sent == [{
+        "type": "ui_command",
+        "action": "download_file",
+        "filename": source.name,
+    }]
+
+def test_websocket_accepts_registered_mobile_device(client, monkeypatch):
+    monkeypatch.setattr(miku_db, "is_valid_device", lambda device_id: device_id == "paired-device")
+    monkeypatch.setattr(
+        miku_db,
+        "get_device",
+        lambda device_id: {"device_id": device_id, "name": "Android Test"},
+    )
+
+    with client.websocket_connect("/ws?device_id=paired-device") as websocket:
+        assert websocket.receive_json() == {
+            "type": "miku_link_connected",
+            "name": "Android Test",
+        }
+
+def test_pair_init_registers_session(client, monkeypatch):
+    monkeypatch.setattr(server, "PAIRING_SESSION", None)
+
+    response = client.post("/api/pair/init", json={"session_id": "test-pair-session"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    assert server.PAIRING_SESSION == "test-pair-session"
+
+def test_pair_confirm_does_not_mark_device_online_before_websocket_connects(client, monkeypatch):
+    class RecordingManager:
+        message = None
+
+        async def broadcast_message(self, message):
+            self.message = message
+
+    manager = RecordingManager()
+    monkeypatch.setattr(server, "PAIRING_SESSION", "test-pair-session")
+    monkeypatch.setattr(server, "manager", manager)
+    monkeypatch.setattr(miku_db, "add_device", lambda *_args: None)
+    monkeypatch.setattr(miku_db, "get_server_public_key_b64", lambda: "public-key")
+
+    response = client.post(
+        "/api/pair/confirm",
+        json={
+            "session_id": "test-pair-session",
+            "device_id": "android-device",
+            "name": "Android Test",
+            "public_key": "device-public-key",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+    assert server.PAIRING_SESSION is None
+    assert manager.message is None
+
+
+def test_chat_broadcasts_typed_user_message_with_agent_context(client, monkeypatch):
+    class RecordingManager:
+        messages = []
+
+        async def broadcast_message(self, message):
+            self.messages.append(message)
+
+    manager = RecordingManager()
+    monkeypatch.setattr(server, "manager", manager)
+    monkeypatch.setattr(server, "append_to_chat_history", lambda _message: None)
+    monkeypatch.setattr(server, "sync_miku_state", lambda _state: None)
+    monkeypatch.setattr(server, "get_system_prompt", lambda *_args, **_kwargs: "test prompt")
+    monkeypatch.setattr(server, "get_llm_response", lambda *_args: "respuesta")
+
+    response = client.post(
+        "/chat",
+        json={
+            "message": "hola desde Android",
+            "source": "mobile",
+            "agent_id": "miku",
+            "agent_name": "Miku",
+            "silent": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "respuesta"
+    assert manager.messages[0] == {
+        "type": "user_message",
+        "id": manager.messages[0]["id"],
+        "text": "hola desde Android",
+        "sender": "user",
+        "agent_id": "miku",
+        "agent_name": "Miku",
+    }
+    assert manager.messages[1]["type"] == "agent_reply"
+    assert manager.messages[1]["agent_id"] == "miku"
+
+
+def test_connection_manager_reports_mobile_offline_after_last_socket_closes():
+    class FakeWebSocket:
+        async def accept(self):
+            pass
+
+    async def exercise():
+        manager = server.ConnectionManager()
+        websocket = FakeWebSocket()
+
+        is_new = await manager.connect(websocket, "paired-device", "Android Test")
+
+        assert is_new
+        assert manager.connected_mobile() == {
+            "type": "miku_link_connected",
+            "name": "Android Test",
+        }
+        assert manager.disconnect(websocket) == {"type": "miku_link_disconnected"}
+        assert manager.connected_mobile() is None
+
+    import asyncio
+
+    asyncio.run(exercise())
+
+
+def test_connection_manager_keeps_mobile_online_while_another_socket_remains():
+    class FakeWebSocket:
+        async def accept(self):
+            pass
+
+    async def exercise():
+        manager = server.ConnectionManager()
+        first = FakeWebSocket()
+        second = FakeWebSocket()
+
+        assert await manager.connect(first, "paired-device", "Android Test")
+        assert not await manager.connect(second, "paired-device", "Android Test")
+        assert manager.disconnect(first) is None
+        assert manager.connected_mobile() == {
+            "type": "miku_link_connected",
+            "name": "Android Test",
+        }
+        assert manager.disconnect(second) == {"type": "miku_link_disconnected"}
+
+    import asyncio
+
+    asyncio.run(exercise())

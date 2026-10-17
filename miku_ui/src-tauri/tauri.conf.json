@@ -14,6 +14,7 @@
         "title": "Miku Desktop",
         "width": 800,
         "height": 400,
+        "visible": false,
         "transparent": true,
         "decorations": false,
         "alwaysOnTop": true,
@@ -60,7 +61,8 @@
         "installMode": "currentUser",
         "headerImage": "installer_header.bmp",
         "sidebarImage": "installer_sidebar.bmp",
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "hooks.nsi"
       }
     }
   },

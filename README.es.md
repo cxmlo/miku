@@ -48,7 +48,7 @@ Conoce a **Miku**: una suave nube brillante que asoma en la parte superior de tu
 - **Spotify y Multimedia sin Configuración**: Detecta automáticamente canciones y artistas de Spotify, YouTube o navegadores sin necesidad de claves de desarrollador de Spotify. Pausa, reanuda o cambia de pista con arrastre de volumen fluido.
 - **Arrastrar y Soltar Archivos**: Arrastra cualquier archivo o imagen sobre la Isla. Miku lo analiza de forma silenciosa, despliega una vista previa instantánea y responde tus preguntas sobre él.
 - **Model Context Protocol (MCP)**: Conecta bases de datos SQLite, exploradores del sistema de archivos, Google Drive o memoria semántica de largo plazo.
-- **Sincronización Móvil (Miku-Link)**: Empareja tu celular en segundos escaneando un código QR vía Wi-Fi local o túneles gratuitos de Cloudflare. Sincroniza portapapeles, archivos y widgets móviles.
+- **App compañera Miku-Link para Android (en migración)**: La app nativa Kotlin en `miku_android/` conecta el celular con la instancia de Miku Desktop mediante el QR de Miku-Link. Busca que puedas continuar el chat con los mismos agentes, recibir sus notificaciones, sincronizar texto y archivos y confirmar acciones permitidas para el teléfono. Un servicio en primer plano conserva el enlace al cerrar la pantalla; **Desvincular** lo detiene. No es un backend independiente ni reemplaza Tauri: Miku Desktop debe estar ejecutándose y ambos dispositivos deben poder comunicarse por la red local. La app Expo anterior permanece en `miku_app/` como referencia y rollback durante la migración. Consulta la [guía de la app móvil](docs/frontend/Mobile_App.md).
 - **Personalidades Intercambiables**:
   - **Calma**: Serena, madura, analítica y reflexiva.
   - **Casual**: Amigable, entusiasta, divertida y con tono gamer.
@@ -103,6 +103,13 @@ cp .env.example .env
 cd miku_ui
 npm install
 npm run tauri dev
+```
+
+**Cliente móvil Android nativo** (requiere JDK 17 y Android SDK 36):
+
+```powershell
+cd miku_android
+.\gradlew.bat testDebugUnitTest assembleDebug
 ```
 
 ---

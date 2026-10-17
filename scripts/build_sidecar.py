@@ -5,9 +5,11 @@ utilizando PyInstaller para que la app instalada no dependa de tener Python inst
 """
 
 import os
+import stat
 import sys
 import shutil
 import subprocess
+import tempfile
 
 if sys.platform == "win32":
     try:
@@ -23,12 +25,20 @@ BINARIES_DIR = os.path.join(WORKSPACE_DIR, "miku_ui", "src-tauri", "binaries")
 TARGET_NAME = "miku-core-x86_64-pc-windows-msvc.exe"
 LOCAL_APP_DIR = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Miku Desktop")
 
+def _remove_readonly(func, path, _exc_info):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
 def run():
     print("=" * 60)
     print("[Miku Build] Construyendo Miku Core Sidecar para Tauri 2...")
     print("=" * 60)
 
     os.makedirs(BINARIES_DIR, exist_ok=True)
+    build_dir = os.path.join(WORKSPACE_DIR, "build")
+    os.makedirs(build_dir, exist_ok=True)
+    work_dir = tempfile.mkdtemp(prefix="pyinstaller-miku-core-", dir=build_dir)
 
     # Buscar el ejecutable de PyInstaller
     venv_pyinstaller = os.path.join(WORKSPACE_DIR, "venv", "Scripts", "pyinstaller.exe")
@@ -44,8 +54,8 @@ def run():
         "--console",
         "--clean",
         "--distpath=" + BINARIES_DIR,
-        "--workpath=" + os.path.join(WORKSPACE_DIR, "build", "pyinstaller"),
-        "--specpath=" + os.path.join(WORKSPACE_DIR, "build"),
+        "--workpath=" + work_dir,
+        "--specpath=" + build_dir,
         # Archivos de datos y configuraciones iniciales
         f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.onnx')};.",
         f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.tflite')};.",
@@ -119,7 +129,10 @@ def run():
         cmd.insert(cmd.index(os.path.join(WORKSPACE_DIR, "server.py")), f"--add-data={cf};.")
 
     print(f"[1/3] Ejecutando PyInstaller...")
-    ret = subprocess.run(cmd, cwd=WORKSPACE_DIR)
+    try:
+        ret = subprocess.run(cmd, cwd=WORKSPACE_DIR)
+    finally:
+        shutil.rmtree(work_dir, onerror=_remove_readonly)
     if ret.returncode != 0:
         print("[ERROR] Error al compilar con PyInstaller.")
         sys.exit(ret.returncode)

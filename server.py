@@ -72,11 +72,17 @@ def sync_miku_state(state: str):
 API_KEY_NAME = "x-api-key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
-def get_api_key(request: Request, api_key_header: str = Security(api_key_header)):
+def get_api_key(
+    request: Request,
+    api_key_header: str = Security(api_key_header),
+    x_device_id: Optional[str] = Header(None),
+):
     # Permitir peticiones desde localhost / loopback directamente (IPv4, IPv6 o IPv4-mapped IPv6)
     client_host = request.client.host if request.client else ""
     if client_host in ("127.0.0.1", "localhost", "::1", "testclient") or client_host.endswith("127.0.0.1") or client_host.startswith("127."):
         return API_KEY
+    if x_device_id and miku_db.is_valid_device(x_device_id):
+        return x_device_id
     if API_KEY and api_key_header == API_KEY:
         return api_key_header
     raise HTTPException(status_code=403, detail="Acceso denegado: API Key inválida.")
@@ -203,17 +209,54 @@ chat_history = get_chat_history()
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
+        self.mobile_connections: dict[str, dict[str, Any]] = {}
+        self.connection_devices: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(
+        self,
+        websocket: WebSocket,
+        device_id: Optional[str] = None,
+        device_name: Optional[str] = None,
+    ) -> bool:
         await websocket.accept()
         async with self._lock:
             if websocket not in self.active_connections:
                 self.active_connections.append(websocket)
+            if device_id:
+                self.connection_devices[websocket] = device_id
+                device = self.mobile_connections.get(device_id)
+                is_new_device_connection = device is None
+                if device is None:
+                    self.mobile_connections[device_id] = {
+                        "name": device_name or "Teléfono",
+                        "connections": 1,
+                    }
+                else:
+                    device["connections"] += 1
+                return is_new_device_connection
+        return False
 
-    def disconnect(self, websocket: WebSocket):
+    def disconnect(self, websocket: WebSocket) -> Optional[dict[str, str]]:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
+        device_id = self.connection_devices.pop(websocket, None)
+        if not device_id:
+            return None
+        device = self.mobile_connections.get(device_id)
+        if not device:
+            return None
+        device["connections"] -= 1
+        if device["connections"] > 0:
+            return None
+        self.mobile_connections.pop(device_id, None)
+        return {"type": "miku_link_disconnected"}
+
+    def connected_mobile(self) -> Optional[dict[str, str]]:
+        device = next(iter(self.mobile_connections.values()), None)
+        if not device:
+            return None
+        return {"type": "miku_link_connected", "name": device["name"]}
 
     async def broadcast_status(self, status_msg: str):
         async with self._lock:
@@ -246,6 +289,7 @@ class ConnectionManager:
                     pass
 
         dead_connections = []
+        mobile_status_changed = False
         async with self._lock:
             for connection in self.active_connections:
                 try:
@@ -254,7 +298,12 @@ class ConnectionManager:
                     dead_connections.append(connection)
             
             for connection in dead_connections:
-                self.disconnect(connection)
+                mobile_status_changed = self.disconnect(connection) is not None or mobile_status_changed
+
+        if mobile_status_changed:
+            await self.broadcast_message(
+                self.connected_mobile() or {"type": "miku_link_disconnected"}
+            )
 
 manager = ConnectionManager()
 
@@ -319,7 +368,6 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
         # Si vino dataUrl y no está guardado aún en disco
         if not file_path and req.attachment_data:
             try:
-                import tempfile, base64
                 dest_dir = os.path.join(tempfile.gettempdir(), "miku_uploads")
                 os.makedirs(dest_dir, exist_ok=True)
                 file_path = os.path.join(dest_dir, req.attachment_name)
@@ -346,7 +394,14 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
         user_input = user_input + file_context
         logger.info(f"Contexto de archivo adjuntado inyectado: {req.attachment_name} -> {file_path or 'memoria'} (Longitud info: {len(analysis_info)} chars)")
     
-    user_msg = {"id": str(int(time.time()*1000)), "text": user_input, "sender": "user", "agent_id": req.agent_id}
+    user_msg = {
+        "type": "user_message",
+        "id": str(int(time.time() * 1000)),
+        "text": user_input,
+        "sender": "user",
+        "agent_id": req.agent_id,
+        "agent_name": req.agent_name,
+    }
     append_to_chat_history(user_msg)
     await manager.broadcast_message(user_msg)
     
@@ -461,6 +516,8 @@ REGLAS DE OPERACIÓN:
                             "action": "play_audio", 
                             "url": audio_url
                         })
+                except Exception:
+                    logger.exception("Error generando o enviando audio de respuesta móvil.")
                 finally:
                     sync_miku_state("idle")
             
@@ -589,7 +646,7 @@ class UploadFileRequest(BaseModel):
 
 @app.post("/api/upload_file")
 async def upload_file_endpoint(req: UploadFileRequest, api_key: str = Security(get_api_key)):
-    import tempfile, base64
+
     from tools_miku import analizar_archivo_silencioso
     try:
         dest_dir = os.path.join(tempfile.gettempdir(), "miku_uploads")
@@ -684,10 +741,6 @@ async def pair_confirm(req: PairConfirmRequest):
     miku_db.add_device(req.device_id, req.name, req.public_key)
     PAIRING_SESSION = None # Consumir
     
-    # Avisar a la interfaz web
-    if manager:
-        asyncio.create_task(manager.broadcast_message({"type": "ui_command", "action": "miku_link_connected", "text": req.name}))
-        
     server_pub = miku_db.get_server_public_key_b64()
     return {"status": "ok", "server_public_key": server_pub}
 
@@ -1938,20 +1991,64 @@ async def trigger_phone_download(req: PhoneDownloadRequest):
     return {"status": "ok"}
 
 @app.post("/api/send_to_phone")
-async def send_to_phone_api(file: UploadFile = File(...)):
-    """API Endpoint público para enviar cualquier archivo directamente al celular."""
+async def send_to_phone_api(file: UploadFile = File(...), api_key: str = Security(get_api_key)):
+    """Encola un archivo para el cliente móvil conectado."""
+    if not manager.connected_mobile():
+        raise HTTPException(status_code=409, detail="No hay un teléfono Miku conectado.")
+
+    filename = os.path.basename((file.filename or "archivo").replace("\\", "/"))
+    if not filename:
+        raise HTTPException(status_code=400, detail="El archivo no tiene un nombre válido.")
     temp_dir = tempfile.gettempdir()
-    file_path = os.path.join(temp_dir, file.filename)
-    
-    with open(file_path, "wb") as buffer:
-        buffer.write(await file.read())
-        
+    file_path = os.path.join(temp_dir, filename)
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except OSError as exc:
+        logger.exception("Error preparando archivo para el teléfono")
+        raise HTTPException(status_code=500, detail="No se pudo preparar el archivo para el teléfono.") from exc
+
     await manager.broadcast_message({
         "type": "ui_command",
         "action": "download_file",
-        "filename": file.filename
+        "filename": filename
     })
-    return {"status": "ok", "message": f"El archivo {file.filename} se está descargando en el celular"}
+    return {"status": "ok", "message": f"El archivo {filename} está listo para guardarse en el celular."}
+
+@app.post("/api/desktop/send_file_to_phone")
+async def send_desktop_file_to_phone(req: FileDropRequest, api_key: str = Security(get_api_key)):
+    if not manager.connected_mobile():
+        raise HTTPException(status_code=409, detail="No hay un teléfono Miku conectado.")
+    if not req.path or not os.path.isfile(req.path):
+        raise HTTPException(status_code=404, detail="No se encontró el archivo de escritorio.")
+
+    filename = os.path.basename(req.path.replace("\\", "/"))
+    destination = os.path.join(tempfile.gettempdir(), filename)
+    try:
+        if os.path.abspath(req.path) != os.path.abspath(destination):
+            shutil.copyfile(req.path, destination)
+    except OSError as exc:
+        logger.exception("Error preparando archivo local para el teléfono")
+        raise HTTPException(status_code=500, detail="No se pudo preparar el archivo para el teléfono.") from exc
+
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "download_file",
+        "filename": filename
+    })
+    return {"status": "ok", "filename": filename}
+
+@app.post("/api/device/send_to_phone")
+async def send_text_to_phone(req: ClipboardRequest, api_key: str = Security(get_api_key)):
+    if not manager.connected_mobile():
+        raise HTTPException(status_code=409, detail="No hay un teléfono Miku conectado.")
+
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "sync_clipboard",
+        "text": req.text
+    })
+    return {"status": "ok"}
 
 @app.post("/api/device/clipboard")
 async def device_clipboard(req: ClipboardRequest):
@@ -2026,15 +2123,30 @@ async def temp_media_download(filename: str):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     token = websocket.query_params.get("token")
-    logger.info(f"Intento de conexión WS con token: {token}")
-    if token != API_KEY:
-        logger.warning(f"Conexión WS rechazada. Token esperado: {API_KEY}, recibido: {token}")
+    device_id = websocket.headers.get("x-device-id") or websocket.query_params.get("device_id")
+    authorized_device = bool(device_id and miku_db.is_valid_device(device_id))
+    if token != API_KEY and not authorized_device:
+        logger.warning("Conexión WS rechazada: faltan credenciales válidas o el dispositivo no está vinculado.")
         await websocket.close(code=1008)
         return
     logger.info("[WS] Cliente conectado exitosamente.")
     
     # 1. Accept the connection first
-    await manager.connect(websocket)
+    device = miku_db.get_device(device_id) if authorized_device else None
+    is_new_mobile_connection = await manager.connect(
+        websocket,
+        device_id=device_id if authorized_device else None,
+        device_name=device["name"] if device else None,
+    )
+    if authorized_device and is_new_mobile_connection:
+        await manager.broadcast_message({
+            "type": "miku_link_connected",
+            "name": device["name"] if device else "Teléfono",
+        })
+    elif not authorized_device:
+        connected_mobile = manager.connected_mobile()
+        if connected_mobile:
+            await websocket.send_json(connected_mobile)
     
     # 2. Send the current clipboard state if available
     if LAST_CLIPBOARD:
@@ -2077,7 +2189,9 @@ async def websocket_endpoint(websocket: WebSocket):
     except (WebSocketDisconnect, RuntimeError, Exception) as e:
         pass
     finally:
-        manager.disconnect(websocket)
+        disconnected_event = manager.disconnect(websocket)
+        if disconnected_event:
+            await manager.broadcast_message(disconnected_event)
         logger.info("Cliente Móvil desconectado")
 
 @app.post("/api/ui_event")

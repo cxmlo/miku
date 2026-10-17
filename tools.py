@@ -519,7 +519,7 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "enviar_archivo_a_celular",
-            "description": "EnvÃ­a un archivo directamente al celular del usuario para que lo abra. NUNCA lo uses si el usuario estÃ¡ en la PC.",
+            "description": "Envia un archivo local al telefono Miku conectado cuando el usuario pida compartirlo desde la PC o el movil. Requiere que la app Miku este conectada; si no hay telefono, informa el error. Para publicar una imagen en el chat movil, usa enviar_imagen_a_chat.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -536,7 +536,7 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "enviar_imagen_a_chat",
-            "description": "EnvÃ­a una imagen local junto con un mensaje al chat (App MÃ³vil). NUNCA lo uses si el usuario estÃ¡ en la PC.",
+            "description": "Publica una imagen local con un mensaje en el chat de la app Miku del telefono conectado, tanto si el usuario habla desde la PC como desde el movil. Para enviar el archivo para guardarlo, usa enviar_archivo_a_celular.",
             "parameters": {
                 "type": "object",
                 "properties": {

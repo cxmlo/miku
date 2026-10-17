@@ -4,6 +4,21 @@ La interfaz de escritorio oficial de Miku V2 está desarrollada sobre **Tauri 2*
 
 ---
 
+## Fuente del frontend y compatibilidad
+
+El frontend empaquetado por Tauri vive en `miku_ui/src/` y es la fuente canónica. FastAPI todavía monta `miku_island/` en `/island` para los clientes de compatibilidad; esa carpeta no se elimina mientras exista ese montaje.
+
+Los archivos compartidos (`index.html`, `miku_settings.html`, `bridge.js`, `sound_fx.js` y los dos assets de marca) se verifican y sincronizan con:
+
+```powershell
+python scripts/sync_island.py
+python scripts/sync_island.py --sync
+```
+
+La primera orden solo comprueba; la segunda copia desde Tauri hacia el espejo. `miku_island/island.js`, `miku.js` e `island.css` son recursos exclusivos de esa carpeta y siguen pendientes de inventario de consumidores; no forman parte de la sincronización.
+
+La guía de arquitectura y diseño documenta los tokens visuales, el ciclo de animación y la propuesta futura para packs de assets: [[PROJECT_ARCHITECTURE_AND_DESIGN]].
+
 ## 🏛️ Arquitectura del Frontend de Escritorio
 
 ```mermaid
@@ -17,7 +32,7 @@ graph TD
 ```
 
 ### 1. Ventana Principal: Dynamic Island (`index.html`)
-- **Posicionamiento**: Fijo en la parte superior central de la pantalla principal (`alwaysOnTop`, `decorations: false`, `transparent: true`).
+- **Posicionamiento**: Fijo en la parte superior central de la pantalla principal (`alwaysOnTop`, `decorations: false`, `transparent: true`). La ventana inicia oculta; Tauri define primero tamaño y posición sobre el monitor principal y luego la muestra para evitar un salto visible desde su posición inicial.
 - **Estados Reactivos**:
   - `idle`: Espera interactiva con seguimiento de cursor esférico de Miku.
   - `thinking`: Nube de pensamiento animada con cronómetro de razonamiento en vivo.
@@ -25,8 +40,9 @@ graph TD
   - `talking` / `listening`: Ondas de voz reactivas al micrófono y al habla.
 - **Escenas Principales**:
   - `compact`: Píldora ultra-compacta (128px) que se posa en el borde de la pantalla sin robar el foco.
+  - `intro` → `boot`: conserva la entrada de Miku con su burst de partículas Canvas; al terminar, una tarjeta un poco más ancha coloca a Miku en el lateral de los indicadores de inicio, preparación de recursos y conexión WebSocket. Solo el handshake real marca el Core como listo y permite continuar al overview.
   - `overview`: Tarjetas 50/50 con métricas del agente activo y reproductor multimedia / cuadrícula 2x2.
-  - `prompt` (Chat Multi-Agente): Conversación con Miku o subagentes (GitHub, Antigravity) con burbujas translúcidas, proceso de pensamiento colapsable, historial de comandos colapsable y miniaturas de Computer Use con zoom a pantalla completa.
+  - `prompt` (Chat Multi-Agente): Conversación compacta con Miku o subagentes (GitHub, Antigravity): el canvas animado del agente con su atuendo activo y el nombre permanecen en una columna lateral izquierda; pulsar el avatar abre el agente con notificaciones pendientes. A la derecha se apilan mensaje del usuario, pensamiento colapsable, respuesta y compositor, sin un panel interior para el historial. Incluye historial de comandos y miniaturas de Computer Use con zoom a pantalla completa.
   - `tool_use`: Monitor de visión y control de periféricos de la computadora.
   - `approve`: Diálogo modal de confirmación con teclado (<kbd>Y</kbd>/<kbd>N</kbd>) para ejecución de comandos sensibles.
 
@@ -45,6 +61,23 @@ graph TD
 - Gestiona la conexión WebSocket con `ws://127.0.0.1:8000/ws` y peticiones REST seguras.
 - Sincroniza el estado entre ventanas mediante la API estándar `BroadcastChannel('miku')`.
 - Emite `core_connected` al iniciar el backend para auto-poblar datos sin recargas manuales.
+
+### Backend sidecar y desarrollo
+
+La app Tauri inicia `miku-core.exe`, el sidecar compilado desde `server.py`; no hace falta ejecutar el servidor por separado. Editar `server.py` no actualiza un sidecar que ya fue compilado. Tras cerrar completamente Miku Desktop, recompilarlo desde la raíz del repositorio y reconstruir la app de desarrollo:
+
+```powershell
+.\venv\Scripts\python.exe scripts\build_sidecar.py
+Push-Location miku_ui
+npm run tauri -- build --debug --no-bundle
+Pop-Location
+```
+
+La segunda orden actualiza `miku_ui\src-tauri\target\debug\miku_ui.exe` y su `miku-core.exe`. Antes de volver a abrir la app, comprobar que no haya un backend anterior ocupando el puerto 8000; una instancia existente impide que Tauri inicie el sidecar recién compilado.
+
+Cerrar la ventana principal la oculta en la bandeja y deja el Core disponible para el teléfono. Usa **Abrir Miku** para restaurarla; **Salir** desde el menú de bandeja es el cierre explícito que detiene el sidecar.
+
+La ventana Tauri tiene `shadow: false`; el contorno exterior y el halo CSS de la Isla se mantienen reducidos para no proyectar una sombra amplia.
 
 ---
 

@@ -36,6 +36,12 @@ wheels/
 **/target/
 **/*.rs.bk
 
+# Native Android / Gradle
+**/.gradle/
+**/local.properties
+**/.idea/
+**/build/
+
 # Node.js
 **/node_modules/
 npm-debug.log*

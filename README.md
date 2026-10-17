@@ -48,7 +48,7 @@ Meet **Miku**: a soft, glossy cloud character that peeks out from the top of you
 - **Zero-Config Spotify & Media** — automatically detects and displays track titles and artists from Spotify, YouTube, or your browser without requiring Spotify Developer API tokens. Play, pause, or skip tracks with continuous volume dragging.
 - **Drag & Drop Files** — drag any file or image directly into the Island. Miku analyzes it silently, provides an instant quicklook preview card, and answers questions about it.
 - **Model Context Protocol (MCP)** — plug in SQLite databases, local filesystem explorers, Google Drive, or semantic vector memories dynamically.
-- **Miku-Link Mobile Gateway** — pair your phone in seconds via QR code over your local Wi-Fi or free Cloudflare Quick Tunnels to sync clipboard, files, and mobile widgets.
+- **Miku-Link Android companion app (migration in progress)** — the native Kotlin app in `miku_android/` pairs the phone with Miku Desktop through the Island's QR code. The goal is to continue chats with the same agents, receive their notifications, sync text and files, and confirm supported phone actions. A foreground service keeps the link alive after closing the app screen; **Unpair** stops it. This is not a standalone backend or a replacement for Tauri: Miku Desktop must be running, and both devices must be reachable over the local network. The previous Expo app remains in `miku_app/` as a reference and rollback during migration. See the [mobile app guide](docs/frontend/Mobile_App.md).
 - **Custom Personalities** — switch between **Calm** (mature and analytical), **Casual** (energetic gamer friend), and **Code** (concise senior engineer pair-programmer).
 
 ---
@@ -100,6 +100,13 @@ cp .env.example .env
 cd miku_ui
 npm install
 npm run tauri dev
+```
+
+**Native Android client** (requires JDK 17 and Android SDK 36):
+
+```powershell
+cd miku_android
+.\gradlew.bat testDebugUnitTest assembleDebug
 ```
 
 ---

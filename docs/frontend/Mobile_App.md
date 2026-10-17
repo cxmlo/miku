@@ -1,34 +1,72 @@
-# Aplicación Móvil (React Native) 📱
+# Aplicación Móvil Android 📱
 
-La aplicación móvil (`miku_app/`) es la interfaz primaria a través de la cual interactúas remotamente con Miku. Está construida usando **React Native** con el framework **Expo** (SDK 50+).
+El nuevo cliente móvil activo se está reconstruyendo como aplicación Android nativa en `miku_android/`, con Kotlin y Jetpack Compose. Se comunica con el backend FastAPI que alimenta el Island de escritorio Tauri; no reemplaza ni modifica Tauri.
 
-## Componentes y Arquitectura de Rutas (`app/`)
-- **`_layout.tsx`**: Define el RootLayout. Envuelve todo en el `WebSocketProvider` y crucialmente en el `GestureHandlerRootView` para permitir animaciones de arrastre seguras (como los BottomSheets).
-- **`index.tsx`**: Pantalla principal inmersiva.
-  - Muestra un visor inmersivo (GIFs de Miku cargados dinámicamente según el estado: idle, listening, thinking).
-  - Modal dinámico de Secretos (`open_secrets_panel`): Permite al usuario pegar contraseñas en campos generados dinámicamente, asegurando que las claves complejas (como OAuth de Google) no se rompan, y sin censura para asegurar precisión.
-- **`components/AssistantOverlay.tsx`**:
-  - Modal dinámico tipo "BottomSheet" (estilo Asistente de Google) con animaciones de arrastre (`react-native-reanimated` y `react-native-gesture-handler`).
-  - Cuenta con autoinicio de micrófono para grabaciones de voz fluidas.
-  - Muestra ondas de audio animadas cuando el usuario habla.
-- **`devices.tsx`**: Administrador de dispositivos vinculados.
-  - Utiliza `expo-camera` para escáner QR de emparejamiento.
-  - Verifica tokens y esquemas de vinculación profunda (`miku://pair`).
-- **`diagnostics.tsx`**: Panel de control técnico y monitoreo.
-  - Se comunica mediante la API REST (`/api/desktop/status`) del servidor para obtener información sobre la red, versión del SO del servidor (Python/Windows), y monitorea el estado en vivo de los servidores **MCP (Model Context Protocol)**.
-  - Permite eliminar servidores MCP dinámicamente (Llama a `DELETE /api/mcp/{server_name}`).
-  - Interfaz responsiva que muestra 3 servidores por defecto y permite expandir para ver todos.
-  - Posee una consola en vivo para registrar los eventos locales de conexión.
+## Objetivo de la app compañera
 
-## Manejo de Estado (Context)
-- **`context/WebSocketContext.tsx`**:
-  - Proveedor global de conexión en tiempo real (Socket).
-  - Mantiene viva la conexión implementando un bucle Ping/Pong automático para evitar desconexiones por inactividad.
-  - Evita audios dobles: Implementa caché de 2 segundos para `play_audio` que previene el eco ante reconexiones rápidas de WebSocket.
-  - Recibe eventos de sistema como "cambios de portapapeles" (`clipboard_update`) e inyecta texto directamente al portapapeles de iOS/Android usando `expo-clipboard`.
-  - Escucha el comando `ejecutar_intent_android` utilizando `expo-intent-launcher` para disparar acciones a nivel de sistema operativo (como configurar alarmas o temporizadores en la aplicación de reloj nativa).
-  - Recibe comandos UI directos como estados de pensamiento.
+La app nativa busca que el teléfono sea una extensión de Miku Desktop, no un asistente separado: el escritorio conserva el backend, los modelos y los agentes; Android ofrece una interfaz móvil para continuar conversaciones, recibir eventos y notificaciones, intercambiar texto y archivos, y confirmar acciones compatibles del teléfono.
 
-## Enlaces Relacionados
-- 👉 Volver a [[Home]]
-- Se comunica directamente con: [[Backend_Gateway]]
+El flujo esperado es iniciar Miku Desktop, vincular el teléfono escaneando el QR de Miku-Link y dejar que Android mantenga la sesión con un servicio en primer plano. Cerrar la pantalla de la app no debe desvincular el teléfono; **Desvincular** sí borra las credenciales y detiene la conexión. La conexión depende de que Miku Desktop esté activo y accesible por la red local. Android y algunos fabricantes pueden limitar servicios en segundo plano, por lo que la persistencia y el reinicio deben validarse en dispositivos reales.
+
+La migración está en curso: la app Expo de `miku_app/` se conserva como referencia y rollback hasta validar la paridad funcional. La app nativa no ejecuta código arbitrario recibido desde el escritorio; las acciones del teléfono se presentan para confirmación y se limitan a intents permitidos.
+
+## Arquitectura nativa
+
+- **`app/src/main/java/.../MainActivity.kt`**: interfaz Compose para chat, control del PC, eventos de agentes y vinculación.
+- **`data/MikuClient.kt`**: cliente HTTP/WebSocket para el Gateway; carga el historial y los agentes, envía chat y archivos, sincroniza texto del portapapeles y procesa eventos del escritorio.
+- **`data/PairingLink.kt`**: valida enlaces QR con el esquema `miku://pair?s={session}&ip={host}` generado por el Island.
+- **`data/DeviceStore.kt`**: protege el ID del dispositivo y el nombre del PC con AES-GCM respaldado por Android Keystore.
+- **`connection/MikuConnectionService.kt`**: mantiene la conexión en primer plano (`connectedDevice`) y publica notificaciones cuando llegan eventos de agentes. `START_STICKY` permite que Android intente recrearlo si recupera el proceso.
+- **`connection/MikuBootReceiver.kt`**: reinicia el servicio tras `BOOT_COMPLETED` si el dispositivo conserva credenciales de pairing.
+- **`ui/theme/Color.kt` y `ui/theme/Theme.kt`**: paleta semántica y tema Compose compartidos para evitar que los colores de marca se dispersen por las pantallas.
+- **`app/src/main/AndroidManifest.xml`**: declara el servicio de conexión, permisos de red/cámara/notificaciones y el enlace de emparejamiento.
+
+La interfaz y la coordinación de acciones todavía están concentradas en `MainActivity.kt`; separar ViewModels y repositorios es una evolución pendiente, no una capa que ya esté implementada. La arquitectura objetivo y las reglas visuales están en [[PROJECT_ARCHITECTURE_AND_DESIGN]].
+
+## Funciones migradas al cliente nativo
+
+- Vincular con el QR del panel Miku-Link del escritorio.
+- Solicitar permiso de cámara antes de escanear y aceptar el enlace `miku://pair` abierto desde otra app de cámara.
+- Mostrar el resultado de lectura o cancelación del escáner. El QR del Island se renderiza a mayor tamaño y resolución para facilitar su lectura desde el teléfono.
+- Mantener WebSocket al backend y cargar el historial de chat y los agentes configurados.
+- Enviar mensajes a Miku o a un agente seleccionado.
+- Recibir eventos de agentes y mostrarlos en la app y en notificaciones de Android.
+- Enviar archivos del teléfono al PC y solicitar el bloqueo del PC.
+- Sincronizar texto del portapapeles en ambos sentidos.
+- Recibir archivos compartidos desde el Island; Android solicita al usuario dónde guardarlos.
+- Recibir acciones destinadas al teléfono, presentarlas para confirmación y ejecutar solo intents de alarma, temporizador o ajustes incluidos en una lista permitida.
+- Mantener el enlace al cerrar la pantalla/app: el foreground service sigue activo y reconecta usando el ID/IP guardados; no hace falta volver a escanear el QR mientras el pairing siga guardado.
+
+Cerrar o descartar la actividad no equivale a desvincular. La acción **Desvincular** borra las credenciales y detiene la conexión. Android puede interrumpir el servicio si el usuario fuerza la detención, si el teléfono se apaga o por restricciones de batería del fabricante; un cambio de IP local del escritorio también puede requerir volver a vincular. El receiver de reinicio está implementado, pero su comportamiento debe probarse en un dispositivo real.
+
+El acceso al Gateway desde la app nativa usa `X-Device-Id` tanto para rutas REST protegidas como para el handshake WebSocket. El backend valida que el dispositivo esté registrado en `miku_devices.db`; las apps antiguas que envían `x-api-key` conservan compatibilidad.
+
+El Island marca el teléfono como conectado solo cuando el WebSocket del dispositivo emparejado se establece; al cerrarse la última conexión móvil, refleja la desconexión. La confirmación del QR por sí sola no indica que el teléfono esté en línea. El WebSocket móvil envía el ID de dispositivo en la cabecera y como parámetro de compatibilidad; un HTTP 403 detiene los reintentos automáticos y muestra que hace falta reiniciar/actualizar el backend de escritorio o volver a vincular el teléfono. Los mensajes enviados desde Android se difunden con el agente y un evento explícito de mensaje de usuario para que la Isla inicie su indicador de pensamiento con el tiempo correcto. Si falla la creación de la sesión QR en Windows, el Island muestra el error en vez de presentar un QR fallback que no se puede vincular. Ambos dispositivos deben compartir una red que permita tráfico local.
+
+## App anterior conservada
+
+`miku_app/` continúa siendo el cliente anterior en React Native/Expo. Se conserva sin retirar sus archivos ni modificar su configuración para servir como referencia y rollback hasta validar paridad funcional de la aplicación Android nativa.
+
+La migración nativa todavía no cubre todas las funciones del cliente Expo. Entre las siguientes candidatas están la grabación y envío de voz, el panel de diagnóstico MCP, los ajustes de claves y la sincronización de imágenes del portapapeles.
+
+La aplicación Android todavía no tiene un cargador general de personajes, assets o animaciones personalizados. El documento de arquitectura define una propuesta segura de packs de contenido sin código ejecutable; debe tratarse como diseño futuro hasta implementar y probar el cargador.
+
+## Compilar y probar
+
+Requisitos: JDK 17, Android SDK Platform 36 y Android Build Tools 36.0.0. Abre `miku_android/` como proyecto independiente en Android Studio o ejecuta desde esa carpeta:
+
+```powershell
+.\gradlew.bat testDebugUnitTest assembleDebug
+```
+
+El APK debug se genera en `app/build/outputs/apk/debug/app-debug.apk`. Este build verifica compilación y pruebas unitarias; para validar cámara/QR, pairing, WebSocket y pantallas se necesita instalarlo y probarlo en un dispositivo o emulador.
+
+El protocolo actual usa HTTP/WebSocket sin TLS cuando el QR contiene la IP local, igual que el cliente anterior. Vincula el teléfono y el PC únicamente en una red de confianza.
+
+## Comunicación
+
+- **Emparejamiento y Gateway**: [[Backend_Gateway]]
+- **Interfaz de escritorio y generador QR**: [[Desktop_Island_Tauri]]
+- **Permisos y dispositivos vinculados**: [[Database_and_Security]]
+
+👉 Volver a [[Home]]

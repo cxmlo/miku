@@ -386,26 +386,33 @@ import uuid
 import uuid
 
 def enviar_archivo_a_celular(ruta: str) -> str:
-    """EnvÃ­a un archivo directamente al celular del usuario a travÃ©s de Miku-Link. NUNCA lo uses para PC."""
-    import os, shutil, urllib.request, json, tempfile
-    if not os.path.exists(ruta): return f"Error: No se encontrÃ³ {ruta}"
-    
-    temp_dir = tempfile.gettempdir()
-    filename = os.path.basename(ruta)
-    dest_path = os.path.join(temp_dir, filename)
-    
-    if os.path.abspath(ruta) != os.path.abspath(dest_path):
-        shutil.copy2(ruta, dest_path)
-        
-    url = "http://127.0.0.1:8000/api/desktop/trigger_phone_download"
-    data = json.dumps({"filename": filename}).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    
+    """Envía un archivo local al teléfono Miku conectado, tanto desde PC como desde móvil."""
+    import json
+    import os
+    import urllib.error
+    import urllib.request
+
+    if not os.path.isfile(ruta):
+        return f"Error: no se encontró un archivo válido en {ruta}"
+
+    api_key = os.getenv("MIKU_API_KEY", "miku_secure_key_2026")
+    url = "http://127.0.0.1:8000/api/desktop/send_file_to_phone"
+    data = json.dumps({"path": os.path.abspath(ruta)}).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json", "x-api-key": api_key},
+    )
+
     try:
-        urllib.request.urlopen(req, timeout=3)
-        return "Archivo enviado exitosamente al celular del usuario."
+        with urllib.request.urlopen(req, timeout=5) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        return f"Archivo {result.get('filename', os.path.basename(ruta))} listo para guardar en el teléfono."
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        return f"Error al enviar el archivo (HTTP {exc.code}): {detail}"
     except Exception as e:
-        return f"Error al enviar: el celular podrÃ­a estar desconectado. {e}"
+        return f"Error al enviar el archivo al teléfono: {e}"
 
 def enviar_imagen_a_chat(ruta_imagen: str, mensaje: str) -> str:
     """EnvÃ­a una imagen (con un mensaje) directamente al chat de la aplicaciÃ³n mÃ³vil del usuario. NUNCA lo uses para PC."""

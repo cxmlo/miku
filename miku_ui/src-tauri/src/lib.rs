@@ -228,6 +228,16 @@ fn stop_backend() {
             let _ = child.kill();
         }
     }
+
+    // 3. Garantizar que ningún proceso huérfano de miku-core.exe quede bloqueando en Windows
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut kill_cmd = std::process::Command::new("taskkill");
+        kill_cmd.args(["/F", "/IM", "miku-core.exe", "/T"]);
+        kill_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        let _ = kill_cmd.status();
+    }
 }
 
 fn stop_speech_silent() {
@@ -332,25 +342,41 @@ pub fn run() {
             start_backend();
 
             if let Some(window) = app.get_webview_window("main") {
-                if let Ok(Some(monitor)) = window.current_monitor() {
+                let monitor = window
+                    .primary_monitor()
+                    .ok()
+                    .flatten()
+                    .or_else(|| window.current_monitor().ok().flatten());
+                if let Some(monitor) = monitor {
                     let sf = monitor.scale_factor();
-                    let screen_w = monitor.size().width as f64 / sf;
-                    let init_w = 340.0;
+                    let init_w = 440.0;
                     let init_h = 50.0;
-                    let x_pos = (screen_w - init_w) / 2.0;
+                    let monitor_position = monitor.position();
+                    let monitor_size = monitor.size();
+                    let x_pos = monitor_position.x as f64 / sf
+                        + (monitor_size.width as f64 / sf - init_w) / 2.0;
+                    let y_pos = monitor_position.y as f64 / sf;
                     let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize::new(init_w, init_h)));
-                    let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(x_pos, 0.0)));
+                    let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(x_pos, y_pos)));
                 }
+                let _ = window.show();
             }
 
             let config_i = MenuItem::with_id(app, "config", "Configuración (API Keys)", true, None::<&str>)?;
+            let open_i = MenuItem::with_id(app, "open", "Abrir Miku", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&config_i, &quit_i])?;
+            let menu = Menu::with_items(app, &[&open_i, &config_i, &quit_i])?;
 
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
+                    "open" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
                     "config" => {
                         open_settings_window(app.clone());
                     }
@@ -365,13 +391,18 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if window.label() == "main" {
-                if let tauri::WindowEvent::Focused(focused) = event {
-                    if !focused {
-                        let _ = window.emit("window-blur", ());
+                match event {
+                    tauri::WindowEvent::Focused(focused) => {
+                        if !focused {
+                            let _ = window.emit("window-blur", ());
+                        }
                     }
-                }
-                if let tauri::WindowEvent::Destroyed = event {
-                    stop_backend();
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
+                        let _ = window.hide();
+                        api.prevent_close();
+                    }
+                    tauri::WindowEvent::Destroyed => stop_backend(),
+                    _ => {}
                 }
             }
             if window.label() == "settings" {

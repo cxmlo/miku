@@ -26,6 +26,8 @@ Ubicado en `server.py`, el Gateway es el corazón de las comunicaciones de Miku.
   - **Apagado Limpio (`POST /api/system/shutdown`)**: Permite a Tauri solicitar el cierre controlado del servidor FastAPI y liberación del puerto 8000 al cerrar la ventana o salir de la bandeja del sistema.
   - **Tauri Sidecar (`scripts/build_sidecar.py`)**: Empaqueta el Gateway completo en `miku-core-x86_64-pc-windows-msvc.exe` mediante PyInstaller, permitiendo que la aplicación instalada funcione sin requerir Python en la máquina del usuario. `lib.rs` gestiona su inicio invisible (`CREATE_NO_WINDOW`) y ciclo de vida.
 
+- **Autenticación del cliente Android (`X-Device-Id`)**: Las rutas protegidas por la dependencia de API key y el handshake de `/ws` aceptan el identificador de un dispositivo ya emparejado en la cabecera `X-Device-Id`. Los clientes antiguos que usan `x-api-key` siguen siendo compatibles. Las rutas de emparejamiento registran el dispositivo antes de habilitar esta autenticación.
+
 - **Endpoints Nativos / PC**:
   - `GET /wallpaper`: Devuelve el fondo de pantalla actual de Windows en Base64 (vía `ctypes`).
   - `GET /miku_gif`: Devuelve los GIFs dinámicos (idle, thinking, talking) alojados en el servidor local.
