@@ -257,3 +257,14 @@ def prev_track():
         asyncio.run_coroutine_threadsafe(_do_prev(), _loop)
     else:
         _send_vk(VK_MEDIA_PREV_TRACK)
+
+def get_current_playback_info() -> dict:
+    """Retorna el estado de reproducción normalizado para UI y pruebas"""
+    return {
+        "title": media_state.get("title", "Sin música"),
+        "artist": media_state.get("artist", ""),
+        "playing": bool(media_state.get("is_playing", False)),
+        "position_sec": float(media_state.get("position_sec", 0)),
+        "duration_sec": float(media_state.get("end_time_sec", 0)),
+        "thumbnail_b64": media_state.get("thumbnail_bytes")
+    }

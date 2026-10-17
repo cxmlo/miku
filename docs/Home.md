@@ -24,6 +24,7 @@ Cómo funciona el pensamiento a corto, mediano y largo plazo, y cómo escucha.
 
 ## 📱 Frontend y Seguridad
 Las interfaces gráficas y las murallas de protección criptográfica.
+- **Interfaz de Escritorio Oficial (Tauri 2)**: [[Desktop_Island_Tauri]]
 - **Aplicación Móvil (React Native)**: [[Mobile_App]]
-- **Widgets y UI Local (PyQt6)**: [[Widgets_and_UI]]
+- **Widgets y UI Local (PyQt6 - Legado)**: [[Widgets_and_UI]]
 - **Base de Datos y Seguridad**: [[Database_and_Security]]

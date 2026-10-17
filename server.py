@@ -77,7 +77,7 @@ def get_api_key(request: Request, api_key_header: str = Security(api_key_header)
     client_host = request.client.host if request.client else ""
     if client_host in ("127.0.0.1", "localhost", "::1", "testclient") or client_host.endswith("127.0.0.1") or client_host.startswith("127."):
         return API_KEY
-    if api_key_header in (API_KEY, "miku_secure_key_2026"):
+    if API_KEY and api_key_header == API_KEY:
         return api_key_header
     raise HTTPException(status_code=403, detail="Acceso denegado: API Key inválida.")
 
@@ -96,18 +96,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==========================================
-# CURSOR TRACKING GLOBAL (Para los ojos de Miku)
-# ==========================================
-import ctypes
-class POINT(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-
-@app.get("/mouse")
-def get_mouse():
-    pt = POINT()
-    ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-    return {"x": pt.x, "y": pt.y}
 
 from pydantic import BaseModel
 class FileRequest(BaseModel):

@@ -19,7 +19,7 @@ const Bridge = (() => {
   const PORT = BACKEND_PORT;
   const BASE_URL = `http://${HOST}:${BACKEND_PORT}`;
   const WS_URL = `ws://${HOST}:${BACKEND_PORT}/ws`;
-  const API_KEY = "miku_secure_key_2026";
+  const API_KEY = (typeof localStorage !== "undefined" && localStorage.getItem("miku_api_key")) || "miku_secure_key_2026";
 
   let ws = null;
   let reconnectTimer = null;
