@@ -40,13 +40,13 @@ def update_gh_pages():
         mode, typ, sha = entries_dict[name]
         new_tree_entries.append(f"{mode} {typ} {sha}\t{name}")
 
-    # 3. Write tree using git mktree
-    mktree_input = "\n".join(new_tree_entries) + "\n"
-    res = subprocess.run(["git", "mktree"], input=mktree_input, cwd=workspace, capture_output=True, text=True)
+    # 3. Write tree using git mktree in binary mode (avoids Windows \r\n newline translation)
+    mktree_bytes = ("\n".join(new_tree_entries) + "\n").encode("ascii")
+    res = subprocess.run(["git", "mktree"], input=mktree_bytes, cwd=workspace, capture_output=True)
     if res.returncode != 0:
-        print(f"Error creating tree: {res.stderr}")
+        print(f"Error creating tree: {res.stderr.decode('utf-8', errors='ignore')}")
         return
-    tree_id = res.stdout.strip()
+    tree_id = res.stdout.decode('ascii').strip()
     print(f"Created clean tree: {tree_id}")
 
     # 4. Get current commit of origin/gh-pages
