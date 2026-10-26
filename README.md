@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/app_icon.png" width="108" alt="Miku Desktop icon" style="border-radius: 26px; box-shadow: 0 12px 32px rgba(0,0,0,0.35);">
+<img src="assets/github_banner.png" width="128" alt="Miku GitHub" style="border-radius: 28px; box-shadow: 0 12px 32px rgba(0,0,0,0.35);">
 
 # Miku Desktop
 
@@ -174,8 +174,8 @@ If you enjoy Miku and want to support ongoing development, API testing costs, an
 
 <div align="center">
 
-<a href="https://github.com/cxmlo/miku">
-  <img src="assets/github_banner.png" width="460" alt="Miku GitHub Community" style="border-radius: 16px; margin: 12px 0;">
+<a href="https://ko-fi.com/cxmlo" target="_blank" rel="noopener noreferrer">
+  <img src="assets/kofi_badge.png" width="220" alt="Ko-fi Support" style="border-radius: 20px; margin: 12px 0; box-shadow: 0 8px 24px rgba(255,94,91,0.25);">
 </a>
 
 <br>
