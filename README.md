@@ -12,14 +12,16 @@ Watch your agents work, approve actions, listen to Spotify, drop files, and chat
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v0.1.5-cyan)](https://github.com/cxmlo/miku/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.5--Beta-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
-> [!TIP]
-> **New in v0.1.5**: Antigravity-style Execution Modes (Full PC, Sandbox, Restricted), native DeepSeek models support, smart web settings navigation, and automated Android APK CI/CD packaging.
+> [!NOTE]
+> **Beta Phase**: Miku is in active public Beta until version 1.0.0. Both Desktop (Windows) and Mobile (Android APK) companion apps are available for testing.
+>
+> **New in v0.1.5 Beta**: Antigravity-style Execution Modes (Full PC, Sandbox, Restricted), native DeepSeek models support, smart web settings navigation, and automated Android APK CI/CD packaging.
 
 ---
 

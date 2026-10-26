@@ -12,14 +12,16 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.5-cyan)](https://github.com/cxmlo/miku/releases)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.5--Beta-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
-> [!TIP]
-> **Novedades en v0.1.5**: Modos de ejecución estilo Antigravity (Toda mi PC, Sandbox seguro y Restringido), soporte nativo de modelos DeepSeek, navegación web de ajustes sin errores 404, y compilación automatizada de APK Android en CI/CD.
+> [!NOTE]
+> **Fase Beta**: Miku se encuentra en fase Beta pública activa hasta la versión 1.0.0. Tanto la aplicación de escritorio (Windows) como la aplicación compañera móvil (Android APK) están disponibles para pruebas.
+>
+> **Novedades en v0.1.5 Beta**: Modos de ejecución estilo Antigravity (Toda mi PC, Sandbox seguro y Restringido), soporte nativo de modelos DeepSeek, navegación web de ajustes sin errores 404, y compilación automatizada de APK Android en CI/CD.
 
 ---
 
