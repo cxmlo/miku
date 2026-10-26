@@ -844,3 +844,72 @@ body {
     overflow-x: auto;
   }
 }
+
+
+/* -- Boton Ko-fi Animado -- */
+.kofi-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: rgba(255, 94, 91, 0.12);
+  border: 1px solid rgba(255, 94, 91, 0.35);
+  color: #fff;
+  text-decoration: none;
+  transition: all .25s ease;
+  flex: none;
+}
+.kofi-nav-btn:hover {
+  background: rgba(255, 94, 91, 0.22);
+  border-color: rgba(255, 94, 91, 0.65);
+  box-shadow: 0 0 16px rgba(255, 94, 91, 0.45);
+  transform: translateY(-1px);
+}
+.kofi-icon-wrap {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.kofi-img-anim {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: contain;
+  animation: kofiFloatPulse 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 94, 91, 0.6));
+}
+@keyframes kofiFloatPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 4px rgba(255, 94, 91, 0.5));
+  }
+  50% {
+    transform: translateY(-2px) scale(1.1);
+    filter: drop-shadow(0 0 10px rgba(255, 94, 91, 0.9));
+  }
+}
+.kofi-label {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-family: var(--mono);
+}
+.kofi-brand {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ff827f;
+  letter-spacing: .02em;
+}
+.kofi-sub {
+  font-size: 10px;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+@media (max-width: 600px) {
+  .kofi-sub { display: none; }
+  .kofi-nav-btn { padding: 4px 8px; }
+}

@@ -148,7 +148,7 @@ const Bridge = (() => {
       console.log("[Bridge] Received Proactive Alert:", data);
       window.feed?.({
         type: "scene",
-        name: "alert",
+        name: "notify",
         args: {
           title: data.title || "Notificación de Miku",
           text: data.text || data.message || "",
@@ -622,6 +622,20 @@ const Bridge = (() => {
     }
   }
 
+  async function toggleMcpServer(name, enabled) {
+    try {
+      const res = await apiFetch(`/api/config/mcp/${encodeURIComponent(name)}/toggle`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled })
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("[Bridge] toggleMcpServer error:", e);
+      return false;
+    }
+  }
+
   async function getAlertsConfig() {
     try {
       const res = await apiFetch("/api/config/alerts");
@@ -812,6 +826,19 @@ const Bridge = (() => {
     }
   }
 
+  function openExternalUrl(url) {
+    if (!url) return;
+    try {
+      if (window.__TAURI__?.shell?.open) {
+        window.__TAURI__.shell.open(url).catch(() => window.open(url, "_blank"));
+      } else {
+        window.open(url, "_blank");
+      }
+    } catch (_) {
+      window.open(url, "_blank");
+    }
+  }
+
   // 11. Settings Sync
   function setSetting(k, v) {
     try {
@@ -920,6 +947,7 @@ const Bridge = (() => {
     sendFilePath,
     sendFileToPhonePath,
     openSettings,
+    openExternalUrl,
     setSetting,
     setVolume,
     initLocalIp,
@@ -932,8 +960,17 @@ const Bridge = (() => {
     getMcpServers,
     addMcpServer,
     deleteMcpServer,
+    toggleMcpServer,
     getAlertsConfig,
     saveAlertsConfig,
+    testAlert: async () => {
+      try {
+        const res = await apiFetch("/api/alerts/test", { method: "POST" });
+        return res.ok;
+      } catch (_) {
+        return false;
+      }
+    },
     getDetectableApps,
     getRunningApps,
     getDesktopStatus,
@@ -1001,7 +1038,7 @@ const Bridge = (() => {
         if (resp.ok) {
           const rel = await resp.json();
           const tag = (rel.tag_name || "").replace(/^v/, "");
-          const current = "0.1.5";
+          const current = "0.1.6";
           const isNewer = tag && tag !== current && tag > current;
           return { available: !!isNewer, version: tag, url: rel.html_url };
         }
