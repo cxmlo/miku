@@ -87,6 +87,7 @@ def run():
         "--hidden-import=models_provider",
         "--hidden-import=music_controller",
         "--hidden-import=proactive_agent",
+        "--hidden-import=security_manager",
         "--hidden-import=spatial_memory",
         "--hidden-import=tools",
         "--hidden-import=tools_code",
