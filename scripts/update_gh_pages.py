@@ -17,27 +17,28 @@ def update_gh_pages():
     blob_id = res.stdout.strip()
     print(f"Created blob: {blob_id}")
 
-    # 2. Get tree of current gh-pages
-    res = subprocess.run(["git", "ls-tree", "gh-pages"], cwd=workspace, capture_output=True, text=True)
+    # 2. Get tree of origin/gh-pages to avoid corrupted local branches
+    res = subprocess.run(["git", "ls-tree", "origin/gh-pages"], cwd=workspace, capture_output=True, text=True)
     if res.returncode != 0:
-        print(f"Error reading gh-pages tree: {res.stderr}")
+        print(f"Error reading origin/gh-pages tree: {res.stderr}")
         return
     
-    lines = res.stdout.strip().splitlines()
-    new_tree_entries = []
-    found = False
-    for line in lines:
+    entries_dict = {}
+    for line in res.stdout.strip().splitlines():
+        line = line.strip().replace("\r", "")
         parts = line.split(maxsplit=3)
         if len(parts) == 4:
             mode, typ, sha, name = parts
-            if name == "index.html":
-                new_tree_entries.append(f"{mode} {typ} {blob_id}\t{name}")
-                found = True
-            else:
-                new_tree_entries.append(line)
+            name = name.strip('"').strip("'")
+            entries_dict[name] = (mode, typ, sha)
     
-    if not found:
-        new_tree_entries.append(f"100644 blob {blob_id}\tindex.html")
+    # Update index.html
+    entries_dict["index.html"] = ("100644", "blob", blob_id)
+    
+    new_tree_entries = []
+    for name in sorted(entries_dict.keys()):
+        mode, typ, sha = entries_dict[name]
+        new_tree_entries.append(f"{mode} {typ} {sha}\t{name}")
 
     # 3. Write tree using git mktree
     mktree_input = "\n".join(new_tree_entries) + "\n"
@@ -46,10 +47,10 @@ def update_gh_pages():
         print(f"Error creating tree: {res.stderr}")
         return
     tree_id = res.stdout.strip()
-    print(f"Created tree: {tree_id}")
+    print(f"Created clean tree: {tree_id}")
 
-    # 4. Get current commit of gh-pages
-    res = subprocess.run(["git", "rev-parse", "gh-pages"], cwd=workspace, capture_output=True, text=True)
+    # 4. Get current commit of origin/gh-pages
+    res = subprocess.run(["git", "rev-parse", "origin/gh-pages"], cwd=workspace, capture_output=True, text=True)
     parent_commit = res.stdout.strip() if res.returncode == 0 else None
 
     # 5. Commit tree

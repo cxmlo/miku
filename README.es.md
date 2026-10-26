@@ -12,7 +12,7 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.6--Beta-cyan)](https://github.com/cxmlo/miku/releases)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.7--Beta-cyan)](https://github.com/cxmlo/miku/releases)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Apoyar-ff5e5b?style=flat&logo=kofi&logoColor=white)](https://ko-fi.com/cxmlo)
 
 **[English](README.md)** · **[Español](README.es.md)**
@@ -22,7 +22,7 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 > [!NOTE]
 > **Fase Beta**: Miku se encuentra en fase Beta pública activa hasta la versión 1.0.0. Tanto la aplicación de escritorio (Windows) como la aplicación compañera móvil (Android APK) están disponibles para pruebas.
 >
-> **Novedades en v0.1.6 Beta**: Nuevos iconos oficiales para cada ventana y el instalador, puntos lumínicos de estado (verde/rojo) en Ajustes, optimización radical de consumo de CPU en reposo para WebView2, ventana complementaria Miku-Link y soporte en Ko-fi.
+> **Novedades en v0.1.7 Beta**: Motor de optimización radical de tokens (>95% de ahorro), cero herramientas inyectadas en saludos/charla casual, agrupamiento dinámico y tope de 2-5 herramientas por petición, protección de bucles de error, capturas visuales comprimidas a JPEG 45%, conmutador de Modo Bajo Costo en el System Tray y resolución de errores 409 en transferencias de Miku-Link.
 
 ---
 
