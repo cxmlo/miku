@@ -137,10 +137,11 @@ def escribir_en_elemento(element_id: str, texto: str, presionar_enter: bool = Tr
     return f"Texto escrito en '{elemento['name']}' sin presionar Enter."
 
 def _capturar_pantalla_base64():
-    """Toma una captura de pantalla y la devuelve como string base64 en PNG."""
+    """Toma una captura de pantalla optimizada y la devuelve como string base64 en JPEG."""
     screenshot = pyautogui.screenshot()
+    screenshot.thumbnail((1280, 720))
     buffered = BytesIO()
-    screenshot.save(buffered, format="PNG")
+    screenshot.save(buffered, format="JPEG", quality=50)
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 def _pedir_coordenadas(img, intencion):
@@ -251,11 +252,11 @@ RULES:
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{img_antes_str}"}
+                        "image_url": {"url": f"data:image/jpeg;base64,{img_antes_str}"}
                     },
                     {
                         "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{img_despues_str}"}
+                        "image_url": {"url": f"data:image/jpeg;base64,{img_despues_str}"}
                     }
                 ]
             }

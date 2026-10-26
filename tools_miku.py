@@ -343,12 +343,14 @@ def analizar_archivo_silencioso(ruta: str) -> str:
             if not client:
                 return "Error: Vertex AI no configurado."
                 
-            with open(ruta, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                
+            from PIL import Image
+            from io import BytesIO
+            img = Image.open(ruta)
+            img.thumbnail((1024, 1024))
+            buf = BytesIO()
+            img.convert("RGB").save(buf, format="JPEG", quality=60)
+            encoded_string = base64.b64encode(buf.getvalue()).decode('utf-8')
             mime_type = "image/jpeg"
-            if ext == '.png': mime_type = "image/png"
-            elif ext == '.webp': mime_type = "image/webp"
             
             response = client.chat.completions.create(
                 model="google/gemini-3.5-flash",

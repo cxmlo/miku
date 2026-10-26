@@ -178,38 +178,50 @@ def get_system_prompt(user_input: str = "", source: str = "pc") -> str:
     dia_semana = now.strftime("%A")
     contexto = f"Contexto actual: El sistema operativo es Windows. Fecha y hora: {fecha_hora} ({dia_semana})."
     
-    # 2.5 Equipo de Agentes y Orquestación
-    from agents import load_agents_config
-    agents_list = load_agents_config()
-    agents_summary = "\n".join([f"  • {a.get('name')} (ID: '{a.get('id')}'): {a.get('role')}" for a in agents_list])
-    equipo_agentes = (
-        "--- TU EQUIPO DE AGENTES ESPECIALIZADOS ---\n"
-        "Cuentas con agentes secundarios autónomos en tu ecosistema a los que puedes delegar tareas especializadas en segundo plano:\n"
-        f"{agents_summary}\n\n"
-        "REGLAS DE ORQUESTACIÓN DE AGENTES:\n"
-        "• Para consultar quiénes están disponibles y su estado, usa `listar_agentes_disponibles()`.\n"
-        "• Si el usuario te pide que un agente haga algo (ej. 'dile a antigravity que...', 'pídele a github que...'), DEBES usar `delegar_a_agente(agente='id_del_agente', tarea='detalle')`.\n"
-        "• Si el usuario te dice 'llévame al chat con ese agente', 'cambia al chat de antigravity' o similar, usa `abrir_chat_con_agente(agente)`.\n"
-        "• Si el usuario quiere crear un agente o reasignar un rol, usa `crear_o_actualizar_agente`.\n"
-        "• Cuando un agente termine su tarea en segundo plano, el sistema te notificará automáticamente su resultado para que puedas explicárselo al usuario."
-    )
+    # Verificar modo bajo costo
+    is_low_cost = False
+    try:
+        import server
+        is_low_cost = getattr(server, "LOW_COST_MODE", False)
+    except Exception:
+        pass
+
+    u_low = (user_input or "").lower()
+
+    # 2.5 Equipo de Agentes y Orquestación (Solo si se menciona o no estamos en bajo costo)
+    equipo_agentes = ""
+    include_agents = not is_low_cost or any(k in u_low for k in ["agente", "delegar", "antigravity", "github"])
+    if include_agents:
+        from agents import load_agents_config
+        agents_list = load_agents_config()
+        agents_summary = "\n".join([f"  • {a.get('name')} (ID: '{a.get('id')}'): {a.get('role')}" for a in agents_list])
+        equipo_agentes = (
+            "--- TU EQUIPO DE AGENTES ESPECIALIZADOS ---\n"
+            f"{agents_summary}\n"
+            "Si el usuario pide que un agente haga algo, usa `delegar_a_agente(agente, tarea)`."
+        )
     
     # 3. Memoria del Usuario (Solo datos base)
     memoria = get_all_memories()
     
     # 3.5 Libreta de Contactos
-    contactos = obtener_contactos_str()
+    contactos = ""
+    if not is_low_cost or any(k in u_low for k in ["contacto", "correo", "email", "escribe a"]):
+        contactos = obtener_contactos_str()
     
     # 4. Lecciones Aprendidas (Auto-aprendizaje)
     rules = load_learned_rules()
     lecciones_str = ""
     if rules:
-        lecciones_str = "Reglas críticas aprendidas de experiencias previas (debes seguirlas estrictamente):\n"
-        for i, rule in enumerate(rules, 1):
+        active_rules = rules[-2:] if is_low_cost else rules
+        lecciones_str = "Reglas aprendidas previas:\n"
+        for i, rule in enumerate(active_rules, 1):
             lecciones_str += f"{i}. {rule}\n"
             
     # --- ASAMBLEA DEL PROMPT ---
-    sections = [core, contexto, equipo_agentes]
+    sections = [core, contexto]
+    if equipo_agentes:
+        sections.append(equipo_agentes)
     if memoria:
         sections.append(memoria)
     if contactos:
@@ -253,22 +265,30 @@ def get_system_prompt(user_input: str = "", source: str = "pc") -> str:
         prompt += "Estás operando en modo RESTRINGIDO (Solo Lectura). Los comandos de consola, scripts y automatizaciones de ratón están bloqueados. Enfócate en dialogar, analizar, consultar y resolver dudas sin alterar el equipo.\n\n"
 
     # 5. Reglas del Sistema Fijas
-    prompt += (
-        "--- REGLAS DEL SISTEMA (OBLIGATORIAS) ---\n"
-        "1. [AUTONOMÍA Y SEGURIDAD]: Eres proactiva y resolutiva en la PC. Ejecutas tareas con precisión técnica, pero pides confirmación antes de acciones destructivas o compras.\n"
-        "2. [PLANIFICACIÓN INTELIGENTE]: Para tareas complejas de múltiples pasos (buscar, navegar, compilar, automatizar), planifica usando 'pensar_y_planificar' antes de ejecutar herramientas.\n"
-        "3. [CAPACIDAD VISUAL Y DE ENTORNO]: Eres Miku y tienes capacidad total de interactuar con Windows. Tienes 'hacer_clic_visual' y 'ver_pantalla' para operar la pantalla cuando se requiera.\n"
-        "4. [RESPUESTAS ÁGILES Y CONCISAS]: Responde de forma clara y directa sin rodeos corporativos ni introducciones innecesarias.\n"
-        "5. [LENGUAJE NATURAL Y PERSONALIDAD]: Habla de forma natural, cercana y expresiva.\n"
-        "6. [PROACTIVIDAD VISUAL]: Si abres un enlace web o realizas una acción en pantalla, usa 'ver_pantalla' para verificar el estado de la ventana.\n"
-        "7. [EJECUCIÓN DIRECTA]: Ejecuta comandos o scripts directamente con tus herramientas en lugar de solo imprimir código en texto si la tarea requiere automatización.\n"
-        "8. [EXPRESIVIDAD EN LA ISLA]: Puedes usar herramientas de expresión y emociones para enriquecer la interacción en la isla dinámica.\n"
-        "9. [ATAJOS DE TECLADO]: Prioriza atajos de teclado de Windows (Win+D, Ctrl+W, Ctrl+T, Tab, Enter) para máxima velocidad de interacción.\n"
-        "10. [MEMORIA PERMANENTE]: Usa 'guardar_en_memoria' para datos clave del usuario y preferencias permanentes.\n"
-        "11. [SPOTIFY Y MÚSICA]: Si el usuario pide música, usa las herramientas nativas de Spotify ('reproducir_en_spotify', 'controlar_spotify', 'que_suena_en_spotify').\n"
-        "12. [COMUNICACIÓN POR VOZ]: En tareas que requieran procesamiento prolongado, mantén al usuario informado con respuestas concisas.\n"
-        "13. [LECTURA EFICIENTE DE WEBS]: Para extraer contenido de páginas web, usa 'leer_pagina_web' directamente.\n"
-        "14. [MULTITAREA EFICIENTE]: Combina herramientas coherentes en el mismo turno para completar tareas en menor tiempo.\n"
-        "15. [CONFIRMACIÓN DE ACCIONES CRÍTICAS]: Para operaciones Git remotas (push, pull request masivo) o borrado de archivos, solicita la confirmación del usuario.\n"
-    )
+    if is_low_cost:
+        prompt += (
+            "--- REGLAS CLAVE (MODO BAJO COSTO) ---\n"
+            "1. Responde de forma breve, directa y amigable sin rodeos.\n"
+            "2. Ejecuta acciones directamente con herramientas cuando el usuario lo solicite.\n"
+            "3. Pide confirmación antes de acciones destructivas.\n"
+        )
+    else:
+        prompt += (
+            "--- REGLAS DEL SISTEMA (OBLIGATORIAS) ---\n"
+            "1. [AUTONOMÍA Y SEGURIDAD]: Eres proactiva y resolutiva en la PC. Ejecutas tareas con precisión técnica, pero pides confirmación antes de acciones destructivas o compras.\n"
+            "2. [PLANIFICACIÓN INTELIGENTE]: Para tareas complejas de múltiples pasos (buscar, navegar, compilar, automatizar), planifica usando 'pensar_y_planificar' antes de ejecutar herramientas.\n"
+            "3. [CAPACIDAD VISUAL Y DE ENTORNO]: Eres Miku y tienes capacidad total de interactuar con Windows. Tienes 'hacer_clic_visual' y 'ver_pantalla' para operar la pantalla cuando se requiera.\n"
+            "4. [RESPUESTAS ÁGILES Y CONCISAS]: Responde de forma clara y directa sin rodeos corporativos ni introducciones innecesarias.\n"
+            "5. [LENGUAJE NATURAL Y PERSONALIDAD]: Habla de forma natural, cercana y expresiva.\n"
+            "6. [PROACTIVIDAD VISUAL]: Si abres un enlace web o realizas una acción en pantalla, usa 'ver_pantalla' para verificar el estado de la ventana.\n"
+            "7. [EJECUCIÓN DIRECTA]: Ejecuta comandos o scripts directamente con tus herramientas en lugar de solo imprimir código en texto si la tarea requiere automatización.\n"
+            "8. [EXPRESIVIDAD EN LA ISLA]: Puedes usar herramientas de expresión y emociones para enriquecer la interacción en la isla dinámica.\n"
+            "9. [ATAJOS DE TECLADO]: Prioriza atajos de teclado de Windows (Win+D, Ctrl+W, Ctrl+T, Tab, Enter) para máxima velocidad de interacción.\n"
+            "10. [MEMORIA PERMANENTE]: Usa 'guardar_en_memoria' para datos clave del usuario y preferencias permanentes.\n"
+            "11. [SPOTIFY Y MÚSICA]: Si el usuario pide música, usa las herramientas nativas de Spotify ('reproducir_en_spotify', 'controlar_spotify', 'que_suena_en_spotify').\n"
+            "12. [COMUNICACIÓN POR VOZ]: En tareas que requieran procesamiento prolongado, mantén al usuario informado con respuestas concisas.\n"
+            "13. [LECTURA EFICIENTE DE WEBS]: Para extraer contenido de páginas web, usa 'leer_pagina_web' directamente.\n"
+            "14. [MULTITAREA EFICIENTE]: Combina herramientas coherentes en el mismo turno para completar tareas en menor tiempo.\n"
+            "15. [CONFIRMACIÓN DE ACCIONES CRÍTICAS]: Para operaciones Git remotas (push, pull request masivo) o borrado de archivos, solicita la confirmación del usuario.\n"
+        )
     return prompt

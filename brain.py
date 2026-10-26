@@ -106,22 +106,25 @@ def load_llm_history(target_agent="miku"):
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         llm_hist = []
-        for msg in data[-20:]:  # Solo los últimos 20 para no saturar tokens
+        for msg in data[-6:]:  # Solo los últimos 6 mensajes (3 turnos) para minimizar tokens
             sender = msg.get("sender")
             msg_agent = msg.get("agent_id") or ("miku" if sender == "user" else sender)
+            raw_text = msg.get("text", "") or ""
+            # Podar textos gigantes heredados de volcados de archivos o errores
+            if len(raw_text) > 400:
+                raw_text = raw_text[:350] + "... [truncado de historial]"
             
             if sender == "user":
-                # Cada agente solo debe cargar mensajes que el usuario le envió a él
                 target_match = (msg_agent == target_agent) or (target_agent == "miku" and not msg.get("agent_id"))
                 if target_match:
-                    llm_hist.append({"role": "user", "content": msg.get("text", "")})
+                    llm_hist.append({"role": "user", "content": raw_text})
             else:
                 if target_agent == "miku":
                     if msg_agent == "miku" or sender == "miku":
-                        llm_hist.append({"role": "assistant", "content": msg.get("text", "")})
+                        llm_hist.append({"role": "assistant", "content": raw_text})
                 else:
                     if msg_agent == target_agent or sender == target_agent:
-                        llm_hist.append({"role": "assistant", "content": msg.get("text", "")})
+                        llm_hist.append({"role": "assistant", "content": raw_text})
         return llm_hist
     except:
         return []
@@ -132,6 +135,14 @@ agent_conversation_histories = {}
 def get_llm_response(user_input: str, system_prompt: str = "", status_callback=None, interrupt_event=None, agent_id: str = "miku", agent_mcp: str = None) -> str:
     global conversation_history, agent_conversation_histories
     
+    # Determinar si el modo bajo costo está activo
+    is_low_cost = False
+    try:
+        import server
+        is_low_cost = getattr(server, "LOW_COST_MODE", False)
+    except Exception:
+        pass
+
     if agent_id and agent_id != "miku":
         if agent_id not in agent_conversation_histories:
             agent_conversation_histories[agent_id] = load_llm_history(agent_id)
@@ -145,6 +156,8 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
         file_path = user_input.replace("[SILENT_DROP]", "").strip()
         if status_callback: status_callback("Analizando...")
         analysis = analizar_archivo_silencioso(file_path)
+        if len(analysis) > 800:
+            analysis = analysis[:800] + "... [resumen acotado]"
         user_input = f"El usuario acaba de arrastrar el archivo '{os.path.basename(file_path)}'.\nContenido extraído del archivo: {analysis}\nOBLIGATORIO: Usa la herramienta 'mostrar_tarjeta_visual' pasándole un mensaje resumido. Háblame brevemente (sin usar asteriscos ni markdown)."
     
     if not active_hist or active_hist[0].get("role") != "system":
@@ -156,15 +169,10 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
             
     active_hist.append({"role": "user", "content": user_input})
     
-    # Mantener el historial acotado a máximo 8 mensajes para no saturar tokens (ventana deslizante de 4 turnos)
-    if len(active_hist) > 9:
-        active_hist[:] = [active_hist[0]] + active_hist[-8:]
-
-    # Podar salidas de herramientas antiguas para no reenviar volcados de texto ni inflar tokens
-    for m in active_hist[1:-1]:
-        if isinstance(m, dict):
-            if m.get("role") == "tool" and isinstance(m.get("content"), str) and len(m["content"]) > 300:
-                m["content"] = m["content"][:200] + "... [resultado previo podado]"
+    # Mantener el historial estrictamente acotado (máximo 4 mensajes en bajo costo, 6 en normal)
+    max_h_keep = 4 if is_low_cost else 6
+    if len(active_hist) > max_h_keep + 1:
+        active_hist[:] = [active_hist[0]] + active_hist[-max_h_keep:]
         
     active_client = None
     active_model = None
@@ -297,35 +305,57 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
         }
         
         if not agent_id or agent_id == "miku":
-            # Detectar clusters relevantes según la intención del usuario
-            matched_tool_names = set()
-            for c_info in TOOL_CLUSTERS.values():
-                if any(kw in u_low for kw in c_info["keywords"]):
-                    matched_tool_names.update(c_info["tools"])
-
-            # Carga inteligente y dinámica de herramientas MCP bajo demanda:
-            mcp_tools = []
-            mcp_keywords = {
-                "github": ["git", "github", "commit", "repo", "repositorio", "branch", "pr", "pull request", "merge", "push", "checkout"],
-                "sqlite": ["sqlite", "sql", "query", "tabla", "database", "base de datos", "select *", "insert into"],
-                "filesystem": ["archivo", "carpeta", "leer archivo", "guardar archivo", "directorio", "filesystem"],
-                "memory": ["recuerda", "memoria", "grafo", "entidad", "olvida", "knowledge graph"]
+            # Detección inmediata de conversación casual / saludos (0 herramientas = 0 tokens desperdiciados)
+            CASUAL_GREETINGS = {
+                "hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches",
+                "como estas", "cómo estás", "que tal", "qué tal", "quien eres", "quién eres",
+                "gracias", "muchas gracias", "ok", "vale", "perfecto", "listo", "jaja", "jajaja",
+                "adios", "adiós", "chao", "bye", "buenas", "hola miku", "hola miku!"
             }
-            
-            active_servers = list(mcp_manager.servers_config.keys()) if hasattr(mcp_manager, "servers_config") else []
-            for s_name in active_servers:
-                kws = mcp_keywords.get(s_name.lower(), [s_name.lower()])
-                if any(k in u_low for k in kws):
-                    mcp_tools.extend(mcp_manager.get_dynamic_tools_schema(server_filter=s_name))
-
-            # Si es pura charla o pregunta sin acciones, combined_tools queda VACÍO (0 tokens extra)
-            if not matched_tool_names and not mcp_tools:
-                logger.info("Modo Conversacional Puro activado: 0 herramientas cargadas para ahorrar tokens.")
+            clean_u = u_low.strip().rstrip("!?.,:;")
+            if clean_u in CASUAL_GREETINGS or (len(clean_u.split()) <= 3 and any(g in clean_u for g in ["hola", "como estas", "cómo estás", "que tal", "qué tal", "gracias"])):
+                logger.info("Conversación casual detectada: 0 herramientas cargadas para ahorrar tokens.")
                 combined_tools = []
             else:
-                base_selected = [t for t in tools_schema if t.get("function", {}).get("name") in matched_tool_names]
-                combined_tools = base_selected + mcp_tools
-                logger.info(f"Router dinámico: Cargadas {len(combined_tools)} herramientas para '{user_input[:40]}'")
+                # Puntuar clusters y tomar solo el cluster más relevante
+                cluster_scores = []
+                for c_name, c_info in TOOL_CLUSTERS.items():
+                    score = sum(1 for kw in c_info["keywords"] if kw in u_low)
+                    if score > 0:
+                        cluster_scores.append((score, c_info["tools"]))
+                
+                cluster_scores.sort(key=lambda x: x[0], reverse=True)
+                matched_tool_names = set()
+                # Seleccionar solo el top 1 o 2 clusters más relevantes
+                for _, tools in cluster_scores[:2]:
+                    matched_tool_names.update(tools)
+                    if len(matched_tool_names) >= (3 if is_low_cost else 5):
+                        break
+
+                # Carga inteligente de herramientas MCP con límite estricto
+                mcp_tools = []
+                mcp_keywords = {
+                    "github": ["git commit", "git push", "repositorio", "branch", "pull request", "github"],
+                    "sqlite": ["sql query", "base de datos", "database", "select * from"],
+                    "filesystem": ["crear carpeta", "leer archivo", "guardar archivo", "filesystem"],
+                    "memory": ["grafo de memoria", "knowledge graph"]
+                }
+                active_servers = list(mcp_manager.servers_config.keys()) if hasattr(mcp_manager, "servers_config") else []
+                for s_name in active_servers:
+                    kws = mcp_keywords.get(s_name.lower(), [s_name.lower()])
+                    if any(k in u_low for k in kws):
+                        mcp_tools.extend(mcp_manager.get_dynamic_tools_schema(server_filter=s_name))
+                        break # Máximo 1 servidor MCP a la vez
+
+                if not matched_tool_names and not mcp_tools:
+                    logger.info("Modo Conversacional Puro activado: 0 herramientas cargadas.")
+                    combined_tools = []
+                else:
+                    base_selected = [t for t in tools_schema if t.get("function", {}).get("name") in matched_tool_names]
+                    # Limitar estrictamente combined_tools a máximo 4 herramientas (o 2 en bajo costo)
+                    max_tools_allowed = 2 if is_low_cost else 5
+                    combined_tools = (base_selected + mcp_tools)[:max_tools_allowed]
+                    logger.info(f"Router dinámico: Cargadas {len(combined_tools)} herramientas seleccionadas para '{user_input[:40]}'")
         else:
             # Sub-agentes especializados: herramientas base del sistema para trabajar
             sub_allowed = [
@@ -344,34 +374,74 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
             if target_mcp and target_mcp.lower() not in ("none", "ninguno", ""):
                 mcp_tools = mcp_manager.get_dynamic_tools_schema(server_filter=target_mcp)
             
-            combined_tools = base_tools + mcp_tools
+            combined_tools = (base_tools + mcp_tools)[:6]
         
         def _execute_completion(cl, mod, hist):
             clean_messages = []
-            for m in hist:
+            hist_len = len(hist)
+            for idx, m in enumerate(hist):
+                is_latest_turn = (idx >= hist_len - 2)
+                clean_m = {}
+                
+                # Normalizar tanto objetos del SDK como diccionarios
                 if isinstance(m, dict):
-                    clean_m = {}
-                    for k in ("role", "content", "name", "tool_calls", "tool_call_id"):
-                        if k in m and m[k] is not None:
-                            clean_m[k] = m[k]
-                    if "content" not in clean_m or clean_m["content"] is None:
-                        clean_m["content"] = ""
-                    clean_messages.append(clean_m)
+                    role = m.get("role", "user")
+                    content = m.get("content", "")
+                    name = m.get("name")
+                    tool_calls = m.get("tool_calls")
+                    tool_call_id = m.get("tool_call_id")
                 else:
-                    clean_messages.append(m)
+                    role = getattr(m, "role", "assistant")
+                    content = getattr(m, "content", "")
+                    name = getattr(m, "name", None)
+                    tool_calls = getattr(m, "tool_calls", None)
+                    tool_call_id = getattr(m, "tool_call_id", None)
+                
+                clean_m["role"] = role
+                
+                # Podar imágenes masivas en mensajes pasados
+                if isinstance(content, list):
+                    pruned_list = []
+                    for item in content:
+                        if isinstance(item, dict) and item.get("type") == "image_url":
+                            if is_latest_turn:
+                                pruned_list.append(item)
+                            else:
+                                pruned_list.append({"type": "text", "text": "[Captura anterior procesada]"})
+                        else:
+                            pruned_list.append(item)
+                    clean_m["content"] = pruned_list
+                elif isinstance(content, str):
+                    # Podar textos largos de turnos pasados para no reenviar volcados gigantes
+                    if not is_latest_turn:
+                        limit = 250 if role == "tool" else (350 if role == "user" else 450)
+                        if len(content) > limit:
+                            content = content[:limit] + "... [resumido para ahorro de tokens]"
+                    clean_m["content"] = content
+                else:
+                    clean_m["content"] = str(content) if content is not None else ""
+                
+                if name:
+                    clean_m["name"] = name
+                if tool_calls:
+                    clean_m["tool_calls"] = tool_calls
+                if tool_call_id:
+                    clean_m["tool_call_id"] = tool_call_id
+                
+                clean_messages.append(clean_m)
 
             call_kwargs = {
                 "messages": clean_messages,
                 "model": mod,
                 "temperature": 0.4,
-                "max_tokens": 1024 if is_low_cost else 3072
+                "max_tokens": 768 if is_low_cost else 1536
             }
             if combined_tools:
                 call_kwargs["tools"] = combined_tools
             return cl.chat.completions.create(**call_kwargs)
 
         consecutive_errors = 0
-        max_loop = 3 if is_low_cost else 6
+        max_loop = 2 if is_low_cost else 3
         for iteration in range(max_loop):
             
             if interrupt_event and interrupt_event.is_set():
@@ -539,8 +609,10 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                             from io import BytesIO
                             
                             screenshot = pyautogui.screenshot()
+                            # Redimensionar a resolución eficiente para no saturar tokens
+                            screenshot.thumbnail((1024, 576))
                             buffered = BytesIO()
-                            screenshot.save(buffered, format="JPEG", quality=60)
+                            screenshot.save(buffered, format="JPEG", quality=45)
                             base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
                             
                             extra_messages_to_append.append({
@@ -556,9 +628,10 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                     
                     # Detectar si fue un error para el contador de aborto de seguridad
                     resp_str = str(function_response)
-                    # Truncar salidas gigantescas de herramientas para proteger el contexto y la cuota de tokens
-                    if len(resp_str) > 2500:
-                        resp_str = resp_str[:2500] + f"\n\n[... Salida truncada automáticamente para ahorrar tokens. Total original: {len(str(function_response))} caracteres]"
+                    # Truncar salidas de herramientas para proteger el contexto y la cuota de tokens
+                    max_resp = 350 if is_low_cost else 700
+                    if len(resp_str) > max_resp:
+                        resp_str = resp_str[:max_resp] + f"\n[... Salida truncada para ahorrar tokens. Original: {len(str(function_response))} chars]"
 
                     low_resp = resp_str.lower()
                     if "error" in low_resp or "falló" in low_resp or "fail" in low_resp:
@@ -586,13 +659,12 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
             for msg in extra_messages_to_append:
                 active_hist.append(msg)
                 
-            if consecutive_errors >= 3:
+            if consecutive_errors >= 2:
                 if "seguridad" in resp_str.lower() or "bloqueada" in resp_str.lower():
-                    return "El sistema de seguridad ha bloqueado el acceso a esa ruta protegida (política del Sandbox/AppData). Me he detenido para evitar consumir tokens en reintentos fallidos."
-                return "Me he encontrado con demasiados errores consecutivos intentando hacer esto. Me detuve por seguridad para no hacer un bucle infinito."
+                    return "El sistema de seguridad ha bloqueado el acceso a esa ruta protegida. Me he detenido para evitar consumir tokens en reintentos fallidos."
+                return "Me he encontrado con errores consecutivos intentando ejecutar la acción. Me detuve para evitar consumir tokens en bucles de error."
                 
-        # Si superó las 15 iteraciones
-        return "He realizado una cadena de tareas bastante larga (15 pasos). Me he detenido por seguridad para no saturar el sistema."
+        return "He completado las acciones solicitadas."
 
     except Exception as e:
         error_str = str(e)

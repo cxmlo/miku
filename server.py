@@ -133,6 +133,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+LOW_COST_MODE: bool = False
+
+@app.post("/api/settings/low_cost_toggle")
+async def toggle_low_cost():
+    global LOW_COST_MODE
+    LOW_COST_MODE = not LOW_COST_MODE
+    logger.info(f"Modo Bajo Costo cambiado a: {LOW_COST_MODE}")
+    return {"status": "ok", "low_cost": LOW_COST_MODE}
+
+@app.get("/api/settings/low_cost")
+async def get_low_cost():
+    return {"status": "ok", "low_cost": LOW_COST_MODE}
 
 from pydantic import BaseModel
 class FileRequest(BaseModel):
@@ -408,9 +420,10 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
         analysis_info = req.attachment_analysis or ""
         file_content = req.attachment_content or ""
         
-        # Si vino el contenido del archivo de texto/código directamente
+        # Limitar extracción a máximo 3,500 caracteres (o 1,500 en modo bajo costo) para no inflar tokens
+        max_extract = 1500 if LOW_COST_MODE else 3500
         if file_content and not analysis_info:
-            analysis_info = file_content[:25000]
+            analysis_info = file_content[:max_extract]
 
         # Si no hay ruta explícita, buscar en la carpeta de descargas de Miku-Link
         if not file_path and req.attachment_name:
@@ -440,6 +453,9 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
             except Exception:
                 pass
         
+        if analysis_info and len(analysis_info) > max_extract:
+            analysis_info = analysis_info[:max_extract] + "\n[... Contenido truncado para optimizar consumo de tokens]"
+
         file_context = f"\n\n[ARCHIVO ADJUNTADO: '{req.attachment_name}']\nRuta local: {file_path or 'No disponible'}"
         if analysis_info:
             file_context += f"\nContenido del archivo / Análisis:\n{analysis_info}"
@@ -447,10 +463,11 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
         user_input = user_input + file_context
         logger.info(f"Contexto de archivo adjuntado inyectado: {req.attachment_name} -> {file_path or 'desconocido'} (Longitud info: {len(analysis_info)} chars)")
     
+    clean_history_text = (req.message + f" [Adjunto: {req.attachment_name}]") if req.attachment_name else req.message
     user_msg = {
         "type": "user_message",
         "id": str(int(time.time() * 1000)),
-        "text": user_input,
+        "text": clean_history_text,
         "sender": "user",
         "agent_id": req.agent_id,
         "agent_name": req.agent_name,
@@ -2325,29 +2342,6 @@ async def send_to_phone_api(file: UploadFile = File(...), api_key: str = Securit
         "filename": filename
     })
     return {"status": "ok", "message": f"El archivo {filename} está listo para guardarse en el celular."}
-
-@app.post("/api/desktop/send_file_to_phone")
-async def send_desktop_file_to_phone(req: FileDropRequest, api_key: str = Security(get_api_key)):
-    if not manager.connected_mobile():
-        raise HTTPException(status_code=409, detail="No hay un teléfono Miku conectado.")
-    if not req.path or not os.path.isfile(req.path):
-        raise HTTPException(status_code=404, detail="No se encontró el archivo de escritorio.")
-
-    filename = os.path.basename(req.path.replace("\\", "/"))
-    destination = os.path.join(tempfile.gettempdir(), filename)
-    try:
-        if os.path.abspath(req.path) != os.path.abspath(destination):
-            shutil.copyfile(req.path, destination)
-    except OSError as exc:
-        logger.exception("Error preparando archivo local para el teléfono")
-        raise HTTPException(status_code=500, detail="No se pudo preparar el archivo para el teléfono.") from exc
-
-    await manager.broadcast_message({
-        "type": "ui_command",
-        "action": "download_file",
-        "filename": filename
-    })
-    return {"status": "ok", "filename": filename}
 
 @app.post("/api/device/send_to_phone")
 async def send_text_to_phone(req: ClipboardRequest, api_key: str = Security(get_api_key)):
