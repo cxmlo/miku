@@ -760,12 +760,46 @@ const Bridge = (() => {
 
   // 10. Open Settings Window
   function openSettings() {
+    try {
+      if (window.parent && window.parent !== window && window.parent.document && window.parent.document.getElementById('ajustes')) {
+        window.parent.document.getElementById('ajustes').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    } catch (_) {}
+
+    function openWebSettings() {
+      try {
+        if (window.parent && window.parent !== window && window.parent.document && window.parent.document.getElementById('ajustes')) {
+          window.parent.document.getElementById('ajustes').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+      } catch (_) {}
+
+      let base = '';
+      try {
+        if (window.parent && window.parent !== window && window.parent.location.href && !window.parent.location.href.startsWith('about:')) {
+          base = window.parent.location.href;
+        }
+      } catch (_) {}
+      if (!base || base.startsWith('about:')) {
+        base = (location.href && !location.href.startsWith('about:')) ? location.href : window.location.origin;
+      }
+      base = base.split('?')[0].split('#')[0];
+      if (base.endsWith('.html')) {
+        base = base.substring(0, base.lastIndexOf('/') + 1);
+      } else if (!base.endsWith('/')) {
+        base += '/';
+      }
+      const isIsland = location.pathname.includes('/island');
+      const target = isIsland ? 'island/miku_settings.html' : 'miku_settings.html';
+      const settingsUrl = new URL(target, base).href;
+      window.open(settingsUrl, "miku_settings", "width=1080,height=780");
+    }
+
     if (window.__TAURI__?.core?.invoke) {
       window.__TAURI__.core.invoke('open_settings_window').catch(() => {
         window.__TAURI__.core.invoke('open_settings').catch(() => {
-          const isIsland = location.pathname.includes('/island');
-          const settingsUrl = isIsland ? '/island/miku_settings.html' : 'miku_settings.html';
-          window.open(settingsUrl, "miku_settings", "width=1080,height=780");
+          openWebSettings();
         });
       });
       return;
@@ -774,9 +808,7 @@ const Bridge = (() => {
     if (pw?.open_settings) {
       pw.open_settings();
     } else {
-      const isIsland = location.pathname.includes('/island');
-      const settingsUrl = isIsland ? '/island/miku_settings.html' : 'miku_settings.html';
-      window.open(settingsUrl, "miku_settings", "width=1080,height=780");
+      openWebSettings();
     }
   }
 
