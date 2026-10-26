@@ -100,6 +100,9 @@ class MikuMCPManager:
             return
 
         for server_name, config in self.servers_config.items():
+            if not config.get("enabled", True):
+                logger.info(f"Servidor MCP '{server_name}' omitido al inicio (deshabilitado en configuración para ahorrar tokens).")
+                continue
             command = config.get("command")
             args = config.get("args", [])
             if not command:
@@ -108,11 +111,45 @@ class MikuMCPManager:
             task = asyncio.create_task(self._run_server(server_name, command, args))
             self.server_tasks[server_name] = task
 
+    async def toggle_server(self, server_name: str, enabled: bool) -> bool:
+        """Activa o desactiva dinámicamente un servidor MCP y libera sus herramientas del contexto."""
+        try:
+            self.load_config()
+            if server_name not in self.servers_config:
+                logger.warning(f"No se puede alternar el servidor MCP '{server_name}': no existe en la configuración.")
+                return False
+
+            self.servers_config[server_name]["enabled"] = enabled
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                json.dump({"servidores": self.servers_config}, f, indent=2, ensure_ascii=False)
+
+            if enabled:
+                # Si no está en ejecución, iniciarlo
+                if server_name not in self.server_tasks or self.server_tasks[server_name].done():
+                    srv = self.servers_config[server_name]
+                    task = asyncio.create_task(self._run_server(server_name, srv.get("command"), srv.get("args", [])))
+                    self.server_tasks[server_name] = task
+                    logger.info(f"Servidor MCP '{server_name}' activado dinámicamente.")
+            else:
+                # Desactivar y limpiar procesos y herramientas
+                if server_name in self.server_tasks:
+                    self.server_tasks[server_name].cancel()
+                    del self.server_tasks[server_name]
+                self.sessions.pop(server_name, None)
+                self.tools_schema_extension = [t for t in self.tools_schema_extension if not t["function"]["name"].startswith(f"mcp_{server_name}_")]
+                self.tool_routing_map = {k: v for k, v in self.tool_routing_map.items() if v[0] != server_name}
+                logger.info(f"Servidor MCP '{server_name}' desactivado. Herramientas removidas del contexto del LLM.")
+
+            return True
+        except Exception as e:
+            logger.error(f"Error alternando servidor MCP '{server_name}': {e}")
+            return False
+
     async def add_server(self, server_name: str, command: str, args: List[str]) -> str:
         """Añade un nuevo servidor al json y lo conecta en tiempo real sin reiniciar."""
         try:
             self.load_config()
-            self.servers_config[server_name] = {"command": command, "args": args}
+            self.servers_config[server_name] = {"command": command, "args": args, "enabled": True}
             
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump({"servidores": self.servers_config}, f, indent=2, ensure_ascii=False)

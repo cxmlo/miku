@@ -156,9 +156,9 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
             
     active_hist.append({"role": "user", "content": user_input})
     
-    # Mantener el historial acotado para no exceder tokens (Aumentado a 40 para multitasking)
-    if len(active_hist) > 41:
-        active_hist[:] = [active_hist[0]] + active_hist[-40:]
+    # Mantener el historial acotado para no saturar tokens (máximo 24 mensajes de contexto)
+    if len(active_hist) > 25:
+        active_hist[:] = [active_hist[0]] + active_hist[-24:]
         
     active_client = None
     active_model = None
@@ -475,8 +475,15 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                     
                     # Detectar si fue un error para el contador de aborto de seguridad
                     resp_str = str(function_response)
-                    if "Error" in resp_str or "Falló" in resp_str or "FAIL" in resp_str:
+                    # Truncar salidas gigantescas de herramientas para proteger el contexto y la cuota de tokens
+                    if len(resp_str) > 2500:
+                        resp_str = resp_str[:2500] + f"\n\n[... Salida truncada automáticamente para ahorrar tokens. Total original: {len(str(function_response))} caracteres]"
+
+                    low_resp = resp_str.lower()
+                    if "error" in low_resp or "falló" in low_resp or "fail" in low_resp:
                         consecutive_errors += 1
+                        if "bloqueada por seguridad" in low_resp or "acceso denegado" in low_resp or "seguridad" in low_resp:
+                            consecutive_errors += 2 # Acelerar aborto temprano si el sandbox de seguridad bloqueó la ruta
                     else:
                         consecutive_errors = 0 # Resetea si hizo algo bien
                         
@@ -498,7 +505,9 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
             for msg in extra_messages_to_append:
                 active_hist.append(msg)
                 
-            if consecutive_errors >= 4:
+            if consecutive_errors >= 3:
+                if "seguridad" in resp_str.lower() or "bloqueada" in resp_str.lower():
+                    return "El sistema de seguridad ha bloqueado el acceso a esa ruta protegida (política del Sandbox/AppData). Me he detenido para evitar consumir tokens en reintentos fallidos."
                 return "Me he encontrado con demasiados errores consecutivos intentando hacer esto. Me detuve por seguridad para no hacer un bucle infinito."
                 
         # Si superó las 15 iteraciones

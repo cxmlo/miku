@@ -622,6 +622,20 @@ const Bridge = (() => {
     }
   }
 
+  async function toggleMcpServer(name, enabled) {
+    try {
+      const res = await apiFetch(`/api/config/mcp/${encodeURIComponent(name)}/toggle`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled })
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn("[Bridge] toggleMcpServer error:", e);
+      return false;
+    }
+  }
+
   async function getAlertsConfig() {
     try {
       const res = await apiFetch("/api/config/alerts");
@@ -932,6 +946,7 @@ const Bridge = (() => {
     getMcpServers,
     addMcpServer,
     deleteMcpServer,
+    toggleMcpServer,
     getAlertsConfig,
     saveAlertsConfig,
     getDetectableApps,

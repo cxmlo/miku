@@ -1581,6 +1581,7 @@ async def get_mcp_config():
             "name": name,
             "command": srv.get("command", ""),
             "args": srv.get("args", []),
+            "enabled": srv.get("enabled", True),
             "connected": is_connected,
             "tools_count": len(tools)
         })
@@ -1597,6 +1598,15 @@ async def add_mcp_server(req: AddMcpRequest):
     msg = await mcp_manager.add_server(req.name, req.command, req.args)
     is_ok = not str(msg).lower().startswith("error")
     return {"status": "ok" if is_ok else "error", "message": msg}
+
+class ToggleMcpRequest(BaseModel):
+    enabled: bool
+
+@app.patch("/api/config/mcp/{name}/toggle")
+async def toggle_mcp_server(name: str, req: ToggleMcpRequest):
+    from mcp_client import mcp_manager
+    ok = await mcp_manager.toggle_server(name, req.enabled)
+    return {"status": "ok" if ok else "error", "enabled": req.enabled}
 
 @app.delete("/api/config/mcp/{name}")
 async def delete_mcp_server(name: str):

@@ -696,3 +696,227 @@ body.dnd,body.dnd *{cursor:grabbing!important;user-select:none}
   background: rgba(45, 212, 160, 0.22) !important;
   border-color: rgba(45, 212, 160, 0.6) !important;
 }
+
+/* ── Actualizaciones de Software Estilo Apple / Premium ── */
+.btn-upd-available {
+  background: #2dd4a0 !important;
+  color: #07090e !important;
+  font-weight: 700 !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 8px 18px !important;
+  font-size: 13px !important;
+  box-shadow: 0 4px 16px rgba(45, 212, 160, 0.35) !important;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.btn-upd-available:hover {
+  background: #39e6b2 !important;
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(45, 212, 160, 0.45) !important;
+}
+.btn-upd-available:active {
+  transform: scale(0.96) !important;
+}
+
+.update-box {
+  margin-top: 14px;
+  background: rgba(14, 16, 22, 0.85);
+  border: 1px solid rgba(45, 212, 160, 0.32);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.update-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.update-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #4ddb73;
+}
+.update-badge .pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #4ddb73;
+  box-shadow: 0 0 10px #4ddb73;
+}
+.update-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8e919a;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.update-notes-card {
+  background: rgba(8, 9, 12, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.update-notes-card::-webkit-scrollbar {
+  width: 5px;
+}
+.update-notes-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 99px;
+}
+.upd-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 10px 0 6px 0;
+  letter-spacing: -0.01em;
+}
+.upd-head:first-child { margin-top: 0; }
+.upd-subhead {
+  font-size: 12px;
+  font-weight: 600;
+  color: #80c4ff;
+  margin: 8px 0 4px 0;
+}
+.upd-list {
+  margin: 4px 0 8px 18px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #d0d4dc;
+}
+.upd-list li {
+  margin-bottom: 4px;
+}
+.upd-list li strong, .upd-para strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+.upd-list li code, .upd-para code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #a8b2c4;
+}
+.upd-para {
+  font-size: 12px;
+  color: #a0a4b0;
+  line-height: 1.5;
+  margin: 4px 0;
+}
+.upd-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 10px 0;
+}
+.update-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.btn-install-main {
+  background: #2dd4a0;
+  color: #07090e;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-size: 12.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(45, 212, 160, 0.3);
+  transition: all .16s ease;
+}
+.btn-install-main:hover {
+  background: #3ee2ab;
+  transform: translateY(-1px);
+}
+.btn-view-gh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #c9cdd4;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all .16s ease;
+}
+.btn-view-gh:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+.update-installing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(0, 242, 254, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  border-radius: 12px;
+  color: #00f2fe;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* ── Controles de Servidores MCP y Ahorro de Tokens ── */
+.mcp-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #090a0f;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  transition: border-color .18s ease, background .18s ease;
+  margin-bottom: 8px;
+}
+.mcp-card.active {
+  border-color: rgba(45, 212, 160, 0.25);
+  background: rgba(14, 18, 22, 0.7);
+}
+.mcp-card.paused {
+  opacity: 0.72;
+}
+.mcp-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  opacity: 1;
+}
+.mcp-token-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--mut);
+  margin-left: 8px;
+}
+.mcp-token-badge.active {
+  background: rgba(45, 212, 160, 0.12);
+  color: #4ddb73;
+}
+.mcp-token-badge.paused {
+  background: rgba(255, 189, 46, 0.12);
+  color: #ffbd2e;
+}
+

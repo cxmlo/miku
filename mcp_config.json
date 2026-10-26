@@ -5,7 +5,8 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-everything"
-      ]
+      ],
+      "enabled": false
     },
     "file_system": {
       "command": "npx",
@@ -16,35 +17,40 @@
         "C:\\Users\\cxmluwu\\.gemini\\antigravity-ide",
         "C:\\Users\\cxmluwu\\Desktop",
         "C:\\Users\\cxmluwu\\Downloads"
-      ]
+      ],
+      "enabled": true
     },
     "google-drive": {
       "command": "npx",
       "args": [
         "-y",
         "@piotr-agier/google-drive-mcp"
-      ]
+      ],
+      "enabled": false
     },
     "github": {
       "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-github"
-      ]
+      ],
+      "enabled": false
     },
     "memory": {
       "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-memory"
-      ]
+      ],
+      "enabled": true
     },
     "sqlite": {
       "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-sqlite"
-      ]
+      ],
+      "enabled": false
     }
   }
 }

@@ -1664,7 +1664,7 @@ V.mcp = () => {
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;border-top:1px solid #161822;padding-top:8px;">
             <code style="font-size:10.5px;color:#8e919a;background:#12131a;padding:2px 6px;border-radius:4px;">${esc(r.id)}</code>
             ${isInst 
-              ? `<span class="pill on" style="font-size:11px">✓ Instalado</span>` 
+              ? `<span class="pill on" style="font-size:11px">Instalado</span>` 
               : `<span class="hb-mcp-inst" data-mcpid="${esc(r.id)}"></span>`
             }
           </div>
@@ -1676,20 +1676,34 @@ V.mcp = () => {
 
   <section>
     <h2>${t('mcp_title')} (${list.length})</h2>
-    ${note(t('mcp_note'))}
+    ${note('Gestión de servidores MCP y optimización de tokens. Desactiva los que no uses para liberar memoria y ahorrar miles de tokens por turno:')}
     <div id="mcp-list" style="margin-top:10px;">
-      ${list.length ? list.map(s => `
-        <div class="mcp-card">
-          <div class="mcp-info">
-            <b><i class="sd ${s.connected ? 'on' : ''}"></i>${esc(s.name)}</b>
+      ${list.length ? list.map(s => {
+        const isEnabled = s.enabled !== false;
+        return `
+        <div class="mcp-card ${isEnabled ? 'active' : 'paused'}">
+          <div class="mcp-info" style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <b><i class="sd ${s.connected && isEnabled ? 'on' : ''}"></i>${esc(s.name)}</b>
+              <span class="mcp-token-badge ${isEnabled ? 'active' : 'paused'}">
+                ${isEnabled ? (s.tools_count ? `${s.tools_count} herramientas activas` : 'Conectando...') : 'Pausado (0 tokens)'}
+              </span>
+            </div>
             <code>${esc(s.command)} ${(s.args || []).join(' ')}</code>
-            <small style="color:var(--mut);margin-top:4px;display:block;">${s.tools_count || 0} herramientas conectadas</small>
+            <small style="color:var(--mut);margin-top:3px;display:block;">
+              ${isEnabled ? (s.connected ? 'Activo: herramientas cargadas en el agente' : 'Iniciando conexión...') : 'Pausado: herramientas descargadas para no consumir tokens'}
+            </small>
           </div>
-          <div>
+          <div style="display:flex;align-items:center;gap:12px;flex:none;">
+            <label class="sq" style="--w:40px;--h:22px;--p:2px;" title="${isEnabled ? 'Desactivar para ahorrar tokens' : 'Activar servidor MCP'}">
+              <input type="checkbox" class="mcp-toggle-sw" data-mcp="${esc(s.name)}" ${isEnabled ? 'checked' : ''}>
+              <i></i>
+            </label>
             <span class="hb-del-mcp" data-delmcp="${esc(s.name)}"></span>
           </div>
         </div>
-      `).join('') : '<p class="nt">No hay servidores MCP configurados.</p>'}
+        `;
+      }).join('') : '<p class="nt">No hay servidores MCP configurados.</p>'}
     </div>
   </section>
 
@@ -2013,19 +2027,103 @@ function mount() {
 
     const btnUpdate = $('#btn-check-update');
     const stUpdate = $('#update-status');
+
+    function formatChangelog(md) {
+      if (!md) return '';
+      const lines = md.split(/\r?\n/);
+      const out = [];
+      let inList = false;
+      for (let rawLine of lines) {
+        let line = rawLine.trim();
+        if (!line) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          continue;
+        }
+        if (line.startsWith('### ')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(`<div class="upd-subhead">${esc(line.substring(4))}</div>`);
+        } else if (line.startsWith('## ')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(`<div class="upd-head">${esc(line.substring(3))}</div>`);
+        } else if (line.startsWith('---')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<hr class="upd-divider">');
+        } else if (line.startsWith('- ') || line.startsWith('* ')) {
+          if (!inList) { out.push('<ul class="upd-list">'); inList = true; }
+          let c = esc(line.substring(2));
+          c = c.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          c = c.replace(/`([^`]+)`/g, '<code>$1</code>');
+          out.push(`<li>${c}</li>`);
+        } else {
+          if (inList) { out.push('</ul>'); inList = false; }
+          let c = esc(line);
+          c = c.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          c = c.replace(/`([^`]+)`/g, '<code>$1</code>');
+          out.push(`<p class="upd-para">${c}</p>`);
+        }
+      }
+      if (inList) out.push('</ul>');
+      return out.join('');
+    }
+
+    function showUpdateAvailable(res) {
+      if (!btnUpdate) return;
+      btnUpdate.className = 'btn-upd-available';
+      btnUpdate.textContent = `Instalar v${res.version}`;
+      
+      const formattedNotes = formatChangelog(res.body || '');
+      if (stUpdate) {
+        stUpdate.innerHTML = `
+          <div class="update-box">
+            <div class="update-box-head">
+              <div class="update-badge">
+                <span class="pulse-dot"></span>
+                <span>¡Nueva versión disponible: v${esc(res.version)}!</span>
+              </div>
+              <span class="update-tag">Beta pública</span>
+            </div>
+            ${formattedNotes ? `
+              <div class="update-notes-card">
+                ${formattedNotes}
+              </div>
+            ` : ''}
+            <div class="update-actions">
+              <button class="btn-install-main" id="btn-install-inline">Descargar e Instalar v${esc(res.version)}</button>
+              <a href="${esc(res.url || 'https://github.com/cxmlo/miku/releases/latest')}" target="_blank" class="btn-view-gh">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                Ver notas en GitHub
+              </a>
+            </div>
+          </div>
+        `;
+
+        const doInstall = async () => {
+          btnUpdate.disabled = true;
+          btnUpdate.textContent = 'Instalando...';
+          const btnInline = $('#btn-install-inline');
+          if (btnInline) {
+            btnInline.disabled = true;
+            btnInline.textContent = 'Descargando e instalando...';
+          }
+          stUpdate.innerHTML = `
+            <div class="update-installing">
+              <span class="pulse-dot"></span>
+              <span>Descargando e instalando actualización en segundo plano. Miku se reiniciará automáticamente al completar...</span>
+            </div>
+          `;
+          await window.Bridge?.installUpdate?.();
+        };
+
+        btnUpdate.onclick = doInstall;
+        const btnInline = $('#btn-install-inline');
+        if (btnInline) btnInline.onclick = doInstall;
+      }
+    }
+
     if (btnUpdate) {
       window.Bridge?.checkUpdate?.().then(res => {
-        if (res?.available && btnUpdate) {
-          btnUpdate.textContent = `Instalar v${res.version}`;
-          btnUpdate.style.background = 'var(--ac)';
-          btnUpdate.style.color = '#fff';
-          if (stUpdate) stUpdate.innerHTML = `<b style="color:#4ddb73">¡Nueva versión disponible: v${res.version}!</b> ${res.body ? `<br><small style="color:#cfd3dc">${res.body}</small>` : ''}`;
-          btnUpdate.onclick = async () => {
-            btnUpdate.disabled = true;
-            btnUpdate.textContent = 'Instalando...';
-            if (stUpdate) stUpdate.textContent = 'Descargando e instalando actualización en segundo plano. Miku se reiniciará sola al terminar...';
-            await window.Bridge?.installUpdate?.();
-          };
+        if (res?.available) {
+          showUpdateAvailable(res);
         }
       }).catch(() => {});
 
@@ -2036,27 +2134,18 @@ function mount() {
         try {
           const res = await window.Bridge?.checkUpdate?.();
           if (res?.available) {
-            btnUpdate.textContent = `Instalar v${res.version}`;
             btnUpdate.disabled = false;
-            btnUpdate.style.background = 'var(--ac)';
-            btnUpdate.style.color = '#fff';
-            if (stUpdate) stUpdate.innerHTML = `<b style="color:#4ddb73">¡Nueva versión disponible: v${res.version}!</b> ${res.body ? `<br><small style="color:#cfd3dc">${res.body}</small>` : ''}`;
-            btnUpdate.onclick = async () => {
-              btnUpdate.disabled = true;
-              btnUpdate.textContent = 'Instalando...';
-              if (stUpdate) stUpdate.textContent = 'Descargando e instalando actualización en segundo plano. Miku se reiniciará sola al terminar...';
-              await window.Bridge?.installUpdate?.();
-            };
+            showUpdateAvailable(res);
           } else if (res?.error) {
             btnUpdate.disabled = false;
             btnUpdate.textContent = 'Buscar actualización';
-            if (stUpdate) stUpdate.textContent = res.error.includes('404') ? '✓ Tienes la versión más reciente instalada.' : `Info: ${res.error}`;
+            if (stUpdate) stUpdate.textContent = res.error.includes('404') ? 'Tienes la versión más reciente instalada.' : `Info: ${res.error}`;
             showToast('Al día: no hay versiones pendientes');
           } else {
             btnUpdate.disabled = false;
             btnUpdate.textContent = 'Buscar actualización';
-            if (stUpdate) stUpdate.textContent = 'Miku está actualizada a la última versión (v0.1.5 Beta).';
-            showToast('Miku está en la versión más reciente');
+            if (stUpdate) stUpdate.textContent = 'Miku está en la versión más reciente (Beta v0.1.5).';
+            showToast('Miku está al día');
           }
         } catch (e) {
           btnUpdate.disabled = false;
@@ -2530,6 +2619,23 @@ function mount() {
           }
         }
       });
+    });
+
+    $$('.mcp-toggle-sw').forEach(sw => {
+      sw.onchange = async () => {
+        const name = sw.dataset.mcp;
+        const checked = sw.checked;
+        showToast(checked ? `Activando servidor ${name}...` : `Pausando ${name} (ahorrando tokens)...`);
+        const ok = await window.Bridge?.toggleMcpServer?.(name, checked);
+        if (ok) {
+          const data = await window.Bridge?.getMcpServers?.();
+          STATE.mcp = data.servers || [];
+          render();
+        } else {
+          sw.checked = !checked;
+          showToast(`Error al alternar servidor ${name}`);
+        }
+      };
     });
   }
 
