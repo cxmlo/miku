@@ -1,18 +1,4 @@
-# Configuracion de GitHub Linguist para estadisticas de lenguajes
+docs/** linguist-documentation
 
-# Excluir archivos HTML del calculo de lenguajes (oculta HTML de la barra de GitHub)
-*.html linguist-detectable=false
-*.htm linguist-detectable=false
-
-# Excluir archivos de datos y configuracion
-*.json linguist-detectable=false
-
-# Marcar carpetas de referencia y copias de compatibilidad como vendored
-refes/** linguist-vendored=true
-miku_island/** linguist-vendored=true
-miku_app/.expo/** linguist-vendored=true
-
-# Modelos binarios y audios
-*.onnx linguist-vendored=true
-*.tflite linguist-vendored=true
-*.wav linguist-vendored=true
+miku_android/gradlew text eol=lf
+miku_android/**/*.sh text eol=lf

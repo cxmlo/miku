@@ -163,9 +163,13 @@ app.mount("/shared", StaticFiles(directory="shared_files"), name="shared")
 if os.path.exists("assets"):
     app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
-# Servir la Isla Dinámica de Miku (interfaz web)
-if os.path.exists("miku_island"):
-    app.mount("/island", StaticFiles(directory="miku_island", html=True), name="island")
+# Servir la Isla Dinámica de Miku (interfaz web canónica)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ui_dir = os.path.join(BASE_DIR, "miku_ui", "src")
+if not os.path.exists(ui_dir):
+    ui_dir = os.path.join(BASE_DIR, "miku_island")
+if os.path.exists(ui_dir):
+    app.mount("/island", StaticFiles(directory=ui_dir, html=True), name="island")
 
 @app.get("/settings")
 @app.get("/config")
@@ -173,9 +177,9 @@ if os.path.exists("miku_island"):
 @app.get("/island/miku_settings.html")
 async def get_settings_page():
     """Sirve la página completa de configuración de Miku de forma directa."""
-    settings_path = os.path.join(WORKSPACE_DIR, "miku_island", "miku_settings.html")
+    settings_path = os.path.join(BASE_DIR, "miku_ui", "src", "miku_settings.html")
     if not os.path.exists(settings_path):
-        settings_path = os.path.join(WORKSPACE_DIR, "miku_ui", "src", "miku_settings.html")
+        settings_path = os.path.join(BASE_DIR, "miku_island", "miku_settings.html")
     return FileResponse(settings_path)
 
 
