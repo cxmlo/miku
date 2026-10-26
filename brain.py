@@ -156,9 +156,15 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
             
     active_hist.append({"role": "user", "content": user_input})
     
-    # Mantener el historial acotado para no saturar tokens (máximo 24 mensajes de contexto)
-    if len(active_hist) > 25:
-        active_hist[:] = [active_hist[0]] + active_hist[-24:]
+    # Mantener el historial acotado a máximo 8 mensajes para no saturar tokens (ventana deslizante de 4 turnos)
+    if len(active_hist) > 9:
+        active_hist[:] = [active_hist[0]] + active_hist[-8:]
+
+    # Podar salidas de herramientas antiguas para no reenviar volcados de texto ni inflar tokens
+    for m in active_hist[1:-1]:
+        if isinstance(m, dict):
+            if m.get("role") == "tool" and isinstance(m.get("content"), str) and len(m["content"]) > 300:
+                m["content"] = m["content"][:200] + "... [resultado previo podado]"
         
     active_client = None
     active_model = None
@@ -243,8 +249,83 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
     import time
     try:
         from mcp_client import mcp_manager
+        
+        # Verificar estado de Modo Bajo Costo
+        is_low_cost = False
+        try:
+            import server
+            is_low_cost = getattr(server, "LOW_COST_MODE", False)
+        except Exception:
+            pass
+
+        u_low = (user_input or "").lower()
+        
+        # Agrupaciones temáticas de herramientas para optimización extrema de tokens:
+        TOOL_CLUSTERS = {
+            "music": {
+                "keywords": ["cancion", "canción", "musica", "música", "spotify", "youtube", "reproduce", "reproducir", "pausa", "play", "volumen", "tema", "pista"],
+                "tools": ["reproducir_en_spotify", "controlar_spotify", "que_suena_en_spotify", "reproducir_en_youtube", "controlar_multimedia"]
+            },
+            "mobile": {
+                "keywords": ["celular", "telefono", "teléfono", "miku-link", "mikulink", "enviar al cel", "enviar a cel", "enviar archivo", "apk", "compartir", "android", "alarma", "cronometro", "cronómetro", "archivo adjuntado"],
+                "tools": ["enviar_archivo_a_celular", "enviar_imagen_a_chat", "ejecutar_intent_android", "abrir_panel_secretos_en_app"]
+            },
+            "system_os": {
+                "keywords": ["abre", "abrir", "cierra", "cerrar", "minimiza", "maximiza", "programa", "aplicacion", "aplicación", "app", "consola", "powershell", "cmd", "comando", "terminal", "bloquear", "apagar", "reiniciar"],
+                "tools": ["abrir_aplicacion", "gestionar_ventana", "ejecutar_comando_sistema", "atajo_teclado", "ejecutar_macro_teclado", "esperar_segundos", "monitorear_actividad_pc"]
+            },
+            "web": {
+                "keywords": ["busca", "buscar", "google", "investiga", "internet", "web", "pagina", "página", "enlace", "link", "noticia", "clima"],
+                "tools": ["buscar_en_internet", "leer_pagina_web", "navegar_web_autonomo", "mostrar_widget_clima"]
+            },
+            "vision": {
+                "keywords": ["pantalla", "mira", "ver", "captura", "screenshot", "foto", "clic", "click", "pulsa", "presiona", "boton", "botón", "scroll", "raton", "ratón", "mouse"],
+                "tools": ["ver_pantalla", "hacer_clic_visual", "mover_raton_visual", "hacer_scroll", "escribir_en_elemento", "tomar_captura_pantalla", "escanear_ventana_activa", "escribir_texto"]
+            },
+            "agents": {
+                "keywords": ["antigravity", "github", "agente", "delegar", "subagente", "sub-agente", "equipo"],
+                "tools": ["delegar_a_agente", "listar_agentes_disponibles", "abrir_chat_con_agente", "delegar_tarea", "enviar_mensaje_a_agente"]
+            },
+            "memory": {
+                "keywords": ["recuerda", "memoria", "acuérdate", "guardar dato", "aprende", "mi nombre es", "preferencia"],
+                "tools": ["aprender_sobre_usuario", "guardar_enlace_memoria", "buscar_en_memoria"]
+            },
+            "widgets": {
+                "keywords": ["widget", "reloj", "hora", "tarjeta visual"],
+                "tools": ["mostrar_widget_reloj", "mostrar_widget_clima", "mostrar_widget_info", "mostrar_tarjeta_visual", "modificar_estado_widget"]
+            }
+        }
+        
         if not agent_id or agent_id == "miku":
-            combined_tools = tools_schema + mcp_manager.get_dynamic_tools_schema()
+            # Detectar clusters relevantes según la intención del usuario
+            matched_tool_names = set()
+            for c_info in TOOL_CLUSTERS.values():
+                if any(kw in u_low for kw in c_info["keywords"]):
+                    matched_tool_names.update(c_info["tools"])
+
+            # Carga inteligente y dinámica de herramientas MCP bajo demanda:
+            mcp_tools = []
+            mcp_keywords = {
+                "github": ["git", "github", "commit", "repo", "repositorio", "branch", "pr", "pull request", "merge", "push", "checkout"],
+                "sqlite": ["sqlite", "sql", "query", "tabla", "database", "base de datos", "select *", "insert into"],
+                "filesystem": ["archivo", "carpeta", "leer archivo", "guardar archivo", "directorio", "filesystem"],
+                "memory": ["recuerda", "memoria", "grafo", "entidad", "olvida", "knowledge graph"]
+            }
+            
+            active_servers = list(mcp_manager.servers_config.keys()) if hasattr(mcp_manager, "servers_config") else []
+            for s_name in active_servers:
+                kws = mcp_keywords.get(s_name.lower(), [s_name.lower()])
+                if any(k in u_low for k in kws):
+                    mcp_tools.extend(mcp_manager.get_dynamic_tools_schema(server_filter=s_name))
+
+            # Si es pura charla o pregunta sin acciones, combined_tools queda VACÍO (0 tokens extra)
+            if not matched_tool_names and not mcp_tools:
+                logger.info("Modo Conversacional Puro activado: 0 herramientas cargadas para ahorrar tokens.")
+                combined_tools = []
+            else:
+                base_selected = [t for t in tools_schema if t.get("function", {}).get("name") in matched_tool_names]
+                combined_tools = base_selected + mcp_tools
+                logger.info(f"Router dinámico: Cargadas {len(combined_tools)} herramientas para '{user_input[:40]}'")
         else:
             # Sub-agentes especializados: herramientas base del sistema para trabajar
             sub_allowed = [
@@ -266,7 +347,6 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
             combined_tools = base_tools + mcp_tools
         
         def _execute_completion(cl, mod, hist):
-            # Limpiar mensajes para evitar error 400 en Groq o Vertex por campos extraños
             clean_messages = []
             for m in hist:
                 if isinstance(m, dict):
@@ -284,14 +364,15 @@ NO DIGAS NADA MÁS, SÓLO LA PALABRA."""
                 "messages": clean_messages,
                 "model": mod,
                 "temperature": 0.4,
-                "max_tokens": 4096
+                "max_tokens": 1024 if is_low_cost else 3072
             }
             if combined_tools:
                 call_kwargs["tools"] = combined_tools
             return cl.chat.completions.create(**call_kwargs)
 
         consecutive_errors = 0
-        for iteration in range(15): # Límite a 15 para tareas complejas sin llegar al infinito
+        max_loop = 3 if is_low_cost else 6
+        for iteration in range(max_loop):
             
             if interrupt_event and interrupt_event.is_set():
                 logger.info("Interrupción detectada en brain.py. Abortando bucle de herramientas.")

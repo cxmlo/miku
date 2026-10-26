@@ -78,6 +78,7 @@ object MikuClient {
     val state: StateFlow<MikuState> = _state.asStateFlow()
     private var webSocket: WebSocket? = null
     private var credentials: DeviceCredentials? = null
+    private var appContext: Context? = null
     private var reconnectAttempt = 0
     private var reconnectRunnable: Runnable? = null
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -118,6 +119,7 @@ object MikuClient {
     }
 
     fun connect(context: Context) {
+        appContext = context.applicationContext
         val saved = DeviceStore(context).read() ?: return
         credentials = saved
         _state.update {
@@ -271,9 +273,10 @@ object MikuClient {
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             if (this@MikuClient.webSocket !== webSocket) return
             if (response?.code == 403) {
+                appContext?.let { unpair(it) } ?: disconnect()
                 markDisconnected(
                     saved,
-                    "Miku Desktop rechazó este dispositivo (HTTP 403). Reinicia o actualiza Miku Desktop y vuelve a vincularlo.",
+                    "Dispositivo desvinculado por Miku Desktop.",
                 )
             } else {
                 markDisconnected(saved, t.message ?: "No se pudo conectar con el escritorio.")
@@ -326,6 +329,9 @@ object MikuClient {
                     detail = message.optString("tool").ifBlank { message.optString("prompt") },
                 )
                 _state.update { it.copy(notices = (listOf(notice) + it.notices).take(50)) }
+            }
+            message.optString("type") == "miku_link_unpaired" || (message.optString("type") == "ui_command" && message.optString("action") == "unpair") -> {
+                appContext?.let { unpair(it) } ?: disconnect()
             }
             message.optString("type") == "ui_command" -> handleUiCommand(message)
         }

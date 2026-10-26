@@ -306,6 +306,9 @@ fn open_settings_window(app: tauri::AppHandle) {
 
     match builder.build() {
         Ok(win) => {
+            if let Some(icon) = app.default_window_icon() {
+                let _ = win.set_icon(icon.clone());
+            }
             let _ = win.show();
             let _ = win.set_focus();
         }
@@ -318,6 +321,49 @@ fn open_settings_window(app: tauri::AppHandle) {
 #[tauri::command]
 fn open_settings(app: tauri::AppHandle) {
     open_settings_window(app);
+}
+
+#[tauri::command]
+fn open_link_window(app: tauri::AppHandle) {
+    if let Some(existing) = app.get_webview_window("link") {
+        let _ = existing.show();
+        let _ = existing.set_focus();
+        return;
+    }
+    let builder = tauri::WebviewWindowBuilder::new(
+        &app,
+        "link",
+        tauri::WebviewUrl::App("miku_link.html".into())
+    )
+    .title("Miku-Link · Enlace Móvil")
+    .inner_size(460.0, 700.0)
+    .decorations(false)
+    .transparent(true)
+    .shadow(false)
+    .resizable(false)
+    .center();
+
+    if let Ok(win) = builder.build() {
+        if let Some(icon) = app.default_window_icon() {
+            let _ = win.set_icon(icon.clone());
+        }
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+}
+
+#[tauri::command]
+fn close_link(app: tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("link") {
+        let _ = win.hide();
+    }
+}
+
+#[tauri::command]
+fn hide_main_window(app: tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.hide();
+    }
 }
 
 use tauri::{
@@ -388,19 +434,54 @@ pub fn run() {
                 let _ = window.show();
             }
 
+            let open_i = MenuItem::with_id(app, "open", "Abrir Isla Dinámica", true, None::<&str>)?;
+            let hide_i = MenuItem::with_id(app, "hide", "Ocultar Isla (Ahorro Energía)", true, None::<&str>)?;
+            let link_i = MenuItem::with_id(app, "link", "Miku-Link (Enlace Móvil)", true, None::<&str>)?;
+            let low_cost_i = MenuItem::with_id(app, "low_cost", "🔴 Modo Ahorro: Desactivado", true, None::<&str>)?;
             let config_i = MenuItem::with_id(app, "config", "Configuración (API Keys)", true, None::<&str>)?;
-            let open_i = MenuItem::with_id(app, "open", "Abrir Miku", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_i, &config_i, &quit_i])?;
+            let menu = Menu::with_items(app, &[&open_i, &hide_i, &link_i, &low_cost_i, &config_i, &quit_i])?;
 
+            let low_cost_item_clone = low_cost_i.clone();
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
+                .on_menu_event(move |app, event| match event.id.as_ref() {
                     "open" => {
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
+                        }
+                    }
+                    "hide" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.hide();
+                        }
+                        let _ = low_cost_item_clone.set_text("🟢 Modo Ahorro: Activado");
+                        #[cfg(target_os = "windows")]
+                        {
+                            use std::os::windows::process::CommandExt;
+                            let mut cmd = std::process::Command::new("powershell");
+                            cmd.args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/settings/low_cost_toggle -Method Post -TimeoutSec 2 -ErrorAction SilentlyContinue"]);
+                            cmd.creation_flags(0x08000000);
+                            let _ = cmd.spawn();
+                        }
+                    }
+                    "link" => {
+                        open_link_window(app.clone());
+                    }
+                    "low_cost" => {
+                        static IS_LOW: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+                        let next = !IS_LOW.load(std::sync::atomic::Ordering::Relaxed);
+                        IS_LOW.store(next, std::sync::atomic::Ordering::Relaxed);
+                        let _ = low_cost_item_clone.set_text(if next { "🟢 Modo Ahorro: Activado" } else { "🔴 Modo Ahorro: Desactivado" });
+                        #[cfg(target_os = "windows")]
+                        {
+                            use std::os::windows::process::CommandExt;
+                            let mut cmd = std::process::Command::new("powershell");
+                            cmd.args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/settings/low_cost_toggle -Method Post -TimeoutSec 2 -ErrorAction SilentlyContinue"]);
+                            cmd.creation_flags(0x08000000);
+                            let _ = cmd.spawn();
                         }
                     }
                     "config" => {
@@ -437,6 +518,12 @@ pub fn run() {
                     api.prevent_close();
                 }
             }
+            if window.label() == "link" {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             check_and_set_click_through,
@@ -447,6 +534,9 @@ pub fn run() {
             open_settings,
             close_settings,
             minimize_settings,
+            open_link_window,
+            close_link,
+            hide_main_window,
             check_update,
             install_update
         ])

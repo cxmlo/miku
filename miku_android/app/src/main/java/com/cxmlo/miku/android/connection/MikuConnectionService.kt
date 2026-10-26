@@ -86,6 +86,10 @@ class MikuConnectionService : Service() {
 
         fun notifyAgentEvent(context: Context?, notice: AgentNotice) {
             if (context == null) return
+            // Evitar spam de notificaciones automáticas de actividad de IDE / logs
+            if (notice.agent.equals("antigravity", ignoreCase = true) || notice.event.contains("Active", ignoreCase = true)) {
+                return
+            }
             notify(
                 context,
                 notice.id.hashCode(),

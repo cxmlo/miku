@@ -47,15 +47,32 @@ def run():
     else:
         pyinstaller_bin = "pyinstaller"
 
-    # Selección de modo: --onedir (Recomendado: arranque instantáneo) o --onefile
-    is_onefile = "--onefile" in sys.argv
-    build_mode = "--onefile" if is_onefile else "--onedir"
-    print(f"[Miku Build] Modo de empaquetado: {build_mode} {'(Arranque Instantáneo sin descompresión)' if not is_onefile else '(Archivo único)'}")
+    # Selección de modo: --onefile es el requerido por Tauri externalBin
+    is_onedir = "--onedir" in sys.argv
+    is_onefile = not is_onedir
+    build_mode = "--onedir" if is_onedir else "--onefile"
+    print(f"[Miku Build] Modo de empaquetado: {build_mode} {'(Carpeta onedir)' if is_onedir else '(Binario único para Tauri externalBin: miku-core-x86_64-pc-windows-msvc.exe)'}")
+
+    # Limpiar binarios y directorios previos si existen
+    for target in [
+        os.path.join(BINARIES_DIR, "miku-core"),
+        os.path.join(BINARIES_DIR, "miku-core.exe"),
+        os.path.join(BINARIES_DIR, TARGET_NAME)
+    ]:
+        if os.path.exists(target):
+            try:
+                if os.path.isdir(target):
+                    shutil.rmtree(target, onerror=_remove_readonly)
+                else:
+                    os.remove(target)
+            except Exception as e:
+                print(f"[AVISO] No se pudo limpiar {target}: {e}")
 
     cmd = [
         pyinstaller_bin,
         "--name=miku-core",
         build_mode,
+        "--noconfirm",
         "--console",
         "--clean",
         "--distpath=" + BINARIES_DIR,

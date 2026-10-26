@@ -1852,6 +1852,7 @@ V.link = () => {
         <div style="display:flex;align-items:center;gap:10px">
           <button type="button" class="sec-btn" id="btn-phone-lock" style="font-size:12px;height:34px;padding:0 14px">Bloquear PC</button>
           <button type="button" class="sec-btn pri" id="btn-phone-send-file" style="font-size:12px;height:34px;padding:0 14px">Enviar archivo</button>
+          <button type="button" class="sec-btn del" id="btn-phone-unpair" style="font-size:12px;height:34px;padding:0 14px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5" title="Desvincular y eliminar dispositivo">Desvincular</button>
         </div>
       </div>
 
@@ -2954,6 +2955,22 @@ function mount() {
     if (btnPhoneSend) {
       btnPhoneSend.onclick = () => {
         showToast('Arrastra cualquier archivo a la Isla Dinámica para transferirlo al celular.');
+      };
+    }
+    const btnPhoneUnpair = $('#btn-phone-unpair');
+    if (btnPhoneUnpair) {
+      btnPhoneUnpair.onclick = async () => {
+        if (confirm('¿Estás seguro de que deseas desvincular y eliminar este dispositivo?\n\nSe revocarán todas las claves locales de cifrado y se cerrará la sesión inmediatamente en la app móvil.')) {
+          try {
+            await fetch('/api/link/unpair', { method: 'POST' });
+            STATE.linkConnected = false;
+            STATE.linkName = '';
+            showToast('Dispositivo eliminado y desvinculado');
+            render();
+          } catch (_) {
+            showToast('Error al desvincular');
+          }
+        }
       };
     }
   }

@@ -412,12 +412,18 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
         if file_content and not analysis_info:
             analysis_info = file_content[:25000]
 
+        # Si no hay ruta explícita, buscar en la carpeta de descargas de Miku-Link
+        if not file_path and req.attachment_name:
+            miku_link_candidate = os.path.join(os.path.expanduser('~'), 'Downloads', 'miku-link', req.attachment_name)
+            if os.path.exists(miku_link_candidate):
+                file_path = miku_link_candidate
+
         # Si vino dataUrl y no está guardado aún en disco
         if not file_path and req.attachment_data:
             try:
-                dest_dir = os.path.join(tempfile.gettempdir(), "miku_uploads")
+                dest_dir = os.path.join(os.path.expanduser('~'), 'Downloads', 'miku-link')
                 os.makedirs(dest_dir, exist_ok=True)
-                file_path = os.path.join(dest_dir, req.attachment_name)
+                file_path = os.path.join(dest_dir, req.attachment_name or f"archivo_{int(time.time())}.dat")
                 b_data = base64.b64decode(req.attachment_data.split(",")[-1] if "," in req.attachment_data else req.attachment_data)
                 with open(file_path, "wb") as f:
                     f.write(b_data)
@@ -434,12 +440,12 @@ async def chat_endpoint(req: ChatRequest, api_key: str = Security(get_api_key)):
             except Exception:
                 pass
         
-        file_context = f"\n\n[ARCHIVO ADJUNTADO: '{req.attachment_name}']\nRuta local: {file_path or 'Cargado en memoria'}"
+        file_context = f"\n\n[ARCHIVO ADJUNTADO: '{req.attachment_name}']\nRuta local: {file_path or 'No disponible'}"
         if analysis_info:
             file_context += f"\nContenido del archivo / Análisis:\n{analysis_info}"
         
         user_input = user_input + file_context
-        logger.info(f"Contexto de archivo adjuntado inyectado: {req.attachment_name} -> {file_path or 'memoria'} (Longitud info: {len(analysis_info)} chars)")
+        logger.info(f"Contexto de archivo adjuntado inyectado: {req.attachment_name} -> {file_path or 'desconocido'} (Longitud info: {len(analysis_info)} chars)")
     
     user_msg = {
         "type": "user_message",
@@ -836,6 +842,156 @@ async def device_upload(file: UploadFile = File(...), x_device_id: str = Header(
     })
     
     return {"status": "ok", "filename": file.filename}
+
+class SendToPhoneRequest(BaseModel):
+    path: str
+
+@app.post("/api/desktop/send_file_to_phone")
+async def send_file_to_phone_endpoint(req: SendToPhoneRequest):
+    """Envía un archivo de la PC al celular vinculado (usado por el menú contextual de Windows y herramientas)."""
+    file_path = req.path
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail=f"Archivo no encontrado: {file_path}")
+
+    filename = os.path.basename(file_path)
+    stage_dir = os.path.join(tempfile.gettempdir(), "miku_temp_media")
+    os.makedirs(stage_dir, exist_ok=True)
+    dest_path = os.path.join(stage_dir, filename)
+
+    try:
+        shutil.copy2(file_path, dest_path)
+    except Exception as e:
+        logger.error(f"Error copiando archivo para envío: {e}")
+
+    # Avisar al teléfono conectado por WebSocket
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "download_file",
+        "filename": filename
+    })
+
+    # Mostrar notificación en la Isla
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "show_info",
+        "args": ["Miku-Link", f"Enviando '{filename}' a tu celular"]
+    })
+
+    return {"status": "ok", "filename": filename, "message": f"Archivo {filename} enviado al celular."}
+
+@app.get("/api/temp_media/{filename}")
+async def get_temp_media(filename: str):
+    """Sirve archivos en tránsito hacia la app móvil."""
+    stage_dir = os.path.join(tempfile.gettempdir(), "miku_temp_media")
+    candidate1 = os.path.join(stage_dir, filename)
+    downloads_dir = os.path.join(os.path.expanduser('~'), 'Downloads', 'miku-link')
+    candidate2 = os.path.join(downloads_dir, filename)
+    candidate3 = os.path.join(tempfile.gettempdir(), filename)
+
+    for p in (candidate1, candidate2, candidate3):
+        if os.path.exists(p) and os.path.isfile(p):
+            return FileResponse(p, filename=filename)
+
+    raise HTTPException(status_code=404, detail="Archivo temporal no encontrado")
+
+# ==========================================
+# GESTION MIKU-LINK Y MODO BAJO COSTO
+# ==========================================
+LOW_COST_MODE = False
+
+@app.get("/api/link/status")
+async def link_status_endpoint():
+    devices = miku_db.get_all_devices()
+    active_mobile = manager.connected_mobile()
+    is_connected = bool(active_mobile and active_mobile.get("type") == "miku_link_connected")
+    
+    first_dev = devices[0] if devices else None
+    dev_name = first_dev["name"] if first_dev else "Ningún dispositivo vinculado"
+    
+    import socket
+    local_ip = "127.0.0.1"
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("10.255.255.255", 1))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        pass
+        
+    return {
+        "status": "ok",
+        "connected": is_connected,
+        "device_name": dev_name,
+        "devices": devices,
+        "ip": local_ip
+    }
+
+@app.post("/api/link/unpair")
+async def link_unpair_endpoint(req: Optional[Dict[str, Any]] = None):
+    """Desvincula y elimina dispositivos registrados, avisando tanto al companion móvil como a la UI."""
+    target_id = req.get("device_id") if req and isinstance(req, dict) else None
+    
+    if target_id:
+        miku_db.remove_device(target_id)
+    else:
+        for d in miku_db.get_all_devices():
+            miku_db.remove_device(d["device_id"])
+            
+    # Avisar a clientes WebSocket (Android Companion y Desktop)
+    await manager.broadcast_message({
+        "type": "miku_link_unpaired",
+        "action": "unpair",
+        "device_id": target_id
+    })
+    
+    # Cerrar sockets móviles autorizados
+    manager.mobile_connections.clear()
+    await manager.broadcast_message({"type": "miku_link_disconnected"})
+    
+    return {"status": "ok", "message": "Dispositivo desvinculado y eliminado correctamente"}
+
+@app.post("/api/link/open-folder")
+async def link_open_folder():
+    """Abre la carpeta de archivos recibidos en el Explorador de Windows."""
+    downloads_path = os.path.join(os.path.expanduser('~'), 'Downloads', 'miku-link')
+    os.makedirs(downloads_path, exist_ok=True)
+    try:
+        if sys.platform == "win32":
+            os.startfile(downloads_path)
+        else:
+            import subprocess
+            subprocess.Popen(["xdg-open", downloads_path])
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/devices")
+async def get_registered_devices():
+    return {"devices": miku_db.get_all_devices()}
+
+@app.delete("/api/devices/{device_id}")
+async def delete_registered_device(device_id: str):
+    miku_db.remove_device(device_id)
+    await manager.broadcast_message({
+        "type": "miku_link_unpaired",
+        "action": "unpair",
+        "device_id": device_id
+    })
+    manager.mobile_connections.pop(device_id, None)
+    await manager.broadcast_message({"type": "miku_link_disconnected"})
+    return {"status": "ok", "deleted": device_id}
+
+@app.post("/api/settings/low_cost_toggle")
+async def toggle_low_cost_mode():
+    global LOW_COST_MODE
+    LOW_COST_MODE = not LOW_COST_MODE
+    logger.info(f"Modo Bajo Costo cambiado a: {LOW_COST_MODE}")
+    return {"status": "ok", "low_cost": LOW_COST_MODE}
+
+@app.get("/api/settings/low_cost")
+async def get_low_cost_mode():
+    return {"low_cost": LOW_COST_MODE}
+
 
 
 class ClipboardRequest(BaseModel):
@@ -2468,16 +2624,7 @@ async def dev_activity_watcher_loop():
                     return max_mtime
 
                 latest_mt = await asyncio.to_thread(check_antigravity)
-                if latest_mt > last_antigravity_mtime:
-                    if last_antigravity_mtime > 0 and (time.time() - latest_mt) < 20:
-                        await manager.broadcast_message({
-                            "type": "agent_hook",
-                            "agent": "antigravity",
-                            "event": "Agent Active",
-                            "prompt": "Antigravity ejecutando tareas en el proyecto",
-                            "tool": "antigravity"
-                        })
-                    last_antigravity_mtime = latest_mt
+                last_antigravity_mtime = latest_mt
 
         except Exception:
             pass

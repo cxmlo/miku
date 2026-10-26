@@ -55,9 +55,24 @@ graph TD
   - `Claves de API`: Gestión protegida de variables de entorno `.env`.
   - `MCP`: Catálogo con instalación en un clic y conexión en caliente de servidores Model Context Protocol (`filesystem`, `memory`, `sqlite`, `github`, etc.).
   - `Alertas`: Monitor de tiempo de uso en juegos y aplicaciones estilo Discord con avisos proactivos en la Isla y notificaciones nativas de Windows Toast.
-  - `Miku-Link`: Código QR para emparejamiento con la aplicación móvil.
+### 3. Ventana Miku-Link (`miku_link.html`)
+- **Gestión de Enlace Móvil**: Ventana nativa e independiente con ícono dedicado (`app.default_window_icon()`) para visualizar el estado de conexión del companion Android, generar códigos QR de emparejamiento, explorar la carpeta de descargas recibidas (`Downloads/miku-link`) y desvincular dispositivos con un solo clic.
 
-### 3. Comunicación y Puentes (`bridge.js`)
+### 4. Modo de Ahorro y Control desde la Bandeja del Sistema (System Tray)
+- **Ocultación Reactiva de la Isla**: La cabecera de la Dynamic Island incluye un botón de cierre que oculta la ventana principal sin terminar el proceso de fondo, reduciendo la carga de renderizado al mínimo.
+- **Indicador Dinámico en el Tray**: El menú de la bandeja del sistema (`lib.rs`) expone el estado de ahorro de energía en tiempo real con códigos de color visuales:
+  - `🟢 Modo Ahorro: Activado` (Isla oculta, enrutador de herramientas ultra-estricto, consumo mínimo de tokens y CPU).
+  - `🔴 Modo Ahorro: Desactivado` (Modo estándar con todas las capacidades reactivas activadas).
+- **Control de Ventanas Secundarias**: Acceso directo a Configuración y Miku-Link con restauración garantizada del foco.
+
+### 5. Integración con el Explorador de Windows (Menú Contextual & SendTo)
+- **Compartir al Celular**: Al dar clic derecho sobre cualquier archivo o carpeta en Windows, aparece la opción **"Enviar a Mi teléfono (Miku)"** con el ícono oficial de Miku-Link.
+- **Doble Registro Nativo**:
+  - `HKCU\Software\Classes\*\shell\MikuSendToPhone` y `Software\Classes\Directory\shell\MikuSendToPhone`.
+  - Acceso directo en la carpeta `SendTo` (`shell:sendto`), apareciendo tanto en el menú moderno como en el submenú "Enviar a".
+  - Despacha una petición HTTP a `POST /api/desktop/send_file_to_phone`, la cual avisa a la Isla Dinámica y transfiere inmediatamente el recurso al companion móvil.
+
+### 6. Comunicación y Puentes (`bridge.js`)
 - Gestiona la conexión WebSocket con `ws://127.0.0.1:8000/ws` y peticiones REST seguras.
 - Sincroniza el estado entre ventanas mediante la API estándar `BroadcastChannel('miku')`.
 - Emite `core_connected` al iniciar el backend para auto-poblar datos sin recargas manuales.

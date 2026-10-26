@@ -4,6 +4,7 @@ const DEFAULT_AGENTS = [
   {id: 'antigravity', name: 'Antigravity', role: 'Diseño UI/UX, animaciones y desarrollo frontend', c: '#00D2FF', model: 'gemini-2.5-pro', active: true, isl: 2, outfit: 'crown'}
 ];
 const ST={ws:0,mic:0,link:0,name:'',tasks:0,api:1,agents:[...DEFAULT_AGENTS]};
+const CFG={voice:1,autoclose:15,voice_volume:80,sfx_volume:60,barge_in:1,wake_paused:0,mic:'default',personality:'calm',hover_open:0,local_net:1,biometric:1,lang:'es'};
 let SELA=-1,PG=0,LOCKI=0;
 
 const QR=(()=>{
@@ -598,14 +599,14 @@ const I18N_ISLAND = {
     sound: '소리'
   }
 };
-const t = k => {
+const tr = k => {
   const lang = (typeof CFG !== 'undefined' && CFG.lang) ? CFG.lang : 'es';
   return (I18N_ISLAND[lang] && I18N_ISLAND[lang][k]) || (I18N_ISLAND.es && I18N_ISLAND.es[k]) || k;
 };
 function updateIslandLang() {
-  TABS[0][2] = t('tab_home');
-  TABS[1][2] = t('tab_chat');
-  TABS[2][2] = t('tab_files');
+  TABS[0][2] = tr('tab_home');
+  TABS[1][2] = tr('tab_chat');
+  TABS[2][2] = tr('tab_files');
   if (typeof scene !== 'undefined') {
     if (scene === 'overview' && typeof renderOv === 'function') {
       renderOv();
@@ -614,8 +615,8 @@ function updateIslandLang() {
     }
   }
 }
-const TABS=[['overview','home',t('tab_home')],['prompt','chat',t('tab_chat')],['drop','plus',t('tab_files')]];
-const HD=(tx,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="${t('quick_settings')}" aria-label="${t('quick_settings')}">${ic('cog')}</button><button class="ib spk" data-a="mute" title="${t('sound')}" aria-label="${t('sound')}">${ic(CFG.voice?'speaker':'speaker-off')}</button></span></div>`;
+const TABS=[['overview','home',tr('tab_home')],['prompt','chat',tr('tab_chat')],['drop','plus',tr('tab_files')]];
+const HD=(tx,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="${tr('quick_settings')}" aria-label="${tr('quick_settings')}">${ic('cog')}</button><button class="ib spk" data-a="mute" title="${tr('sound')}" aria-label="${tr('sound')}">${ic(CFG.voice?'speaker':'speaker-off')}</button><button class="ib cls" data-a="island_hide" title="Ocultar Isla (Modo Ahorro)" aria-label="Ocultar">${ic('x')}</button></span></div>`;
 const MN=()=>{const n=Math.min(ST.tasks||0,4);return n?`<div class="minis">${[['#4FD3B1','#ff6b5e'],['#F0B94F','#2dd4a0'],['#A995EF','#22C5E8'],['#6CB2F5','#ffb020']].slice(0,n).map(([c,d])=>`<i class="mi" style="--c:${c};--d:${d}"></i>`).join('')}</div>`:''};
 function wrapRow(h,s){const m=h.match(/^(<div class="hd">.*?<\/span><\/div>)([\s\S]*)$/),hd=m?m[1]:'',b=m?m[2]:h,g=(X[s.st]||X.idle).g||BL;
  return hd+`<div class="row"><div class="card mk" style="--g:var(--gl)"><i class="cs" data-k=".6" style="width:67px;height:50px"></i><div class="cp">${b}</div></div></div>`}
@@ -667,7 +668,6 @@ const tlHtml=live=>`<span class="tl ${live?'live':''}"><svg class="i"><use href=
 function tlTrack(n){if(n=='thinking'){if(!THK.on){THK.on=1;THK.start=performance.now();THK.dur=0}}else if(THK.on){THK.on=0;THK.dur=performance.now()-THK.start;THK.end=Date.now();setTimeout(label,3100)}}
 setInterval(()=>{if(THK.on)$$('.tl.live .tl-n').forEach(e=>e.textContent=fmtTL(performance.now()-THK.start))},100);
 const MUS={title:'Sin reproducción',artist:'—',playing:0,vol:50};
-const CFG={voice:1,autoclose:15,voice_volume:80,sfx_volume:60,barge_in:1,wake_paused:0,mic:'default',personality:'calm',hover_open:0,local_net:1,biometric:1,lang:'es'};
 let MICS=[['default','Predeterminado']],PAIR='miku://pair?s=init&ip=127.0.0.1',PAIR_ERROR='';
 let RES='',QL={title:'',text:''},FN='archivo',lastQ='',tabK='link',scene='compact',bk0='compact',lw=0,lh=0,tm,notT;
 const AGENT_CHATS=(()=>{try{return JSON.parse(localStorage.getItem('miku_agent_chats')||'{}')}catch(_){return {}}})();
@@ -981,7 +981,7 @@ const renderChatCard = () => {
 
 const SC={
  compact:{m:1,st:'idle',x:()=>`<div class="mini">${MINIH()}</div>`},
- boot:{w:460,hc:1,st:'idle',x:()=>`<div class="boot-scene"><img class="boot-avatar" src="${snap(bodyOf(PRIN),OUT,'full')}" alt="Miku"><div class="boot-copy"><div class="boot-header-row"><span class="boot-eyebrow">${t('boot_eyebrow')}</span><span class="boot-beta-badge" title="Fase Beta pública activa">${t('beta_tag')}</span></div><strong class="boot-title" id="bootStatus">${t('boot_title')}</strong><div class="boot-steps"><div class="boot-step" data-boot-step="0"><i class="boot-step-dot"></i>${t('boot_step_0')}</div><div class="boot-step" data-boot-step="1"><i class="boot-step-dot"></i>${t('boot_step_1')}</div><div class="boot-step" data-boot-step="2"><i class="boot-step-dot"></i>${t('boot_step_2')}</div></div><div class="boot-beta-footer"><span class="boot-beta-note">${t('boot_beta_note')}</span><button type="button" class="boot-issue-btn" onclick="window.Bridge?.openExternalUrl?.('https://github.com/cxmlo/miku/issues');event.stopPropagation();">${t('report_issue')}</button></div></div></div>`},
+ boot:{w:460,hc:1,st:'idle',x:()=>`<div class="boot-scene"><img class="boot-avatar" src="${snap(bodyOf(PRIN),OUT,'full')}" alt="Miku"><div class="boot-copy"><div class="boot-header-row"><span class="boot-eyebrow">${tr('boot_eyebrow')}</span><span class="boot-beta-badge" title="Fase Beta pública activa">${tr('beta_tag')}</span></div><strong class="boot-title" id="bootStatus">${tr('boot_title')}</strong><div class="boot-steps"><div class="boot-step" data-boot-step="0"><i class="boot-step-dot"></i>${tr('boot_step_0')}</div><div class="boot-step" data-boot-step="1"><i class="boot-step-dot"></i>${tr('boot_step_1')}</div><div class="boot-step" data-boot-step="2"><i class="boot-step-dot"></i>${tr('boot_step_2')}</div></div><div class="boot-beta-footer"><span class="boot-beta-note">${tr('boot_beta_note')}</span><button type="button" class="boot-issue-btn" onclick="window.Bridge?.openExternalUrl?.('https://github.com/cxmlo/miku/issues');event.stopPropagation();">${tr('report_issue')}</button></div></div></div>`},
  prompt:{w:640,hc:1,st:'idle',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
     x:()=>renderChatCard()},
  result:{w:640,hc:1,st:'idle',em:'happy',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
@@ -997,16 +997,16 @@ const SC={
   const A=ST.agents,a=curAg(),pr=(a.id===PRIN.id);
   const ch=getAgChat(a.id);
 
-  const roleLabel = pr ? t('orchestrator') : (a.role || t('subagent'));
-  const previewMetric = pr ? (ST.ws ? 'Online · 100%' : t('active_status')) : (a.model ? a.model.replace(/^(google\/|groq\/)/i, '') : t('ready_status'));
+  const roleLabel = pr ? tr('orchestrator') : (a.role || tr('subagent'));
+  const previewMetric = pr ? (ST.ws ? 'Online · 100%' : tr('active_status')) : (a.model ? a.model.replace(/^(google\/|groq\/)/i, '') : tr('ready_status'));
   const previewLines = pr ? [
-    `• ${t('memory_active')}`,
-    `• ${t('agents_avail_prefix')}: ${A.length} ${t('agents_avail')}`,
-    `• ${t('system_status')}: ${ST.ws ? t('core_synced') : t('local_mode')}`
+    `• ${tr('memory_active')}`,
+    `• ${tr('agents_avail_prefix')}: ${A.length} ${tr('agents_avail')}`,
+    `• ${tr('system_status')}: ${ST.ws ? tr('core_synced') : tr('local_mode')}`
   ] : [
-    `• ${t('model_label')}: ${esc(a.model || 'Gemini Flash')}`,
-    `• ${t('role_label')}: ${esc(a.role || t('subagent'))}`,
-    `• ${t('status_label')}: ${esc(ch.busy ? t('thinking') : (ch.lastA ? t('done_task') : t('idle_task')))}`
+    `• ${tr('model_label')}: ${esc(a.model || 'Gemini Flash')}`,
+    `• ${tr('role_label')}: ${esc(a.role || tr('subagent'))}`,
+    `• ${tr('status_label')}: ${esc(ch.busy ? tr('thinking') : (ch.lastA ? tr('done_task') : tr('idle_task')))}`
   ];
 
   const agColor = (a.id === PRIN.id || a === PRIN) ? '#ffffff' : (a.c || '#ffffff');
@@ -1465,6 +1465,16 @@ const ACT={
  unpair:(x,b)=>{window.Bridge?.unpairDevices?.();link(false);flash(b,'Listo')},
  cfgwin:()=>{window.Bridge?.openSettings?.()},
  island_update:()=>{openSettings();try{window.Bridge?.checkUpdate?.()}catch(_){}},
+ island_hide:()=>{
+  try{
+   if(window.__TAURI__?.core?.invoke){
+    window.__TAURI__.core.invoke('hide_main_window');
+   }else if(window.__TAURI__?.window?.getCurrentWindow){
+    window.__TAURI__.window.getCurrentWindow().hide();
+   }
+   fetch('http://127.0.0.1:8000/api/settings/low_cost_toggle',{method:'POST'}).catch(()=>{});
+  }catch(_){}
+ },
  newcode:()=>{window.Bridge?.initLocalIp?.()}
 };
 isl.addEventListener('click',e=>{
@@ -1580,7 +1590,7 @@ function finishBoot(){
  bootReady=true;
  clearInterval(bootProgressTimer);
  const status=$('#bootStatus');
- if(status)status.textContent=t('boot_connected');
+ if(status)status.textContent=tr('boot_connected');
  $$('.boot-step').forEach(step=>{step.classList.remove('is-active');step.classList.add('is-done')});
  bootReadyTimer=setTimeout(()=>{
   if(scene==='boot'){window.__mikuBooting=false;go('overview',{__i:1})}

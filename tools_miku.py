@@ -393,7 +393,11 @@ def enviar_archivo_a_celular(ruta: str) -> str:
     import urllib.request
 
     if not os.path.isfile(ruta):
-        return f"Error: no se encontró un archivo válido en {ruta}"
+        candidate = os.path.join(os.path.expanduser('~'), 'Downloads', 'miku-link', os.path.basename(ruta))
+        if os.path.isfile(candidate):
+            ruta = candidate
+        else:
+            return f"Error: no se encontró un archivo válido en {ruta}"
 
     api_key = os.getenv("MIKU_API_KEY", "miku_secure_key_2026")
     url = "http://127.0.0.1:8000/api/desktop/send_file_to_phone"
