@@ -1001,7 +1001,7 @@ const Bridge = (() => {
         if (resp.ok) {
           const rel = await resp.json();
           const tag = (rel.tag_name || "").replace(/^v/, "");
-          const current = "0.1.4";
+          const current = "0.1.5";
           const isNewer = tag && tag !== current && tag > current;
           return { available: !!isNewer, version: tag, url: rel.html_url };
         }
