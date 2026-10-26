@@ -1,0 +1,71 @@
+name: 'Build Miku Android APK'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      buildType:
+        description: 'Tipo de compilación (release o debug)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+
+jobs:
+  build-apk:
+    name: Compilar APK Android
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Permisos de ejecución a gradlew
+        working-directory: ./miku_android
+        run: chmod +x gradlew
+
+      - name: Compilar APK (${{ github.event.inputs.buildType || 'release' }})
+        working-directory: ./miku_android
+        run: |
+          if [ "${{ github.event.inputs.buildType }}" = "debug" ]; then
+            ./gradlew assembleDebug
+          else
+            ./gradlew assembleRelease
+          fi
+
+      - name: Localizar APK generado
+        id: locate_apk
+        run: |
+          APK_PATH=$(find miku_android/app/build/outputs/apk/ -name "*.apk" | head -n 1)
+          echo "Encontrado APK en: $APK_PATH"
+          cp "$APK_PATH" miku-mobile.apk
+          echo "apk_path=miku-mobile.apk" >> $GITHUB_OUTPUT
+
+      - name: Subir artefacto APK para descarga directa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Miku-Mobile-APK
+          path: miku-mobile.apk
+          retention-days: 14
+
+      - name: Adjuntar APK a GitHub Release (si existe tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          gh release upload ${{ github.ref_name }} miku-mobile.apk --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

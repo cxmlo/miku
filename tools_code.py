@@ -2,10 +2,15 @@ import tempfile
 import subprocess
 import os
 import sys
+import security_manager
+from miku_paths import WORKSPACE_DIR
 
 def escribir_y_ejecutar_python(codigo: str) -> str:
     """Escribe código Python en un archivo temporal y lo ejecuta, devolviendo la salida."""
-    
+    allowed, reason = security_manager.is_code_execution_allowed()
+    if not allowed:
+        return f"Ejecución bloqueada por Modo de Seguridad: {reason}"
+
     # === PROTECCIÓN DE SEGURIDAD ===
     codigo_lower = codigo.lower()
     rutas_protegidas = [
@@ -30,12 +35,18 @@ def escribir_y_ejecutar_python(codigo: str) -> str:
             return f"Error de Seguridad: Intento de comando destructivo bloqueado."
     # ================================
     
+    mode = security_manager.get_execution_mode()
+    
     try:
-        # Guardar el código generado por la IA en un archivo temporal
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
-            # Asegurarnos de que el código tenga los imports necesarios si la IA los olvidó
-            if "import " not in codigo:
-                pass
+        # En modo sandbox, guardar en el directorio scratch del workspace
+        if mode == security_manager.MODE_SANDBOX:
+            scratch_dir = os.path.join(WORKSPACE_DIR, "scratch")
+            os.makedirs(scratch_dir, exist_ok=True)
+            temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.py', dir=scratch_dir, delete=False, encoding='utf-8')
+        else:
+            temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8')
+
+        with temp_file as f:
             f.write(codigo)
             temp_file_path = f.name
             

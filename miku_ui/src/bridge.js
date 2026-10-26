@@ -763,7 +763,9 @@ const Bridge = (() => {
     if (window.__TAURI__?.core?.invoke) {
       window.__TAURI__.core.invoke('open_settings_window').catch(() => {
         window.__TAURI__.core.invoke('open_settings').catch(() => {
-          window.open("miku_settings.html", "miku_settings", "width=980,height=740");
+          const isIsland = location.pathname.includes('/island');
+          const settingsUrl = isIsland ? '/island/miku_settings.html' : 'miku_settings.html';
+          window.open(settingsUrl, "miku_settings", "width=1080,height=780");
         });
       });
       return;
@@ -772,7 +774,9 @@ const Bridge = (() => {
     if (pw?.open_settings) {
       pw.open_settings();
     } else {
-      window.open("miku_settings.html", "miku_settings", "width=980,height=740");
+      const isIsland = location.pathname.includes('/island');
+      const settingsUrl = isIsland ? '/island/miku_settings.html' : 'miku_settings.html';
+      window.open(settingsUrl, "miku_settings", "width=1080,height=780");
     }
   }
 
@@ -844,10 +848,36 @@ const Bridge = (() => {
     }
   }
 
+  async function getExecutionMode() {
+    try {
+      const res = await apiFetch("/api/config/execution_mode");
+      return res.ok ? await res.json() : { current_mode: "full", available_modes: [] };
+    } catch (e) {
+      console.warn("[Bridge] getExecutionMode error:", e);
+      return { current_mode: "full", available_modes: [] };
+    }
+  }
+
+  async function setExecutionMode(mode) {
+    try {
+      const res = await apiFetch("/api/config/execution_mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode })
+      });
+      return res.ok ? await res.json() : null;
+    } catch (e) {
+      console.warn("[Bridge] setExecutionMode error:", e);
+      return null;
+    }
+  }
+
   return {
     init,
     sendChat,
     dictate,
+    getExecutionMode,
+    setExecutionMode,
     sendToPhone,
     chipAction,
     cancel,

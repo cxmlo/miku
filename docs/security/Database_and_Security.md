@@ -28,4 +28,5 @@ El ID funciona actualmente como una credencial bearer: el protocolo local usa HT
 El backend mantiene una identidad Ed25519 y devuelve su clave pública en el emparejamiento, pero el flujo actual no firma solicitudes ni valida una prueba de posesión de la clave pública del teléfono. Por tanto, el enlace de emparejamiento y el control de acceso son mecanismos de confianza local, no un protocolo de autenticación criptográfica completo.
 
 ## Enlaces Relacionados
+- 👉 Modos de Ejecución y Sandbox: [[Execution_Modes]]
 - 👉 Volver a [[Home]]

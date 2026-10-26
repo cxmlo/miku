@@ -1718,6 +1718,8 @@ const KEYS = ls.get('miku_keysaved', {});
 const STATE = {
   keys: {},
   models: { current: { chat: '', computer_use: '', stt: '' }, available: { chat: [], computer_use: [], stt: [] } },
+  execMode: 'full',
+  execDetails: {},
   mcp: [],
   alerts: {},
   detectableApps: [],
@@ -2087,6 +2089,39 @@ V.general = () => `
   ${row(t('autoclose_title'), t('autoclose_desc'), `<span id="gs-ac"></span>`)}
   ${row(t('lang_title'), t('lang_desc'), `<span id="gs-lang"></span>`)}
   ${row(t('pers_title'), t('pers_desc'), `<span id="gs-pers"></span>`)}
+</section>
+<section>
+  <h2>Nivel de Permisos y Modos de Ejecución</h2>
+  <div style="font-size:12.5px;color:var(--mut);margin-bottom:12px">
+    Define los límites de permisos con los que Miku puede interactuar con tu PC, ejecutar comandos y manipular archivos al estilo de Antigravity.
+  </div>
+  <div class="exec-mode-grid" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:14px">
+    <div class="mode-card ${STATE.execMode === 'full' ? 'active' : ''}" data-setmode="full" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'full' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
+      <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
+        <span style="font-size:18px">🌐</span> Toda mi PC
+      </div>
+      <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
+        Acceso total a la consola de Windows, cualquier disco o archivo, scripts y automatización de interfaz.
+      </div>
+    </div>
+    <div class="mode-card ${STATE.execMode === 'sandbox' ? 'active' : ''}" data-setmode="sandbox" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'sandbox' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
+      <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
+        <span style="font-size:18px">📦</span> Sandbox
+      </div>
+      <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
+        Confinada al espacio de trabajo del proyecto. Protege carpetas del sistema y archivos fuera del workspace.
+      </div>
+    </div>
+    <div class="mode-card ${STATE.execMode === 'restricted' ? 'active' : ''}" data-setmode="restricted" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'restricted' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
+      <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
+        <span style="font-size:18px">🔒</span> Restringido
+      </div>
+      <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
+        Solo lectura y consultas seguras. Comandos de consola, scripts y clics automáticos quedan bloqueados.
+      </div>
+    </div>
+  </div>
+  ${note('Puedes alternar entre estos modos en cualquier momento. Los cambios se aplican de forma inmediata sin reiniciar el servidor.')}
 </section>
 <section>
   <h2>Actualizaciones de Software</h2>
@@ -2704,6 +2739,21 @@ function mount() {
     });
     HoldButton($('#hb-reset'), { label: t('reset_btn'), doneLabel: 'Restablecido', hold: 1800, small: 1, onHold: holdReset });
 
+    $$('.mode-card').forEach(card => {
+      card.onclick = async () => {
+        const mode = card.dataset.setmode;
+        if (!mode) return;
+        const res = await window.Bridge?.setExecutionMode?.(mode);
+        if (res && res.status === 'ok') {
+          STATE.execMode = res.current_mode;
+          showToast(`Modo cambiado: ${res.current_details?.name || mode}`);
+          render();
+        } else {
+          showToast('Error al cambiar modo');
+        }
+      };
+    });
+
     const btnUpdate = $('#btn-check-update');
     const stUpdate = $('#update-status');
     if (btnUpdate) {
@@ -3064,34 +3114,35 @@ function mount() {
       });
     };
 
-    const chatOpts = filterByProv(avail.chat || []).map(m => ({ value: m.id, label: m.name || m.id }));
-    const proOpts = filterByProv(avail.pro || []).map(m => ({ value: m.id, label: m.name || m.id }));
-    const compOpts = filterByProv(avail.computer_use || []).map(m => ({ value: m.id, label: m.name || m.id }));
-    const sttOpts = filterByProv(avail.stt || []).map(m => ({ value: m.id, label: m.name || m.id }));
+    const optLabel = m => (m.has_key ? '' : '⚠️ ') + (m.name || m.id) + (m.has_key ? '' : ' [Requiere Clave]');
+    const chatOpts = filterByProv(avail.chat || []).map(m => ({ value: m.id, label: optLabel(m) }));
+    const proOpts = filterByProv(avail.pro || []).map(m => ({ value: m.id, label: optLabel(m) }));
+    const compOpts = filterByProv(avail.computer_use || []).map(m => ({ value: m.id, label: optLabel(m) }));
+    const sttOpts = filterByProv(avail.stt || []).map(m => ({ value: m.id, label: optLabel(m) }));
 
     G('gs-chat', {
       options: chatOpts.length ? chatOpts : [{ value: '', label: 'Sin modelos disponibles para este filtro' }],
       value: cur.chat,
       label: 'Chat',
-      onChange: v => { cur.chat = v; }
+      onChange: v => { if (v) cur.chat = v; }
     });
     G('gs-pro', {
       options: proOpts.length ? proOpts : (chatOpts.length ? chatOpts : [{ value: '', label: 'Sin modelos pro disponibles' }]),
       value: cur.pro || cur.chat,
       label: 'Pro / Código',
-      onChange: v => { cur.pro = v; }
+      onChange: v => { if (v) cur.pro = v; }
     });
     G('gs-comp', {
       options: compOpts.length ? compOpts : [{ value: '', label: 'Sin proveedor de visión' }],
       value: cur.computer_use,
       label: 'Computer Use',
-      onChange: v => { cur.computer_use = v; }
+      onChange: v => { if (v) cur.computer_use = v; }
     });
     G('gs-stt', {
       options: sttOpts.length ? sttOpts : [{ value: '', label: 'Sin proveedor de voz' }],
       value: cur.stt,
       label: 'STT',
-      onChange: v => { cur.stt = v; }
+      onChange: v => { if (v) cur.stt = v; }
     });
     HoldButton($('#hb-models'), {
       label: 'Guardar modelos',
@@ -3526,6 +3577,14 @@ async function loadBackendData() {
       const res = await window.Bridge.getConfigKeys();
       if (res && res.keys) {
         STATE.keys = res.keys;
+        backendOnline = true;
+      }
+    }
+    if (window.Bridge?.getExecutionMode) {
+      const emRes = await window.Bridge.getExecutionMode();
+      if (emRes && emRes.current_mode) {
+        STATE.execMode = emRes.current_mode;
+        STATE.execDetails = emRes.current_details;
         backendOnline = true;
       }
     }

@@ -2659,13 +2659,17 @@ function openSettings(){
   } else if(window.__TAURI__?.core?.invoke){
     window.__TAURI__.core.invoke('open_settings_window').catch(()=>{
       window.__TAURI__.core.invoke('open_settings').catch(()=>{
-        window.open('miku_settings.html','miku_settings','width=920,height=720');
+        const isIsland = location.pathname.includes('/island');
+        const settingsUrl = isIsland ? '/island/miku_settings.html' : 'miku_settings.html';
+        window.open(settingsUrl,'miku_settings','width=1080,height=780');
       });
     });
   } else if(window.pywebview?.api?.open_settings){
     window.pywebview.api.open_settings();
   } else {
-    window.open('miku_settings.html','miku_settings','width=920,height=720');
+    const isIsland = location.pathname.includes('/island');
+    const settingsUrl = isIsland ? '/island/miku_settings.html' : 'miku_settings.html';
+    window.open(settingsUrl,'miku_settings','width=1080,height=780');
   }
   go('compact');
 }

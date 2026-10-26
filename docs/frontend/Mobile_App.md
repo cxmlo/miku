@@ -51,17 +51,37 @@ La migración nativa todavía no cubre todas las funciones del cliente Expo. Ent
 
 La aplicación Android todavía no tiene un cargador general de personajes, assets o animaciones personalizados. El documento de arquitectura define una propuesta segura de packs de contenido sin código ejecutable; debe tratarse como diseño futuro hasta implementar y probar el cargador.
 
-## Compilar y probar
+## Compilar y distribuir APK a usuarios
 
-Requisitos: JDK 17, Android SDK Platform 36 y Android Build Tools 36.0.0. Abre `miku_android/` como proyecto independiente en Android Studio o ejecuta desde esa carpeta:
+### Opción 1: Compilación Local de APK Release (Nativo - Recomendado)
+Requisitos: JDK 17, Android SDK Platform 36 y Android Build Tools 36.0.0. Desde la carpeta `miku_android/`:
 
 ```powershell
-.\gradlew.bat testDebugUnitTest assembleDebug
+# Para generar el APK de release listo para instalar:
+.\gradlew.bat assembleRelease
 ```
+El APK se genera en:
+`miku_android/app/build/outputs/apk/release/app-release-unsigned.apk` (o firmado con keystore). Es extremadamente ligero (~15MB), optimizado con ProGuard/R8 y no depende de Node ni Expo.
 
-El APK debug se genera en `app/build/outputs/apk/debug/app-debug.apk`. Este build verifica compilación y pruebas unitarias; para validar cámara/QR, pairing, WebSocket y pantallas se necesita instalarlo y probarlo en un dispositivo o emulador.
+### Opción 2: Compilación Automatizada en la Nube (GitHub Actions - Sin Android Studio local)
+Se puede configurar un flujo en `.github/workflows/build-android.yml` con `actions/setup-java@v3` y `gradle-build-action`. En cada commit o tag, GitHub compila el APK en servidores Linux de alta velocidad y publica el instalador `.apk` directamente en la pestaña "Releases" para que cualquier usuario lo descargue con un clic.
 
-El protocolo actual usa HTTP/WebSocket sin TLS cuando el QR contiene la IP local, igual que el cliente anterior. Vincula el teléfono y el PC únicamente en una red de confianza.
+### Opción 3: Aplicación Expo (`miku_app/`)
+Para la app alternativa de React Native/Expo:
+```bash
+npx eas build -p android --profile preview
+```
+Genera un APK descargable compilado en la nube de Expo.
+
+## Persistencia de Miku-Link con la App Cerrada
+1. **En PC (Escritorio)**:
+   - Al cerrar la ventana del Island o Configuración, la aplicación intercepta el evento de cierre (`CloseRequested`) y oculta la ventana (`window.hide()`), manteniendo el servidor FastAPI en el puerto 8000 y el túnel Cloudflare activos en la bandeja del sistema (System Tray).
+2. **En Android**:
+   - `MikuConnectionService.kt` es un `ForegroundService` con `android:stopWithTask="false"` y `START_STICKY`.
+   - Cuando el usuario desliza la app o la cierra de la lista de aplicaciones recientes, el servicio permanece conectado mostrando una notificación persistente de bajo perfil.
+   - **Ajuste crítico para fabricantes agresivos (Xiaomi/MIUI, Samsung OneUI, Huawei)**: El usuario debe configurar en los ajustes de la app Android la optimización de batería en **"Sin restricciones" (Unrestricted)** y habilitar **"Inicio automático"** para evitar que el sistema operativo mate la conexión WebSocket en reposo.
+
+El protocolo local usa HTTP/WebSocket en la red interna o túnel seguro de Cloudflare si se conecta remotamente.
 
 ## Comunicación
 

@@ -3,6 +3,7 @@ import ctypes
 import pyautogui
 import time
 import subprocess
+import security_manager
 
 def gestionar_ventana(nombre: str, accion: str) -> str:
     """Gestiona el estado de una ventana abierta (maximizar, minimizar, cerrar, restaurar)."""
@@ -159,6 +160,10 @@ def abrir_aplicacion(nombre: str, maximizar: bool = False) -> str:
 
 def escribir_texto(texto: str, presionar_enter: bool = False, limpiar_antes: bool = False) -> str:
     """Escribe el texto en donde esté el foco actual, tecla por tecla como un humano."""
+    allowed, reason = security_manager.is_gui_automation_allowed()
+    if not allowed:
+        return f"Operación denegada: {reason}"
+
     if limpiar_antes:
         pyautogui.hotkey('ctrl', 'a')
         time.sleep(0.1)
@@ -178,6 +183,10 @@ def escribir_texto(texto: str, presionar_enter: bool = False, limpiar_antes: boo
 
 def atajo_teclado(accion: str) -> str:
     """Ejecuta atajos de teclado rápidos. Soporta alias comunes o combinaciones directas (ej. 'ctrl+j')."""
+    allowed, reason = security_manager.is_gui_automation_allowed()
+    if not allowed:
+        return f"Operación denegada: {reason}"
+
     accion = accion.lower().strip()
     
     alias = {
@@ -247,6 +256,10 @@ def borrar_archivo(ruta: str) -> str:
 def borrar_archivo_confirmado(ruta: str) -> str:
     """Borra un archivo una vez que el usuario ha dado su confirmación explícita."""
     try:
+        allowed, reason = security_manager.is_path_allowed(ruta, write=True)
+        if not allowed:
+            return f"Error de Seguridad: {reason}"
+
         ruta_lower = ruta.lower()
         rutas_protegidas = ["c:\\windows", "c:\\program files", "c:\\programdata", "system32", "appdata"]
         for p in rutas_protegidas:
@@ -304,6 +317,10 @@ def tomar_captura_pantalla(nombre_archivo: str = "captura") -> str:
 def ejecutar_comando_sistema(comando: str) -> str:
     """Ejecuta un comando en la consola de Windows (PowerShell/CMD)."""
     try:
+        allowed, reason, suggested_cwd = security_manager.is_command_allowed(comando)
+        if not allowed:
+            return f"Comando bloqueado por Modo de Seguridad: {reason}"
+
         # Prevenir que comandos de PowerShell se queden congelados pidiendo confirmación al usuario
         if comando.strip().lower().startswith("powershell"):
             if "-NonInteractive" not in comando:
@@ -324,7 +341,18 @@ def ejecutar_comando_sistema(comando: str) -> str:
         except Exception:
             pass
 
-        resultado = subprocess.run(comando, shell=True, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=15)
+        run_kwargs = {
+            "shell": True,
+            "capture_output": True,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+            "timeout": 15
+        }
+        if suggested_cwd:
+            run_kwargs["cwd"] = suggested_cwd
+
+        resultado = subprocess.run(comando, **run_kwargs)
         out = resultado.stdout.strip()
         err = resultado.stderr.strip()
         if resultado.returncode == 0:

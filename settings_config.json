@@ -11,5 +11,6 @@
   "hover_open": false,
   "local_net": 1,
   "biometric": 1,
-  "accent_color": "#C4A750"
+  "accent_color": "#C4A750",
+  "execution_mode": "full"
 }

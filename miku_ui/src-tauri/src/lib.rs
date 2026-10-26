@@ -128,75 +128,101 @@ fn start_backend() {
     let current_exe = std::env::current_exe().unwrap_or_default();
     let exe_dir = current_exe.parent().unwrap_or_else(|| Path::new(""));
 
-    // 1. Check production sidecar binary next to miku_ui.exe
-    let sidecar_candidates = [
-        exe_dir.join("miku-core.exe"),
-        exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc.exe"),
-        exe_dir.join("resources").join("miku-core.exe"),
-    ];
+    let try_python = || -> bool {
+        let mut search_dirs = Vec::new();
+        search_dirs.push(exe_dir.to_path_buf());
+        if let Some(p1) = exe_dir.parent() { search_dirs.push(p1.to_path_buf()); }
+        if let Some(p2) = exe_dir.parent().and_then(|p| p.parent()) { search_dirs.push(p2.to_path_buf()); }
+        if let Some(p3) = exe_dir.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) { search_dirs.push(p3.to_path_buf()); }
+        search_dirs.push(PathBuf::from(r"c:\Users\cxmluwu\Desktop\pryecto mascota\miku V2"));
 
-    for sidecar in &sidecar_candidates {
-        if sidecar.exists() {
-            eprintln!("[INFO] Starting Miku Core sidecar binary: {:?}", sidecar);
-            let mut cmd = std::process::Command::new(sidecar);
-            cmd.current_dir(exe_dir);
-            #[cfg(target_os = "windows")]
-            {
-                use std::os::windows::process::CommandExt;
-                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-            }
-            match cmd.spawn() {
-                Ok(child) => {
-                    if let Ok(mut lock) = BACKEND_CHILD.lock() {
-                        *lock = Some(child);
-                    }
-                    return;
+        for dir in search_dirs {
+            let server_py = dir.join("server.py");
+            if server_py.exists() {
+                let venv_pythonw = dir.join("venv").join("Scripts").join("pythonw.exe");
+                let venv_python = dir.join("venv").join("Scripts").join("python.exe");
+                let python_bin = if venv_pythonw.exists() {
+                    venv_pythonw
+                } else if venv_python.exists() {
+                    venv_python
+                } else {
+                    PathBuf::from("python")
+                };
+
+                eprintln!("[INFO] Starting Miku server via Python: {:?} (working dir: {:?})", python_bin, dir);
+                let mut cmd = std::process::Command::new(python_bin);
+                cmd.arg("server.py");
+                cmd.current_dir(&dir);
+                #[cfg(target_os = "windows")]
+                {
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
                 }
-                Err(e) => {
-                    eprintln!("[ERROR] Failed to spawn sidecar: {:?}", e);
+                match cmd.spawn() {
+                    Ok(child) => {
+                        if let Ok(mut lock) = BACKEND_CHILD.lock() {
+                            *lock = Some(child);
+                        }
+                        return true;
+                    }
+                    Err(e) => {
+                        eprintln!("[ERROR] Failed to start server.py: {:?}", e);
+                    }
                 }
             }
         }
+        false
+    };
+
+    let try_sidecar = || -> bool {
+        let sidecar_candidates = [
+            exe_dir.join("miku-core").join("miku-core.exe"),
+            exe_dir.join("binaries").join("miku-core").join("miku-core.exe"),
+            exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc").join("miku-core.exe"),
+            exe_dir.join("miku-core.exe"),
+            exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc.exe"),
+            exe_dir.join("resources").join("miku-core.exe"),
+            exe_dir.join("resources").join("miku-core").join("miku-core.exe"),
+        ];
+
+        for sidecar in &sidecar_candidates {
+            if sidecar.exists() {
+                eprintln!("[INFO] Starting Miku Core sidecar binary: {:?}", sidecar);
+                let mut cmd = std::process::Command::new(sidecar);
+                let run_dir = sidecar.parent().unwrap_or(exe_dir);
+                cmd.current_dir(run_dir);
+                #[cfg(target_os = "windows")]
+                {
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+                }
+                match cmd.spawn() {
+                    Ok(child) => {
+                        if let Ok(mut lock) = BACKEND_CHILD.lock() {
+                            *lock = Some(child);
+                        }
+                        return true;
+                    }
+                    Err(e) => {
+                        eprintln!("[ERROR] Failed to spawn sidecar: {:?}", e);
+                    }
+                }
+            }
+        }
+        false
+    };
+
+    #[cfg(debug_assertions)]
+    {
+        if try_python() || try_sidecar() {
+            return;
+        }
     }
 
-    // 2. Development fallback: search workspace for server.py and venv
-    let mut search_dirs = Vec::new();
-    search_dirs.push(exe_dir.to_path_buf());
-    if let Some(p1) = exe_dir.parent() { search_dirs.push(p1.to_path_buf()); }
-    if let Some(p2) = exe_dir.parent().and_then(|p| p.parent()) { search_dirs.push(p2.to_path_buf()); }
-    if let Some(p3) = exe_dir.parent().and_then(|p| p.parent()).and_then(|p| p.parent()) { search_dirs.push(p3.to_path_buf()); }
-    search_dirs.push(PathBuf::from(r"c:\Users\cxmluwu\Desktop\pryecto mascota\miku V2"));
-
-    for dir in search_dirs {
-        let server_py = dir.join("server.py");
-        if server_py.exists() {
-            let venv_python = dir.join("venv").join("Scripts").join("python.exe");
-            let python_bin = if venv_python.exists() {
-                venv_python
-            } else {
-                PathBuf::from("python")
-            };
-
-            eprintln!("[INFO] Starting Miku server via Python: {:?} (working dir: {:?})", python_bin, dir);
-            let mut cmd = std::process::Command::new(python_bin);
-            cmd.arg("server.py");
-            cmd.current_dir(&dir);
-            #[cfg(target_os = "windows")]
-            {
-                use std::os::windows::process::CommandExt;
-                cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-            }
-            match cmd.spawn() {
-                Ok(child) => {
-                    if let Ok(mut lock) = BACKEND_CHILD.lock() {
-                        *lock = Some(child);
-                    }
-                    return;
-                }
-                Err(e) => {
-                    eprintln!("[ERROR] Failed to start server.py: {:?}", e);
-                }
-            }
+    #[cfg(not(debug_assertions))]
+    {
+        if try_sidecar() || try_python() {
+            return;
         }
     }
 

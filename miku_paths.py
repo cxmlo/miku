@@ -121,6 +121,14 @@ def get_alerts_config_path() -> str:
     return p
 
 
+def get_settings_config_path() -> str:
+    """Devuelve la ruta al archivo settings_config.json."""
+    data_dir = get_miku_data_dir()
+    p = os.path.join(data_dir, "settings_config.json")
+    _ensure_migrated("settings_config.json", p, is_dir=False)
+    return p
+
+
 def sync_env_to_workspace(env_lines: list):
     """
     Si el archivo .env existe en el workspace (modo desarrollo),
@@ -133,3 +141,36 @@ def sync_env_to_workspace(env_lines: list):
                 f.writelines(env_lines)
     except Exception as e:
         logger.debug(f"[MikuPaths] Sync a workspace .env omitido: {e}")
+
+
+def ensure_all_server_folders() -> dict:
+    """
+    Garantiza la creación y migración automática de todas las carpetas y archivos
+    esenciales del servidor en %APPDATA%/Miku al arrancar Miku Desktop.
+    """
+    data_dir = get_miku_data_dir()
+    chat_dir = get_chat_history_dir()
+    data_sub = os.path.join(data_dir, "data")
+    os.makedirs(data_sub, exist_ok=True)
+    sandbox_dir = os.path.join(data_dir, "workspace")
+    os.makedirs(sandbox_dir, exist_ok=True)
+    
+    env_path = get_env_path()
+    models_path = get_models_config_path()
+    agents_path = get_agents_config_path()
+    settings_path = get_settings_config_path()
+    alerts_path = get_alerts_config_path()
+    mcp_path = get_mcp_config_path()
+
+    return {
+        "data_dir": data_dir,
+        "chat_dir": chat_dir,
+        "sandbox_dir": sandbox_dir,
+        "env_path": env_path,
+        "models_path": models_path,
+        "agents_path": agents_path,
+        "settings_path": settings_path,
+        "alerts_path": alerts_path,
+        "mcp_path": mcp_path
+    }
+

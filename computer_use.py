@@ -11,6 +11,7 @@ from google.genai import types
 import google.auth
 from config import GOOGLE_CLOUD_PROJECT
 import spatial_memory
+import security_manager
 
 try:
     # Hace que las coordenadas de pyautogui coincidan con la resolución real (ignora la escala de Windows al 125% o 150%)
@@ -82,6 +83,10 @@ def escanear_ventana_activa() -> str:
 
 def hacer_clic_elemento(element_id: str) -> str:
     """Hace clic izquierdo en el elemento especificado por su ID."""
+    allowed, reason = security_manager.is_gui_automation_allowed()
+    if not allowed:
+        return f"Operación denegada: {reason}"
+
     global _element_map
     if str(element_id) not in _element_map:
         return f"Error: El ID {element_id} no existe en el último escaneo."
@@ -101,6 +106,10 @@ def hacer_clic_elemento(element_id: str) -> str:
 
 def escribir_en_elemento(element_id: str, texto: str, presionar_enter: bool = True) -> str:
     """Hace clic en un elemento y escribe el texto especificado."""
+    allowed, reason = security_manager.is_gui_automation_allowed()
+    if not allowed:
+        return f"Operación denegada: {reason}"
+
     global _element_map
     if str(element_id) not in _element_map:
         return f"Error: El ID {element_id} no existe en el último escaneo."
@@ -273,6 +282,10 @@ RULES:
 
 def mover_raton_visual(intencion: str) -> str:
     """Usa la visión de Gemini para encontrar el punto óptimo y solo MUEVE el ratón allí (sin clic)."""
+    allowed, reason = security_manager.is_gui_automation_allowed()
+    if not allowed:
+        return f"Operación denegada: {reason}"
+
     from brain import get_vertex_client
     client = get_vertex_client()
     if not client:
@@ -324,6 +337,10 @@ def hacer_clic_visual(intencion: str, verificar_exito: bool = False) -> str:
     Si verificar_exito es True, verifica si funcionó y reintenta.
     Funciona con cualquier aplicación: Spotify, YouTube, Netflix, navegadores, etc.
     """
+    allowed, reason = security_manager.is_gui_automation_allowed()
+    if not allowed:
+        return f"Operación denegada: {reason}"
+
     from brain import get_vertex_client
     client = get_vertex_client()
     if not client:

@@ -37,6 +37,15 @@ El backend utiliza la especificación oficial MCP (`mcp_config.json`) para carga
 
 ---
 
+## 5. Modos de Ejecución y Seguridad (Antigravity) 🛡️
+Control granular de privilegios configurables en tiempo real (`security_manager.py`):
+- **Toda mi PC (`full`):** Acceso total sin restricciones a la consola, discos y automatización.
+- **Sandbox (`sandbox`):** Confinamiento al espacio de trabajo del proyecto y protección del sistema.
+- **Restringido (`restricted`):** Modo de solo lectura y consultas seguras sin ejecución de comandos.
+- 👉 Documentación detallada: [[Execution_Modes]]
+
+---
+
 ## ⚠️ Componentes Legado / Fallback (Deprecados)
 - **`ui.py` y `widgets/` (PyQt6):** Interfaz de escritorio de versiones tempranas (V1). Mantenida únicamente como referencia histórica. 👉 [[Widgets_and_UI]]
 - **`start_ui.py` (PyWebView):** Lanzador experimental anterior a la migración a Tauri 2.

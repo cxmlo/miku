@@ -29,3 +29,4 @@ Las interfaces gráficas y los controles de acceso.
 - **Aplicación Android Nativa (en migración)**: [[Mobile_App]]
 - **Widgets y UI Local (PyQt6 - Legado)**: [[Widgets_and_UI]]
 - **Base de Datos y Seguridad**: [[Database_and_Security]]
+- **Modos de Ejecución y Sandbox (Antigravity)**: [[Execution_Modes]]

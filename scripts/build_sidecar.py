@@ -47,15 +47,21 @@ def run():
     else:
         pyinstaller_bin = "pyinstaller"
 
+    # Selección de modo: --onedir (Recomendado: arranque instantáneo) o --onefile
+    is_onefile = "--onefile" in sys.argv
+    build_mode = "--onefile" if is_onefile else "--onedir"
+    print(f"[Miku Build] Modo de empaquetado: {build_mode} {'(Arranque Instantáneo sin descompresión)' if not is_onefile else '(Archivo único)'}")
+
     cmd = [
         pyinstaller_bin,
         "--name=miku-core",
-        "--onefile",
+        build_mode,
         "--console",
         "--clean",
         "--distpath=" + BINARIES_DIR,
         "--workpath=" + work_dir,
         "--specpath=" + build_dir,
+
         # Archivos de datos y configuraciones iniciales
         f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.onnx')};.",
         f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.tflite')};.",
@@ -137,28 +143,47 @@ def run():
         print("[ERROR] Error al compilar con PyInstaller.")
         sys.exit(ret.returncode)
 
-    raw_exe = os.path.join(BINARIES_DIR, "miku-core.exe")
-    triple_exe = os.path.join(BINARIES_DIR, TARGET_NAME)
-
-    if not os.path.exists(raw_exe):
-        print(f"[ERROR] No se encontró el binario generado en {raw_exe}")
-        sys.exit(1)
-
-    print(f"[2/3] Generando binario con target triple para Tauri: {TARGET_NAME}")
-    shutil.copy2(raw_exe, triple_exe)
+    if is_onefile:
+        raw_exe = os.path.join(BINARIES_DIR, "miku-core.exe")
+        triple_exe = os.path.join(BINARIES_DIR, TARGET_NAME)
+        if not os.path.exists(raw_exe):
+            print(f"[ERROR] No se encontró el binario generado en {raw_exe}")
+            sys.exit(1)
+        print(f"[2/3] Generando binario con target triple para Tauri: {TARGET_NAME}")
+        shutil.copy2(raw_exe, triple_exe)
+        dest_binary = raw_exe
+    else:
+        dist_dir = os.path.join(BINARIES_DIR, "miku-core")
+        raw_exe = os.path.join(dist_dir, "miku-core.exe")
+        triple_dir = os.path.join(BINARIES_DIR, "miku-core-x86_64-pc-windows-msvc")
+        if not os.path.exists(raw_exe):
+            print(f"[ERROR] No se encontró la carpeta del servidor generada en {dist_dir}")
+            sys.exit(1)
+        print(f"[2/3] Sincronizando carpeta del servidor para Tauri: {triple_dir}")
+        if os.path.exists(triple_dir):
+            shutil.rmtree(triple_dir, onerror=_remove_readonly)
+        shutil.copytree(dist_dir, triple_dir)
+        triple_exe = os.path.join(triple_dir, "miku-core.exe")
+        dest_binary = raw_exe
 
     # Copiar también a la carpeta de la app instalada en la máquina si existe
     if os.path.exists(LOCAL_APP_DIR):
-        dest_local = os.path.join(LOCAL_APP_DIR, "miku-core.exe")
-        print(f"[3/3] Copiando binario a la app instalada en {dest_local}...")
+        print(f"[3/3] Sincronizando con la app instalada en {LOCAL_APP_DIR}...")
         try:
-            shutil.copy2(raw_exe, dest_local)
-            print("[OK] Copiado exitosamente a la carpeta de la app instalada.")
+            if is_onefile:
+                shutil.copy2(raw_exe, os.path.join(LOCAL_APP_DIR, "miku-core.exe"))
+            else:
+                dest_local_dir = os.path.join(LOCAL_APP_DIR, "miku-core")
+                if os.path.exists(dest_local_dir):
+                    shutil.rmtree(dest_local_dir, onerror=_remove_readonly)
+                shutil.copytree(dist_dir, dest_local_dir)
+                shutil.copy2(raw_exe, os.path.join(LOCAL_APP_DIR, "miku-core.exe"))
+            print("[OK] Sincronizado exitosamente a la carpeta de la app instalada.")
         except Exception as e:
             print(f"[AVISO] No se pudo copiar directamente a {LOCAL_APP_DIR}: {e}")
 
     print("=" * 60)
-    print("[EXITO] Compilación de Miku Core Sidecar finalizada!")
+    print("[EXITO] Compilación de carpetas y binario de Miku Core finalizada!")
     print(f"Ubicación: {triple_exe}")
     print("=" * 60)
 

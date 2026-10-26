@@ -1,5 +1,6 @@
 {
-  "chat": "gemini-2.5-flash",
-  "computer_use": "gemini-2.5-flash",
+  "chat": "deepseek-chat",
+  "pro": "deepseek-chat",
+  "computer_use": "llama-3.3-70b-versatile",
   "stt": "whisper-large-v3"
 }

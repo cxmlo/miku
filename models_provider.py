@@ -54,8 +54,10 @@ FALLBACK_CATALOG = {
         {"id": "whisper-1", "name": "Whisper v1 (OpenAI - STT)", "provider": "openai", "capabilities": ["stt"]},
     ],
     "deepseek": [
-        {"id": "deepseek-chat", "name": "DeepSeek-V3 Chat (DeepSeek Oficial - Excelente Calidad/Precio)", "provider": "deepseek", "capabilities": ["chat"]},
-        {"id": "deepseek-reasoner", "name": "DeepSeek-R1 Reasoner (DeepSeek Oficial - Pensamiento Profundo)", "provider": "deepseek", "capabilities": ["chat"]},
+        {"id": "deepseek-flash", "name": "DeepSeek-V4.1 Flash (Visión, Chat, Rápido - Oficial)", "provider": "deepseek", "capabilities": ["chat", "pro", "computer_use"]},
+        {"id": "deepseek-v4-pro", "name": "DeepSeek-V4 Pro (Razonamiento y Código - Oficial)", "provider": "deepseek", "capabilities": ["chat", "pro"]},
+        {"id": "deepseek-chat", "name": "DeepSeek-V3 Chat (DeepSeek Oficial - Excelente Calidad/Precio)", "provider": "deepseek", "capabilities": ["chat", "pro"]},
+        {"id": "deepseek-reasoner", "name": "DeepSeek-R1 Reasoner (DeepSeek Oficial - Pensamiento Profundo)", "provider": "deepseek", "capabilities": ["chat", "pro"]},
     ],
     "anthropic": [
         {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet (Anthropic - Código y Visión)", "provider": "anthropic", "capabilities": ["chat", "computer_use"]},
@@ -241,6 +243,34 @@ def _fetch_live_ollama_models() -> List[Dict]:
         return models
 
 
+def _fetch_live_deepseek_models(key: str) -> List[Dict]:
+    """Descubre modelos reales de DeepSeek vía endpoint oficial."""
+    url = "https://api.deepseek.com/models"
+    req = urllib.request.Request(url, headers={
+        "Authorization": f"Bearer {key}",
+        "User-Agent": "Mozilla/5.0 Miku-V2"
+    })
+    with urllib.request.urlopen(req, timeout=3.0) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        models = []
+        for m in data.get("data", []):
+            m_id = m.get("id", "")
+            if not m_id:
+                continue
+            name = m.get("name") or ("DeepSeek Flash (Visión y Chat)" if "flash" in m_id else ("DeepSeek-V4 Pro (Razonamiento)" if "pro" in m_id else m_id))
+            caps = ["chat", "pro"]
+            modalities = m.get("input_modalities", [])
+            if "image" in modalities or "flash" in m_id:
+                caps.append("computer_use")
+            models.append({
+                "id": m_id,
+                "name": f"{name} (DeepSeek Oficial)",
+                "provider": "deepseek",
+                "capabilities": caps
+            })
+        return models or FALLBACK_CATALOG.get("deepseek", [])
+
+
 def discover_provider_models(provider: str) -> List[Dict]:
     """Consulta la API en vivo del proveedor con fallback al catálogo curado."""
     env_key = ""
@@ -254,6 +284,16 @@ def discover_provider_models(provider: str) -> List[Dict]:
                     return live
             except Exception as e:
                 logger.warning(f"No se pudo consultar lista en vivo de Google ({e}), usando catálogo curado.")
+    elif provider == "deepseek":
+        env_key = os.getenv("DEEPSEEK_API_KEY", "")
+        if env_key:
+            first_key = env_key.split(",")[0].strip()
+            try:
+                live = _fetch_live_deepseek_models(first_key)
+                if live:
+                    return live
+            except Exception as e:
+                logger.warning(f"No se pudo consultar lista en vivo de DeepSeek ({e}), usando catálogo curado.")
     elif provider == "groq":
         env_key = os.getenv("GROQ_API_KEY", "")
         if env_key:
@@ -286,7 +326,7 @@ def discover_provider_models(provider: str) -> List[Dict]:
 
 
 def get_available_models(force_refresh: bool = False) -> Dict[str, List[Dict]]:
-    """Devuelve los modelos disponibles categorizados (chat, computer_use, stt) filtrados por API keys activas."""
+    """Devuelve los modelos disponibles categorizados (chat, computer_use, stt), cargando siempre el catálogo real y enriqueciéndolo con APIs activas."""
     global _models_cache
     now = time.time()
     if not force_refresh and (now - _models_cache["timestamp"] < CACHE_TTL_SECONDS) and _models_cache["available"]:
@@ -294,9 +334,23 @@ def get_available_models(force_refresh: bool = False) -> Dict[str, List[Dict]]:
 
     active_providers = get_active_providers()
     all_provider_models = []
-    for prov in active_providers:
-        prov_models = discover_provider_models(prov)
-        all_provider_models.extend(prov_models)
+    
+    # Recorrer siempre todos los proveedores conocidos para que el catálogo real esté siempre disponible
+    for prov, cat_items in FALLBACK_CATALOG.items():
+        has_key = prov in active_providers
+        if has_key and force_refresh:
+            try:
+                live = discover_provider_models(prov)
+                prov_models = live if live else cat_items
+            except Exception:
+                prov_models = cat_items
+        else:
+            prov_models = cat_items
+
+        for m in prov_models:
+            entry = dict(m)
+            entry["has_key"] = has_key
+            all_provider_models.append(entry)
 
     chat_models = []
     computer_use_models = []
@@ -310,12 +364,14 @@ def get_available_models(force_refresh: bool = False) -> Dict[str, List[Dict]]:
         mid = m["id"]
         caps = m.get("capabilities", ["chat"])
         prov = m.get("provider", "other")
+        has_k = m.get("has_key", False)
         
         entry = {
             "id": mid,
             "name": m["name"],
             "provider": prov,
-            "capabilities": caps
+            "capabilities": caps,
+            "has_key": has_k
         }
         
         if prov not in by_provider:
@@ -374,19 +430,24 @@ def start_background_model_prefetch():
 
 # Pre-poblar caché inicial inmediatamente con catálogo estático para respuesta instantánea (0ms)
 try:
-    _initial_provs = get_active_providers()
+    _initial_active = get_active_providers()
     _init_chat = []
     _init_comp = []
     _init_stt = []
     _init_by_prov = {}
-    for _p in _initial_provs:
-        _cat_items = FALLBACK_CATALOG.get(_p, [])
-        _init_by_prov[_p] = _cat_items
+    for _p, _cat_items in FALLBACK_CATALOG.items():
+        _has_k = _p in _initial_active
+        _with_key = []
         for _m in _cat_items:
-            _c = _m.get("capabilities", [])
-            if "chat" in _c: _init_chat.append(_m)
-            if "computer_use" in _c: _init_comp.append(_m)
-            if "stt" in _c: _init_stt.append(_m)
+            _entry = dict(_m)
+            _entry["has_key"] = _has_k
+            _with_key.append(_entry)
+            _c = _entry.get("capabilities", [])
+            if "chat" in _c: _init_chat.append(_entry)
+            if "computer_use" in _c: _init_comp.append(_entry)
+            if "stt" in _c: _init_stt.append(_entry)
+        _init_by_prov[_p] = _with_key
+
     _models_cache["available"] = {
         "chat": _init_chat,
         "computer_use": _init_comp,
@@ -395,7 +456,6 @@ try:
         "by_provider": _init_by_prov
     }
     _models_cache["timestamp"] = time.time()
-    start_background_model_prefetch()
 except Exception:
     pass
 
@@ -470,85 +530,129 @@ def get_client_and_model(preferred_model: Optional[str] = None, category: str = 
             model_to_use = available[0]["id"]
             provider = available[0]["provider"]
 
-    # 1. Google Gemini AI Studio
-    if provider == "google":
-        gemini_key = os.getenv("GEMINI_API_KEY", "")
-        if gemini_key:
-            keys = [k.strip() for k in gemini_key.split(",") if k.strip()]
-            selected_key = keys[0] if keys else ""
-            if selected_key:
+    # --- Factory de clientes por proveedor ---
+    def _create_client(prov: str, mod: str) -> Tuple[Optional[Any], str, str]:
+        if prov == "deepseek":
+            ds_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+            if ds_key:
                 try:
                     cl = openai.OpenAI(
-                        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-                        api_key=selected_key,
+                        base_url="https://api.deepseek.com",
+                        api_key=ds_key,
                         max_retries=2
                     )
-                    # Asegurar nombre real sin prefijo
-                    clean_model = model_to_use.replace("google/", "")
-                    if clean_model not in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-1.5-flash", "gemini-1.5-pro"]:
-                        clean_model = "gemini-2.5-flash"
-                    return cl, clean_model, "google"
+                    clean = mod if mod in ["deepseek-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-reasoner"] else "deepseek-flash"
+                    return cl, clean, "deepseek"
                 except Exception as e:
-                    logger.warning(f"Error creando cliente Gemini: {e}")
+                    logger.warning(f"Error creando cliente DeepSeek: {e}")
 
-    # 2. Groq
-    if provider == "groq" or "groq" in active_providers:
-        groq_key = os.getenv("GROQ_API_KEY", "")
-        if groq_key:
-            keys = [k.strip() for k in groq_key.split(",") if k.strip()]
-            selected_key = keys[0] if keys else ""
-            if selected_key:
+        elif prov == "groq":
+            groq_key = os.getenv("GROQ_API_KEY", "").strip()
+            if groq_key:
+                first_k = [k.strip() for k in groq_key.split(",") if k.strip()][0]
                 try:
                     cl = openai.OpenAI(
                         base_url="https://api.groq.com/openai/v1",
-                        api_key=selected_key,
+                        api_key=first_k,
                         max_retries=2
                     )
-                    clean_model = model_to_use if provider == "groq" else "llama-3.3-70b-versatile"
-                    return cl, clean_model, "groq"
+                    clean = mod if ("llama" in mod.lower() or "mixtral" in mod.lower() or "whisper" in mod.lower()) else "llama-3.3-70b-versatile"
+                    return cl, clean, "groq"
                 except Exception as e:
                     logger.warning(f"Error creando cliente Groq: {e}")
 
-    # 3. DeepSeek
-    if provider == "deepseek":
-        ds_key = os.getenv("DEEPSEEK_API_KEY", "")
-        if ds_key:
+        elif prov == "google":
+            gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+            if gemini_key:
+                first_k = [k.strip() for k in gemini_key.split(",") if k.strip()][0]
+                try:
+                    cl = openai.OpenAI(
+                        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+                        api_key=first_k,
+                        max_retries=2
+                    )
+                    clean = mod.replace("google/", "") if "gemini" in mod.lower() else "gemini-2.5-flash"
+                    return cl, clean, "google"
+                except Exception as e:
+                    logger.warning(f"Error creando cliente Gemini: {e}")
+
+        elif prov == "openai":
+            oai_key = os.getenv("OPENAI_API_KEY", "").strip()
+            if oai_key:
+                try:
+                    cl = openai.OpenAI(
+                        api_key=oai_key,
+                        max_retries=2
+                    )
+                    clean = mod if "gpt" in mod.lower() or "o1" in mod.lower() or "o3" in mod.lower() else "gpt-4o-mini"
+                    return cl, clean, "openai"
+                except Exception as e:
+                    logger.warning(f"Error creando cliente OpenAI: {e}")
+
+        elif prov == "anthropic":
+            ant_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+            if ant_key:
+                try:
+                    import anthropic
+                    cl = anthropic.Anthropic(api_key=ant_key)
+                    clean = mod if "claude" in mod.lower() else "claude-3-5-sonnet-20241022"
+                    return cl, clean, "anthropic"
+                except Exception as e:
+                    logger.warning(f"Error creando cliente Anthropic: {e}")
+
+        elif prov == "openrouter":
+            or_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+            if or_key:
+                try:
+                    cl = openai.OpenAI(
+                        base_url="https://openrouter.ai/api/v1",
+                        api_key=or_key,
+                        max_retries=2
+                    )
+                    return cl, mod or "deepseek/deepseek-r1", "openrouter"
+                except Exception as e:
+                    logger.warning(f"Error creando cliente OpenRouter: {e}")
+
+        elif prov == "nvidia":
+            nv_key = os.getenv("NVIDIA_API_KEY", "").strip()
+            if nv_key:
+                try:
+                    cl = openai.OpenAI(
+                        base_url="https://integrate.api.nvidia.com/v1",
+                        api_key=nv_key,
+                        max_retries=2
+                    )
+                    return cl, mod or "meta/llama-3.3-70b-instruct", "nvidia"
+                except Exception as e:
+                    logger.warning(f"Error creando cliente NVIDIA: {e}")
+
+        elif prov == "ollama" or is_ollama_running():
             try:
                 cl = openai.OpenAI(
-                    base_url="https://api.deepseek.com",
-                    api_key=ds_key,
-                    max_retries=2
+                    base_url="http://localhost:11434/v1",
+                    api_key="ollama",
+                    max_retries=1
                 )
-                clean_model = model_to_use if model_to_use in ["deepseek-chat", "deepseek-reasoner"] else "deepseek-chat"
-                return cl, clean_model, "deepseek"
+                return cl, mod or "llama3.2:latest", "ollama"
             except Exception as e:
-                logger.warning(f"Error creando cliente DeepSeek: {e}")
+                logger.warning(f"Error creando cliente Ollama: {e}")
 
-    # 4. OpenAI
-    if provider == "openai":
-        oai_key = os.getenv("OPENAI_API_KEY", "")
-        if oai_key:
-            try:
-                cl = openai.OpenAI(
-                    api_key=oai_key,
-                    max_retries=2
-                )
-                clean_model = model_to_use or "gpt-4o-mini"
-                return cl, clean_model, "openai"
-            except Exception as e:
-                logger.warning(f"Error creando cliente OpenAI: {e}")
+        return None, "", "none"
 
-    # 5. Ollama Local
-    if provider == "ollama" or is_ollama_running():
-        try:
-            cl = openai.OpenAI(
-                base_url="http://localhost:11434/v1",
-                api_key="ollama",
-                max_retries=1
-            )
-            return cl, model_to_use or "llama3.2:latest", "ollama"
-        except Exception as e:
-            logger.warning(f"Error creando cliente Ollama: {e}")
+    # 1. Intentar con el proveedor específicamente solicitado/configurado
+    client, resolved_model, resolved_prov = _create_client(provider, model_to_use)
+    if client:
+        return client, resolved_model, resolved_prov
 
-    # Fallback absoluto de emergencia
+    # 2. Fallback en cascada priorizando proveedores activos comprobados
+    fallback_order = ["deepseek", "groq", "google", "openai", "openrouter", "nvidia", "ollama"]
+    for fallback_prov in fallback_order:
+        if fallback_prov != provider and fallback_prov in active_providers:
+            avail_models = get_available_models().get(category, [])
+            target_m = next((m["id"] for m in avail_models if m.get("provider") == fallback_prov), "")
+            client, resolved_model, resolved_prov = _create_client(fallback_prov, target_m)
+            if client:
+                logger.info(f"Fallback activado a proveedor activo: {resolved_prov} ({resolved_model})")
+                return client, resolved_model, resolved_prov
+
     return None, "", "none"

@@ -39,10 +39,41 @@ from PIL import Image
 from fastapi.responses import FileResponse
 from fastapi import Request
 from dotenv import load_dotenv
-from brain import get_llm_response
+import miku_paths
+miku_paths.ensure_all_server_folders()
+
 from prompt_manager import get_system_prompt
-import audio_handler
-from audio_handler import generate_full_audio_file, speak, wait_for_wake_word, listen_and_transcribe, stop_speaking, set_barge_in_callback
+
+# Carga diferida (Lazy Loading) de módulos pesados para arranque instantáneo (<500ms)
+def get_llm_response(*args, **kwargs):
+    from brain import get_llm_response as _impl
+    return _impl(*args, **kwargs)
+
+class _LazyAudioHandlerProxy:
+    def __getattr__(self, name):
+        import audio_handler
+        return getattr(audio_handler, name)
+
+audio_handler = _LazyAudioHandlerProxy()
+
+def generate_full_audio_file(*args, **kwargs):
+    return audio_handler.generate_full_audio_file(*args, **kwargs)
+
+def speak(*args, **kwargs):
+    return audio_handler.speak(*args, **kwargs)
+
+def wait_for_wake_word(*args, **kwargs):
+    return audio_handler.wait_for_wake_word(*args, **kwargs)
+
+def listen_and_transcribe(*args, **kwargs):
+    return audio_handler.listen_and_transcribe(*args, **kwargs)
+
+def stop_speaking(*args, **kwargs):
+    return audio_handler.stop_speaking(*args, **kwargs)
+
+def set_barge_in_callback(*args, **kwargs):
+    return audio_handler.set_barge_in_callback(*args, **kwargs)
+
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -135,6 +166,18 @@ if os.path.exists("assets"):
 # Servir la Isla Dinámica de Miku (interfaz web)
 if os.path.exists("miku_island"):
     app.mount("/island", StaticFiles(directory="miku_island", html=True), name="island")
+
+@app.get("/settings")
+@app.get("/config")
+@app.get("/miku_settings.html")
+@app.get("/island/miku_settings.html")
+async def get_settings_page():
+    """Sirve la página completa de configuración de Miku de forma directa."""
+    settings_path = os.path.join(WORKSPACE_DIR, "miku_island", "miku_settings.html")
+    if not os.path.exists(settings_path):
+        settings_path = os.path.join(WORKSPACE_DIR, "miku_ui", "src", "miku_settings.html")
+    return FileResponse(settings_path)
+
 
 # Sesión de emparejamiento temporal
 PAIRING_SESSION = None
@@ -1150,15 +1193,13 @@ async def get_models_config():
     active_providers = _gap()
     available = get_available_models()
 
-    # Si el modelo guardado no existe en los disponibles reales, seleccionar el primero disponible
+    # Si el modelo guardado no existe en los disponibles reales, sugerir el primero disponible sin borrarlo arbitrariamente
     for cat in ["chat", "pro", "computer_use", "stt"]:
         eligible = available.get(cat, [])
         if eligible:
             eligible_ids = [m["id"] for m in eligible]
-            if current.get(cat) not in eligible_ids:
+            if not current.get(cat):
                 current[cat] = eligible_ids[0]
-        else:
-            current[cat] = ""
 
     return {
         "current": current,
@@ -1177,21 +1218,59 @@ class UpdateModelsRequest(BaseModel):
 async def update_models_config(req: UpdateModelsRequest):
     from models_provider import get_configured_models, reload_configured_models
     current = get_configured_models()
-    if req.chat is not None:
+    if req.chat is not None and req.chat != "":
         current["chat"] = req.chat
-    if req.pro is not None:
+    if req.pro is not None and req.pro != "":
         current["pro"] = req.pro
-    if req.computer_use is not None:
+    if req.computer_use is not None and req.computer_use != "":
         current["computer_use"] = req.computer_use
-    if req.stt is not None:
+    if req.stt is not None and req.stt != "":
         current["stt"] = req.stt
     with open(MODELS_FILE, "w", encoding="utf-8") as f:
         json.dump(current, f, indent=2, ensure_ascii=False)
+    try:
+        from miku_paths import WORKSPACE_DIR
+        ws_file = os.path.join(WORKSPACE_DIR, "models_config.json")
+        if ws_file != MODELS_FILE:
+            with open(ws_file, "w", encoding="utf-8") as f_ws:
+                json.dump(current, f_ws, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
     try:
         reload_configured_models()
     except Exception:
         pass
     return {"status": "ok", "current": current}
+
+# ==========================================
+# MODOS DE EJECUCIÓN (ANTIGRAVITY SANDBOX)
+# ==========================================
+import security_manager
+
+@app.get("/api/config/execution_mode")
+async def get_execution_mode_endpoint():
+    """Devuelve el modo de ejecución actual y las opciones disponibles (full, sandbox, restricted)."""
+    return security_manager.get_modes_info()
+
+class UpdateExecutionModeRequest(BaseModel):
+    mode: str
+
+@app.post("/api/config/execution_mode")
+async def update_execution_mode_endpoint(req: UpdateExecutionModeRequest):
+    """Actualiza el modo de ejecución de Miku (Toda la PC, Sandbox o Restringido)."""
+    success = security_manager.set_execution_mode(req.mode)
+    if not success:
+        raise HTTPException(status_code=400, detail=f"Modo no válido. Opciones: {list(security_manager.VALID_MODES.keys())}")
+    info = security_manager.get_modes_info()
+    try:
+        await manager.broadcast_message({
+            "type": "execution_mode_updated",
+            "mode": info["current_mode"],
+            "details": info["current_details"]
+        })
+    except Exception:
+        pass
+    return {"status": "ok", **info}
 
 # ==========================================
 # GESTIÓN Y MONITOREO DE MÚSICA / SPOTIFY
@@ -2462,6 +2541,18 @@ async def startup_event():
     asyncio.create_task(spotify_media_loop())
     asyncio.create_task(dev_activity_watcher_loop())
     asyncio.create_task(activity_alert_watcher_loop())
+
+    # Precalentar módulos pesados en segundo plano sin retrasar el puerto 8000
+    import threading
+    def _warmup_background():
+        try:
+            import brain
+            import audio_handler
+            logger.info("Precalentamiento en segundo plano completado (Cerebro y Audio listos).")
+        except Exception as e:
+            logger.debug(f"Aviso precalentamiento: {e}")
+    threading.Thread(target=_warmup_background, daemon=True).start()
+
     try:
         import music_controller
         music_controller.start_media_listener()

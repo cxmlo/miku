@@ -239,6 +239,19 @@ def get_system_prompt(user_input: str = "", source: str = "pc") -> str:
         prompt += "ESTÁS EN MODO MÓVIL. PRIORIZA responder enviando las imágenes o archivos al CHAT (`enviar_imagen_a_chat`) y muestra notificaciones usando los widgets móviles.\n"
         prompt += "¡MUY IMPORTANTE!: Aunque el usuario te hable desde su celular, tú te estás ejecutando en su PC. ¡SIEMPRE PUEDES USAR 'ver_pantalla' PARA VER LA PANTALLA DE LA COMPUTADORA en cualquier momento!\n\n"
     
+    import security_manager
+    exec_mode = security_manager.get_execution_mode()
+    exec_info = security_manager.VALID_MODES.get(exec_mode, security_manager.VALID_MODES[security_manager.MODE_FULL])
+    
+    prompt += f"[NIVEL DE SEGURIDAD Y MODO DE EJECUCIÓN: {exec_info['name'].upper()} ({exec_mode})]\n"
+    prompt += f"{exec_info['desc']}\n"
+    if exec_mode == security_manager.MODE_FULL:
+        prompt += "Tienes acceso total y sin restricciones a toda la PC (consola, todas las unidades de disco, aplicaciones y automatización).\n\n"
+    elif exec_mode == security_manager.MODE_SANDBOX:
+        prompt += "Estás operando en modo SANDBOX. Todas tus operaciones de consola y scripts deben mantenerse confinadas a la carpeta del proyecto. Tienes prohibido modificar o eliminar archivos del sistema operativo.\n\n"
+    elif exec_mode == security_manager.MODE_RESTRICTED:
+        prompt += "Estás operando en modo RESTRINGIDO (Solo Lectura). Los comandos de consola, scripts y automatizaciones de ratón están bloqueados. Enfócate en dialogar, analizar, consultar y resolver dudas sin alterar el equipo.\n\n"
+
     # 5. Reglas del Sistema Fijas
     prompt += (
         "--- REGLAS DEL SISTEMA (OBLIGATORIAS) ---\n"
