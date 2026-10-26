@@ -12,14 +12,14 @@ Watch your agents work, approve actions, listen to Spotify, drop files, and chat
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v0.1.4-cyan)](https://github.com/cxmlo/miku/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.5-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
 > [!TIP]
-> **New in v0.1.4**: Universal Windows Media Sync (GSMTC), provider-based model selector with Pro/Coding models, collapsible thinking & tool execution with inline screenshots, and lightning-fast game detection.
+> **New in v0.1.5**: Antigravity-style Execution Modes (Full PC, Sandbox, Restricted), native DeepSeek models support, smart web settings navigation, and automated Android APK CI/CD packaging.
 
 ---
 

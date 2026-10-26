@@ -12,14 +12,14 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.4-cyan)](https://github.com/cxmlo/miku/releases)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.5-cyan)](https://github.com/cxmlo/miku/releases)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
 </div>
 
 > [!TIP]
-> **Novedades en v0.1.4**: Sincronización multimedia universal en Windows (GSMTC), selector jerárquico de modelos por proveedor y categoría Pro, pensamiento y herramientas colapsables con capturas interactivas, y detección ultrarrápida de juegos.
+> **Novedades en v0.1.5**: Modos de ejecución estilo Antigravity (Toda mi PC, Sandbox seguro y Restringido), soporte nativo de modelos DeepSeek, navegación web de ajustes sin errores 404, y compilación automatizada de APK Android en CI/CD.
 
 ---
 
