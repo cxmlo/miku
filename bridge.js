@@ -19,7 +19,7 @@ const Bridge = (() => {
   const PORT = BACKEND_PORT;
   const BASE_URL = `http://${HOST}:${BACKEND_PORT}`;
   const WS_URL = `ws://${HOST}:${BACKEND_PORT}/ws`;
-  const API_KEY = "miku_secure_key_2026";
+  const API_KEY = (typeof localStorage !== "undefined" && localStorage.getItem("miku_api_key")) || "miku_secure_key_2026";
 
   let ws = null;
   let reconnectTimer = null;
@@ -84,6 +84,10 @@ const Bridge = (() => {
       reconnectAttempts = 0;
       window.feed?.({ type: "ws", ok: true });
       window.feed?.({ type: "api", ok: true });
+
+      try {
+        channel?.postMessage({ k: "core_connected", ok: true });
+      } catch (_) {}
 
       // Emote happy when connected
       if (window.buddy?.emote) {
@@ -277,7 +281,7 @@ const Bridge = (() => {
       window.feed?.({ type: "state", name: "searching" });
     } else if (text.includes("pantalla") || text.includes("clic") || text.includes("escribiendo")) {
       window.feed?.({ type: "state", name: "working" });
-      window.feed?.({ type: "scene", name: "tool_use", args: { label: rawText, badge: "Computer Use" } });
+      window.feed?.({ type: "agent_tool_step", name: "Computer Use", detail: rawText });
     } else if (text.includes("error")) {
       window.feed?.({ type: "state", name: "error" });
     } else {
@@ -288,35 +292,37 @@ const Bridge = (() => {
   /* ---------------- MIKU-LINK PAIRING QR ---------------- */
   async function generatePairingUrl() {
     try {
-      const res = await apiFetch("/api/desktop/info");
-      let ip = HOST;
-      if (res.ok) {
-        const info = await res.json();
-        if (info.ip && info.ip !== "127.0.0.1") {
-          ip = info.ip;
-        }
+      const infoResponse = await apiFetch("/api/desktop/info");
+      if (!infoResponse.ok) {
+        throw new Error(`No se pudo obtener la dirección de Miku Desktop (HTTP ${infoResponse.status}).`);
+      }
+      const info = await infoResponse.json();
+      const ip = info.ip;
+      if (!ip || ip === "127.0.0.1" || ip === "localhost" || ip === "::1") {
+        throw new Error("Miku Desktop no encontró una dirección accesible en la red local.");
       }
 
-      // Generar sesión aleatoria de 8 caracteres
-      const sessionId = Math.random().toString(36).substring(2, 10);
+      const randomBytes = new Uint8Array(16);
+      window.crypto.getRandomValues(randomBytes);
+      const sessionId = Array.from(randomBytes, byte => byte.toString(16).padStart(2, "0")).join("");
 
-      // Registrar sesión en backend
-      await apiFetch("/api/pair/init", {
+      const initResponse = await apiFetch("/api/pair/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId })
       });
+      if (!initResponse.ok) {
+        throw new Error(`No se pudo registrar la sesión de vinculación (HTTP ${initResponse.status}).`);
+      }
 
-      // Formato esperado por miku_app (devices.tsx): miku://pair?s={session}&ip={ip}
-      const pairUrl = `miku://pair?s=${sessionId}&ip=${ip}`;
-      console.log("[Bridge] Generated valid Miku-Link QR URL:", pairUrl);
+      const pairUrl = `miku://pair?s=${encodeURIComponent(sessionId)}&ip=${encodeURIComponent(ip)}`;
       window.setPairUrl?.(pairUrl);
       return pairUrl;
     } catch (e) {
       console.warn("[Bridge] Error generating pair URL:", e);
-      const fallbackUrl = `miku://pair?s=offline&ip=${HOST}`;
-      window.setPairUrl?.(fallbackUrl);
-      return fallbackUrl;
+      window.setPairUrl?.("");
+      window.setPairError?.("No se pudo preparar el QR. Comprueba que Miku Desktop esté conectado al backend y a la red local.");
+      return "";
     }
   }
 
@@ -435,14 +441,17 @@ const Bridge = (() => {
     }
   }
 
-  // 3. Send text to phone (via clipboard endpoint)
-  function sendToPhone(text) {
-    if (!text) return;
-    apiFetch("/api/device/clipboard", {
+  // 3. Send text directly to the connected phone clipboard
+  async function sendToPhone(text) {
+    if (!text) throw new Error("No hay texto para enviar.");
+    const response = await apiFetch("/api/device/send_to_phone", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
-    }).catch(err => console.warn("[Bridge] sendToPhone error:", err));
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+    return result;
   }
 
   // 4. Quick chip action
@@ -705,40 +714,92 @@ const Bridge = (() => {
   }
 
   // 9. Send Dropped File
-  function sendFile(file) {
-    if (!file) return;
+  async function sendFile(file) {
+    if (!file) throw new Error("No hay un archivo para enviar.");
     const formData = new FormData();
     formData.append("file", file);
 
-    apiFetch("/api/send_to_phone", {
+    const response = await apiFetch("/api/send_to_phone", {
       method: "POST",
       body: formData
-    })
-      .then(r => r.json())
-      .then(res => console.log("[Bridge] File sent:", res))
-      .catch(err => console.warn("[Bridge] sendFile error:", err));
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+    return result;
   }
 
   function sendFilePath(filePath) {
     if (!filePath) return;
     apiFetch("/api/desktop/file_drop", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: filePath })
+    })
+      .then(async response => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+        return result;
+      })
+      .then(result => console.log("[Bridge] File path handled:", result))
+      .catch(error => console.warn("[Bridge] Error sending file path:", error));
+  }
+
+  async function sendFileToPhonePath(filePath) {
+    if (!filePath) throw new Error("No hay una ruta de archivo para enviar.");
+    const response = await apiFetch("/api/desktop/send_file_to_phone", {
+      method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ path: filePath })
-    })
-      .then(r => r.json())
-      .then(res => console.log("[Bridge] File path handled:", res))
-      .catch(e => console.warn("[Bridge] Error sending file path:", e));
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+    return result;
   }
 
   // 10. Open Settings Window
   function openSettings() {
+    try {
+      if (window.parent && window.parent !== window && window.parent.document && window.parent.document.getElementById('ajustes')) {
+        window.parent.document.getElementById('ajustes').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    } catch (_) {}
+
+    function openWebSettings() {
+      try {
+        if (window.parent && window.parent !== window && window.parent.document && window.parent.document.getElementById('ajustes')) {
+          window.parent.document.getElementById('ajustes').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+      } catch (_) {}
+
+      let base = '';
+      try {
+        if (window.parent && window.parent !== window && window.parent.location.href && !window.parent.location.href.startsWith('about:')) {
+          base = window.parent.location.href;
+        }
+      } catch (_) {}
+      if (!base || base.startsWith('about:')) {
+        base = (location.href && !location.href.startsWith('about:')) ? location.href : window.location.origin;
+      }
+      base = base.split('?')[0].split('#')[0];
+      if (base.endsWith('.html')) {
+        base = base.substring(0, base.lastIndexOf('/') + 1);
+      } else if (!base.endsWith('/')) {
+        base += '/';
+      }
+      const isIsland = location.pathname.includes('/island');
+      const target = isIsland ? 'island/miku_settings.html' : 'miku_settings.html';
+      const settingsUrl = new URL(target, base).href;
+      window.open(settingsUrl, "miku_settings", "width=1080,height=780");
+    }
+
     if (window.__TAURI__?.core?.invoke) {
       window.__TAURI__.core.invoke('open_settings_window').catch(() => {
         window.__TAURI__.core.invoke('open_settings').catch(() => {
-          window.open("miku_settings.html", "miku_settings", "width=980,height=740");
+          openWebSettings();
         });
       });
       return;
@@ -747,7 +808,7 @@ const Bridge = (() => {
     if (pw?.open_settings) {
       pw.open_settings();
     } else {
-      window.open("miku_settings.html", "miku_settings", "width=980,height=740");
+      openWebSettings();
     }
   }
 
@@ -819,10 +880,36 @@ const Bridge = (() => {
     }
   }
 
+  async function getExecutionMode() {
+    try {
+      const res = await apiFetch("/api/config/execution_mode");
+      return res.ok ? await res.json() : { current_mode: "full", available_modes: [] };
+    } catch (e) {
+      console.warn("[Bridge] getExecutionMode error:", e);
+      return { current_mode: "full", available_modes: [] };
+    }
+  }
+
+  async function setExecutionMode(mode) {
+    try {
+      const res = await apiFetch("/api/config/execution_mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode })
+      });
+      return res.ok ? await res.json() : null;
+    } catch (e) {
+      console.warn("[Bridge] setExecutionMode error:", e);
+      return null;
+    }
+  }
+
   return {
     init,
     sendChat,
     dictate,
+    getExecutionMode,
+    setExecutionMode,
     sendToPhone,
     chipAction,
     cancel,
@@ -831,6 +918,7 @@ const Bridge = (() => {
     setKey,
     sendFile,
     sendFilePath,
+    sendFileToPhonePath,
     openSettings,
     setSetting,
     setVolume,
@@ -913,7 +1001,7 @@ const Bridge = (() => {
         if (resp.ok) {
           const rel = await resp.json();
           const tag = (rel.tag_name || "").replace(/^v/, "");
-          const current = "0.1.1";
+          const current = "0.1.4";
           const isNewer = tag && tag !== current && tag > current;
           return { available: !!isNewer, version: tag, url: rel.html_url };
         }
