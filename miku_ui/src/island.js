@@ -497,8 +497,125 @@ const esc=s=>String(s??'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt
 let HAS_UPD=0;
 const IB=(n,a,t)=>`<button class="ib" data-a="${a}" title="${t}" aria-label="${t}">${ic(n)}</button>`;
 const B=(l,a,c='',i='',t='')=>`<button class="${c}" data-a="${a}" ${t?`title="${t}" aria-label="${t}"`:''}>${i?ic(i):''}${l}</button>`;
-const TABS=[['overview','home','Inicio'],['prompt','chat','Preguntar'],['drop','plus','Subir archivos']];
-const HD=(t,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="Ajustes rápidos" aria-label="Ajustes">${ic('cog')}</button><button class="ib spk" data-a="mute" title="Sonido" aria-label="Sonido">${ic(CFG.voice?'speaker':'speaker-off')}</button></span></div>`;
+const I18N_ISLAND = {
+  es: {
+    tab_home: 'Inicio',
+    tab_chat: 'Preguntar',
+    tab_files: 'Subir archivos',
+    boot_eyebrow: 'MIKU CORE',
+    beta_tag: 'BETA v0.1.6',
+    boot_title: 'Iniciando el servidor...',
+    boot_step_0: 'Iniciando servicios',
+    boot_step_1: 'Preparando recursos',
+    boot_step_2: 'Conectando WebSocket',
+    boot_connected: 'Core conectado',
+    boot_beta_note: 'Software en desarrollo activo',
+    report_issue: 'Reportar errores',
+    orchestrator: 'Orquestador',
+    subagent: 'Sub-agente',
+    active_status: 'Activo',
+    ready_status: 'Listo',
+    memory_active: 'Memoria: 100% activa',
+    agents_avail_prefix: 'Agentes',
+    agents_avail: 'disponibles',
+    system_status: 'Sistema',
+    core_synced: 'Core 8000 sincronizado',
+    local_mode: 'Modo local',
+    model_label: 'Modelo',
+    role_label: 'Rol',
+    status_label: 'Estado',
+    thinking: 'Pensando respuesta...',
+    done_task: 'Última tarea completada',
+    idle_task: 'En espera de órdenes',
+    chat_placeholder: 'Escribe tu mensaje o pide una acción...',
+    quick_settings: 'Ajustes rápidos',
+    sound: 'Sonido'
+  },
+  en: {
+    tab_home: 'Home',
+    tab_chat: 'Chat',
+    tab_files: 'Upload files',
+    boot_eyebrow: 'MIKU CORE',
+    beta_tag: 'BETA v0.1.6',
+    boot_title: 'Starting server...',
+    boot_step_0: 'Starting services',
+    boot_step_1: 'Preparing resources',
+    boot_step_2: 'Connecting WebSocket',
+    boot_connected: 'Core connected',
+    boot_beta_note: 'Software in active development',
+    report_issue: 'Report errors',
+    orchestrator: 'Orchestrator',
+    subagent: 'Sub-agent',
+    active_status: 'Active',
+    ready_status: 'Ready',
+    memory_active: 'Memory: 100% active',
+    agents_avail_prefix: 'Agents',
+    agents_avail: 'available',
+    system_status: 'System',
+    core_synced: 'Core 8000 synced',
+    local_mode: 'Local mode',
+    model_label: 'Model',
+    role_label: 'Role',
+    status_label: 'Status',
+    thinking: 'Thinking response...',
+    done_task: 'Last task completed',
+    idle_task: 'Waiting for orders',
+    chat_placeholder: 'Type your message or ask an action...',
+    quick_settings: 'Quick Settings',
+    sound: 'Sound'
+  },
+  ko: {
+    tab_home: '홈',
+    tab_chat: '채팅',
+    tab_files: '파일 업로드',
+    boot_eyebrow: 'MIKU CORE',
+    beta_tag: 'BETA v0.1.6',
+    boot_title: '서버 시작 중...',
+    boot_step_0: '서비스 시작',
+    boot_step_1: '리소스 준비',
+    boot_step_2: '웹소켓 연결 중',
+    boot_connected: '코어 연결됨',
+    boot_beta_note: '개발 진행 중인 소프트웨어',
+    report_issue: '오류 신고',
+    orchestrator: '오케스트레이터',
+    subagent: '하위 에이전트',
+    active_status: '활성',
+    ready_status: '준비 완료',
+    memory_active: '메모리: 100% 활성',
+    agents_avail_prefix: '에이전트',
+    agents_avail: '사용 가능',
+    system_status: '시스템',
+    core_synced: 'Core 8000 동기화됨',
+    local_mode: '로컬 모드',
+    model_label: '모델',
+    role_label: '역할',
+    status_label: '상태',
+    thinking: '생각 중...',
+    done_task: '마지막 작업 완료',
+    idle_task: '명령 대기 중',
+    chat_placeholder: '메시지를 입력하거나 작업을 요청하세요...',
+    quick_settings: '빠른 설정',
+    sound: '소리'
+  }
+};
+const t = k => {
+  const lang = (typeof CFG !== 'undefined' && CFG.lang) ? CFG.lang : 'es';
+  return (I18N_ISLAND[lang] && I18N_ISLAND[lang][k]) || (I18N_ISLAND.es && I18N_ISLAND.es[k]) || k;
+};
+function updateIslandLang() {
+  TABS[0][2] = t('tab_home');
+  TABS[1][2] = t('tab_chat');
+  TABS[2][2] = t('tab_files');
+  if (typeof scene !== 'undefined') {
+    if (scene === 'overview' && typeof renderOv === 'function') {
+      renderOv();
+    } else if ((scene === 'prompt' || scene === 'result' || scene === 'boot') && typeof go === 'function') {
+      go(scene);
+    }
+  }
+}
+const TABS=[['overview','home',t('tab_home')],['prompt','chat',t('tab_chat')],['drop','plus',t('tab_files')]];
+const HD=(tx,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="${t('quick_settings')}" aria-label="${t('quick_settings')}">${ic('cog')}</button><button class="ib spk" data-a="mute" title="${t('sound')}" aria-label="${t('sound')}">${ic(CFG.voice?'speaker':'speaker-off')}</button></span></div>`;
 const MN=()=>{const n=Math.min(ST.tasks||0,4);return n?`<div class="minis">${[['#4FD3B1','#ff6b5e'],['#F0B94F','#2dd4a0'],['#A995EF','#22C5E8'],['#6CB2F5','#ffb020']].slice(0,n).map(([c,d])=>`<i class="mi" style="--c:${c};--d:${d}"></i>`).join('')}</div>`:''};
 function wrapRow(h,s){const m=h.match(/^(<div class="hd">.*?<\/span><\/div>)([\s\S]*)$/),hd=m?m[1]:'',b=m?m[2]:h,g=(X[s.st]||X.idle).g||BL;
  return hd+`<div class="row"><div class="card mk" style="--g:var(--gl)"><i class="cs" data-k=".6" style="width:67px;height:50px"></i><div class="cp">${b}</div></div></div>`}
@@ -539,7 +656,7 @@ function drawStar(cv,now){
  const src=q.getImageData(0,0,w,h).data,cx=cv.getContext('2d'),out=cx.createImageData(w,h),d=out.data;
  for(let i=0;i<src.length;i+=4){const o=src[i]*4;d[i]=STAR_LUT[o];d[i+1]=STAR_LUT[o+1];d[i+2]=STAR_LUT[o+2];d[i+3]=STAR_LUT[o+3]}
  cx.putImageData(out,0,0)}
-function starLoop(now){requestAnimationFrame(starLoop);for(const cv of document.querySelectorAll('canvas.star')){if(now-(cv._t||0)<33)continue;cv._t=now;drawStar(cv,now)}}
+function starLoop(now){requestAnimationFrame(starLoop);if(!MUS.playing||document.hidden)return;for(const cv of document.querySelectorAll('canvas.star')){if(now-(cv._t||0)<33)continue;cv._t=now;drawStar(cv,now)}}
 const MINIH=()=>{const g0=(X[cur]||X.idle).g||BL,col=`rgb(${g0.join(',')})`,b=base;let g='';
  if(b=='listening'||b=='talking')g='<span class="gl"><i></i><i></i><i></i><i></i></span>';
  else if(b=='thinking')g=tlHtml(1);else if(b=='searching')g=MG.search;else if(b=='working')g=MG.work;else if(b=='error')g=MG.err;if(!g&&THK.dur&&Date.now()-THK.end<3000)g=tlHtml(0);
@@ -550,7 +667,7 @@ const tlHtml=live=>`<span class="tl ${live?'live':''}"><svg class="i"><use href=
 function tlTrack(n){if(n=='thinking'){if(!THK.on){THK.on=1;THK.start=performance.now();THK.dur=0}}else if(THK.on){THK.on=0;THK.dur=performance.now()-THK.start;THK.end=Date.now();setTimeout(label,3100)}}
 setInterval(()=>{if(THK.on)$$('.tl.live .tl-n').forEach(e=>e.textContent=fmtTL(performance.now()-THK.start))},100);
 const MUS={title:'Sin reproducción',artist:'—',playing:0,vol:50};
-const CFG={voice:1,autoclose:15,voice_volume:80,sfx_volume:60,barge_in:1,wake_paused:0,mic:'default',personality:'calm',hover_open:0,local_net:1,biometric:1};
+const CFG={voice:1,autoclose:15,voice_volume:80,sfx_volume:60,barge_in:1,wake_paused:0,mic:'default',personality:'calm',hover_open:0,local_net:1,biometric:1,lang:'es'};
 let MICS=[['default','Predeterminado']],PAIR='miku://pair?s=init&ip=127.0.0.1',PAIR_ERROR='';
 let RES='',QL={title:'',text:''},FN='archivo',lastQ='',tabK='link',scene='compact',bk0='compact',lw=0,lh=0,tm,notT;
 const AGENT_CHATS=(()=>{try{return JSON.parse(localStorage.getItem('miku_agent_chats')||'{}')}catch(_){return {}}})();
@@ -753,7 +870,7 @@ const renderChatCard = () => {
                 ${src ? `
                   <div class="step-thumb-wrap" onclick="window.zoomImage('${full}')" title="Clic para ampliar captura">
                     <img src="${src}" class="step-thumb-img" alt="Captura ${idx + 1}">
-                    <span class="step-zoom-icon">🔍 Ampliar</span>
+                    <span class="step-zoom-icon">[Ampliar]</span>
                   </div>
                 ` : ''}
               </div>
@@ -864,7 +981,7 @@ const renderChatCard = () => {
 
 const SC={
  compact:{m:1,st:'idle',x:()=>`<div class="mini">${MINIH()}</div>`},
- boot:{w:440,hc:1,st:'idle',x:()=>`<div class="boot-scene"><img class="boot-avatar" src="${snap(bodyOf(PRIN),OUT,'full')}" alt="Miku"><div class="boot-copy"><span class="boot-eyebrow">MIKU CORE</span><strong class="boot-title" id="bootStatus">Iniciando el servidor...</strong><div class="boot-steps"><div class="boot-step" data-boot-step="0"><i class="boot-step-dot"></i>Iniciando servicios</div><div class="boot-step" data-boot-step="1"><i class="boot-step-dot"></i>Preparando recursos</div><div class="boot-step" data-boot-step="2"><i class="boot-step-dot"></i>Conectando WebSocket</div></div></div></div>`},
+ boot:{w:460,hc:1,st:'idle',x:()=>`<div class="boot-scene"><img class="boot-avatar" src="${snap(bodyOf(PRIN),OUT,'full')}" alt="Miku"><div class="boot-copy"><div class="boot-header-row"><span class="boot-eyebrow">${t('boot_eyebrow')}</span><span class="boot-beta-badge" title="Fase Beta pública activa">${t('beta_tag')}</span></div><strong class="boot-title" id="bootStatus">${t('boot_title')}</strong><div class="boot-steps"><div class="boot-step" data-boot-step="0"><i class="boot-step-dot"></i>${t('boot_step_0')}</div><div class="boot-step" data-boot-step="1"><i class="boot-step-dot"></i>${t('boot_step_1')}</div><div class="boot-step" data-boot-step="2"><i class="boot-step-dot"></i>${t('boot_step_2')}</div></div><div class="boot-beta-footer"><span class="boot-beta-note">${t('boot_beta_note')}</span><button type="button" class="boot-issue-btn" onclick="window.Bridge?.openExternalUrl?.('https://github.com/cxmlo/miku/issues');event.stopPropagation();">${t('report_issue')}</button></div></div></div>`},
  prompt:{w:640,hc:1,st:'idle',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
     x:()=>renderChatCard()},
  result:{w:640,hc:1,st:'idle',em:'happy',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
@@ -880,16 +997,16 @@ const SC={
   const A=ST.agents,a=curAg(),pr=(a.id===PRIN.id);
   const ch=getAgChat(a.id);
 
-  const roleLabel = pr ? 'Orquestador' : (a.role || 'Sub-agente');
-  const previewMetric = pr ? (ST.ws ? 'Online · 100%' : 'Activo') : (a.model ? a.model.replace(/^(google\/|groq\/)/i, '') : 'Listo');
+  const roleLabel = pr ? t('orchestrator') : (a.role || t('subagent'));
+  const previewMetric = pr ? (ST.ws ? 'Online · 100%' : t('active_status')) : (a.model ? a.model.replace(/^(google\/|groq\/)/i, '') : t('ready_status'));
   const previewLines = pr ? [
-    `• Memoria: 100% activa`,
-    `• Agentes: ${A.length} disponibles`,
-    `• Sistema: ${ST.ws ? 'Core 8000 sincronizado' : 'Modo local'}`
+    `• ${t('memory_active')}`,
+    `• ${t('agents_avail_prefix')}: ${A.length} ${t('agents_avail')}`,
+    `• ${t('system_status')}: ${ST.ws ? t('core_synced') : t('local_mode')}`
   ] : [
-    `• Modelo: ${esc(a.model || 'Gemini Flash')}`,
-    `• Rol: ${esc(a.role || 'Sub-agente')}`,
-    `• Estado: ${esc(ch.busy ? 'Pensando respuesta...' : (ch.lastA ? 'Última tarea completada' : 'En espera de órdenes'))}`
+    `• ${t('model_label')}: ${esc(a.model || 'Gemini Flash')}`,
+    `• ${t('role_label')}: ${esc(a.role || t('subagent'))}`,
+    `• ${t('status_label')}: ${esc(ch.busy ? t('thinking') : (ch.lastA ? t('done_task') : t('idle_task')))}`
   ];
 
   const agColor = (a.id === PRIN.id || a === PRIN) ? '#ffffff' : (a.c || '#ffffff');
@@ -964,7 +1081,8 @@ const SC={
  gallery:{w:520,hc:1,st:'idle',x:()=>`${HD('Animaciones',B('Reproducir todas','playall','p','spark'))}<div class="card hubc"><i class="cs" data-k=".95" style="width:107px;height:80px"></i><div class="gal">${GAL.map(k=>`<button data-a="emo:${k}">${k=='ask'?'pregunta':k=='approve'?'permiso':k.replace('_',' ')}</button>`).join('')}</div></div>`},
  tool_use:{w:440,st:'searching',
   x:a=>`${HD(esc(a.label||'Analizando pantalla'))}<div class="card"><div class="tu"><span class="badge">${esc(a.badge||'Visión')}</span><div class="scan"></div></div><div class="sub2">${esc(a.sub||'Computer Use')}</div></div><div class="chips">${B('Cancelar','cancel','','x')}</div>`},
- notify:{w:400,st:'idle',x:a=>`${HD()}<div class="nt"><b>${esc(a.title||'Miku')}</b><div class="sub2">${esc(a.text||'')}</div>${a.btns?`<div class="chips">${a.btns.map(b=>B(esc(b[0]),b[1])).join('')}</div>`:''}</div>`},
+ notify:{w:420,st:'idle',x:a=>`${HD()}<div class="nt">${a.badge?`<span class="badge" style="background:#38bdf8;color:#050811;font-weight:700;margin-bottom:4px;display:inline-block">${esc(a.badge)}</span><br>`:''}<b>${esc(a.title||'Miku')}</b><div class="sub2" style="margin-top:4px">${esc(a.text||'')}</div>${a.btns?`<div class="chips">${a.btns.map(b=>B(esc(b[0]),b[1])).join('')}</div>`:''}</div>`},
+ alert:{w:420,st:'idle',x:a=>`${HD()}<div class="nt"><span class="badge" style="background:#2dd4a0;color:#050811;font-weight:700;margin-bottom:4px;display:inline-block">${esc(a.badge||'Enfoque')}</span><br><b>${esc(a.title||'Alerta de Miku')}</b><div class="sub2" style="margin-top:4px">${esc(a.text||a.message||'')}</div></div>`},
  approve:{w:480,hc:1,st:'idle',x:a=>{
     const agName = a.agent_name || (curAg() ? curAg().name : 'miku');
     return `
@@ -1462,7 +1580,7 @@ function finishBoot(){
  bootReady=true;
  clearInterval(bootProgressTimer);
  const status=$('#bootStatus');
- if(status)status.textContent='Core conectado';
+ if(status)status.textContent=t('boot_connected');
  $$('.boot-step').forEach(step=>{step.classList.remove('is-active');step.classList.add('is-done')});
  bootReadyTimer=setTimeout(()=>{
   if(scene==='boot'){window.__mikuBooting=false;go('overview',{__i:1})}
@@ -1795,6 +1913,14 @@ ACT.agent=x=>{
   }
 };
 function onMsg(m){if(!m)return;
+ if(m.k=='lang'||(m.k=='cfg'&&m.cfg?.lang)){
+   const nl=m.lang||m.cfg.lang;
+   if(nl&&CFG.lang!==nl){
+     CFG.lang=nl;
+     try{localStorage.setItem('miku_cfg',JSON.stringify(CFG))}catch(_){}
+     updateIslandLang();
+   }
+ }
  if(m.k=='cfg'){Object.assign(CFG,m.cfg);syncSpk();armAC()}
  else if(m.k=='outfit'){const a=(!m.who||m.who=='miku')?PRIN:ST.agents.find(x=>x.id==m.who);if(a){setOutfit(a,m.v,true);if(scene=='wardrobe')go('wardrobe');if(a===curAg())buddy.emote('happy',1100)}}
  else if(m.k=='emote'){m.n.startsWith('look_')?buddy.look(m.n.slice(5),2200):buddy.emote(m.n,2200,4)}
@@ -1812,7 +1938,7 @@ isl.addEventListener('contextmenu',e=>{if(e.target.closest('input,select,textare
  if(e.target.closest('#mkw,.cs')){WBACK=WOK.includes(scene)?scene:'overview';go('wardrobe')}});
 if(BC)BC.onmessage=e=>onMsg(e.data);
 try{window.__TAURI__?.event?.listen('miku',e=>onMsg(e.payload))}catch{}
-try{Object.assign(CFG,JSON.parse(localStorage.getItem('miku_cfg')||'{}'))}catch{}
+try{Object.assign(CFG,JSON.parse(localStorage.getItem('miku_cfg')||'{}'));updateIslandLang()}catch{}
 try{
   let a=JSON.parse(localStorage.getItem('miku_agents'));
   if(Array.isArray(a)&&a.length){

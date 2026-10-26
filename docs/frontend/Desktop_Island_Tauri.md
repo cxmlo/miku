@@ -40,7 +40,7 @@ graph TD
   - `talking` / `listening`: Ondas de voz reactivas al micrófono y al habla.
 - **Escenas Principales**:
   - `compact`: Píldora ultra-compacta (128px) que se posa en el borde de la pantalla sin robar el foco.
-  - `intro` → `boot`: conserva la entrada de Miku con su burst de partículas Canvas; al terminar, una tarjeta un poco más ancha coloca a Miku en el lateral de los indicadores de inicio, preparación de recursos y conexión WebSocket. Solo el handshake real marca el Core como listo y permite continuar al overview.
+  - `intro` → `boot`: Conserva la entrada de Miku con su burst de partículas Canvas; al terminar, una tarjeta coloca a Miku en el lateral de los indicadores de inicio, preparación de recursos y conexión WebSocket. Incorpora el indicador oficial de Fase Beta activa con acceso directo a reporte de incidencias en GitHub, y sincronización reactiva de idioma en tiempo real (ES, EN, KO) con Ajustes vía `BroadcastChannel`. Solo el handshake real marca el Core como listo y permite continuar al overview.
   - `overview`: Tarjetas 50/50 con métricas del agente activo y reproductor multimedia / cuadrícula 2x2.
   - `prompt` (Chat Multi-Agente): Conversación compacta con Miku o subagentes (GitHub, Antigravity): el canvas animado del agente con su atuendo activo y el nombre permanecen en una columna lateral izquierda; pulsar el avatar abre el agente con notificaciones pendientes. A la derecha se apilan mensaje del usuario, pensamiento colapsable, respuesta y compositor, sin un panel interior para el historial. Incluye historial de comandos y miniaturas de Computer Use con zoom a pantalla completa.
   - `tool_use`: Monitor de visión y control de periféricos de la computadora.

@@ -1709,6 +1709,29 @@ async def update_alerts_config(req: UpdateAlertsRequest):
         json.dump(req.alerts, f, indent=2, ensure_ascii=False)
     return {"status": "ok", "alerts": req.alerts}
 
+@app.post("/api/alerts/test")
+async def test_proactive_alert():
+    """Dispara una alerta de prueba inmediata para validar notificaciones en la Isla y Windows."""
+    test_msg = "Alerta de prueba: Llevas tiempo prolongado en tu equipo. Recuerda descansar la vista."
+    await manager.broadcast_message({
+        "type": "proactive_alert",
+        "title": "Alerta de Enfoque (Prueba)",
+        "message": test_msg,
+        "badge": "Enfoque",
+        "app": "Antigravity IDE",
+        "minutes": 45
+    })
+    def _show_windows_toast(title, msg):
+        try:
+            import subprocess
+            ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
+            subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], creationflags=subprocess.CREATE_NO_WINDOW)
+        except Exception:
+            pass
+
+    asyncio.create_task(asyncio.to_thread(_show_windows_toast, "Miku: Alerta de Enfoque (Prueba)", test_msg))
+    return {"status": "ok", "message": "Alerta de prueba emitida"}
+
 KNOWN_DETECTABLE_APPS = [
     {
         "id": "vscode",
@@ -2550,6 +2573,14 @@ async def startup_event():
     loop = asyncio.get_running_loop()
     sys.stdout = StdoutHook(sys.stdout)
     sys.stdout.loop = loop
+    
+    try:
+        from activity_monitor import start_monitoring
+        start_monitoring(interval=15)
+        logger.info("[Startup] Monitor de actividad iniciado para alertas proactivas.")
+    except Exception as e:
+        logger.warning(f"No se pudo iniciar activity_monitor: {e}")
+
     asyncio.create_task(clipboard_monitor())
     asyncio.create_task(ui_context_loop())
     asyncio.create_task(spotify_media_loop())

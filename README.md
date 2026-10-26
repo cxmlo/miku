@@ -12,7 +12,8 @@ Watch your agents work, approve actions, listen to Spotify, drop files, and chat
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v0.1.5--Beta-cyan)](https://github.com/cxmlo/miku/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.6--Beta-cyan)](https://github.com/cxmlo/miku/releases)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=flat&logo=kofi&logoColor=white)](https://ko-fi.com/cxmlo)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
@@ -21,7 +22,7 @@ Watch your agents work, approve actions, listen to Spotify, drop files, and chat
 > [!NOTE]
 > **Beta Phase**: Miku is in active public Beta until version 1.0.0. Both Desktop (Windows) and Mobile (Android APK) companion apps are available for testing.
 >
-> **New in v0.1.5 Beta**: Antigravity-style Execution Modes (Full PC, Sandbox, Restricted), native DeepSeek models support, smart web settings navigation, and automated Android APK CI/CD packaging.
+> **New in v0.1.6 Beta**: Dedicated window branding and icons, glowing color status indicators, major CPU optimization eliminating idle background usage, native Miku-Link companion window integration, and community Ko-fi support.
 
 ---
 
@@ -164,6 +165,24 @@ In **Claude Code**, simply add to `~/.claude/settings.json`:
 
 Contributions, bug reports, and feature ideas are warmly welcome!
 If you find a bug or have a suggestion, please open an Issue or submit a Pull Request.
+
+---
+
+## Support & Community
+
+If you enjoy Miku and want to support ongoing development, API testing costs, and keeping the project 100% open-source and ad-free:
+
+<div align="center">
+
+<a href="https://github.com/cxmlo/miku">
+  <img src="assets/github_banner.png" width="460" alt="Miku GitHub Community" style="border-radius: 16px; margin: 12px 0;">
+</a>
+
+<br>
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Apoyar%20el%20proyecto-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/cxmlo)
+
+</div>
 
 ---
 

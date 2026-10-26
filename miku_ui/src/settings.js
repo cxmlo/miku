@@ -68,11 +68,21 @@ if (Array.isArray(sa) && sa.length) {
 let STOP2=null,SELID='miku',IMG={},PROUT='none',STOP=null;try{PROUT=localStorage.getItem('miku_outfit')||'none'}catch{}
 let EMO='';
 
-// Capturar el ratón para el smooth tracking
+// Capturar el ratón para el smooth tracking con consumo de CPU ultra-bajo
 let mx = 0, my = 0, smx = 0, smy = 0, PX = -1e4, PY = -1e4, PT = 0;
-document.addEventListener('pointermove', e => { PX = e.clientX; PY = e.clientY; PT = performance.now(); }, {passive:true});
-// Seguimiento global del cursor aunque esté fuera de la ventana
+let mouseInWin = true;
+document.addEventListener('mouseenter', () => { mouseInWin = true; });
+document.addEventListener('mouseleave', () => { mouseInWin = false; });
+document.addEventListener('pointermove', e => { 
+  mouseInWin = true;
+  PX = e.clientX; 
+  PY = e.clientY; 
+  PT = performance.now(); 
+}, {passive:true});
+
+// Seguimiento global del cursor solo cuando la ventana esté activa y el cursor esté afuera
 async function trackGlobalCursor() {
+  if (document.hidden || mouseInWin) return;
   if (window.__TAURI__?.core?.invoke) {
     try {
       const [gx, gy] = await window.__TAURI__.core.invoke('get_cursor_position');
@@ -82,9 +92,9 @@ async function trackGlobalCursor() {
     } catch (_) {}
   }
 }
-setInterval(trackGlobalCursor, 30);
+setInterval(trackGlobalCursor, 120);
 
-const WARDROBE=[['none','Ninguno','⌀'],['beanie','Gorro','🧢'],['crown','Corona','👑'],['party','Fiesta','🎉'],['santa','Santa','🎅'],['witch','Bruja','🧙'],['shades','Gafas de sol','🕶️'],['round','Gafas','👓'],['bow','Moño','🎀'],['scarf','Bufanda','🧣'],['pumpkin','Calabaza','🎃'],['bunny','Orejas','🐰']];
+const WARDROBE=[['none','Ninguno','-'],['beanie','Gorro','Gorro'],['crown','Corona','Corona'],['party','Fiesta','Fiesta'],['santa','Santa','Navidad'],['witch','Bruja','Bruja'],['shades','Gafas de sol','Gafas'],['round','Gafas','Lentes'],['bow','Moño','Lazo'],['scarf','Bufanda','Bufanda'],['pumpkin','Calabaza','Calabaza'],['bunny','Orejas','Orejas']];
 const HAT=Object.fromEntries(WARDROBE.map(([k,,e])=>[k,k=='none'?'':e]));
 const GAL=['idle','listening','thinking','talking','searching','working','happy','proud','wink','love','surprised','question','annoyed','sleeping','error','dizzy','look_up','look_down','look_left','look_right','squash','swallow','wave'];
 const PRESET=['#F2A765','#F06CF0','#6C63FF','#FF5C66','#4FD3B1','#3B9EFF','#FFD84D','#9BE15D'];
@@ -1355,7 +1365,7 @@ V.general = () => `
   <div class="exec-mode-grid" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:14px">
     <div class="mode-card ${STATE.execMode === 'full' ? 'active' : ''}" data-setmode="full" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'full' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
       <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
-        <span style="font-size:18px">🌐</span> Toda mi PC
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Toda mi PC
       </div>
       <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
         Acceso total a la consola de Windows, cualquier disco o archivo, scripts y automatización de interfaz.
@@ -1363,7 +1373,7 @@ V.general = () => `
     </div>
     <div class="mode-card ${STATE.execMode === 'sandbox' ? 'active' : ''}" data-setmode="sandbox" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'sandbox' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
       <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
-        <span style="font-size:18px">📦</span> Sandbox
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2dd4a0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Sandbox
       </div>
       <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
         Confinada al espacio de trabajo del proyecto. Protege carpetas del sistema y archivos fuera del workspace.
@@ -1371,7 +1381,7 @@ V.general = () => `
     </div>
     <div class="mode-card ${STATE.execMode === 'restricted' ? 'active' : ''}" data-setmode="restricted" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'restricted' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
       <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
-        <span style="font-size:18px">🔒</span> Restringido
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Restringido
       </div>
       <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
         Solo lectura y consultas seguras. Comandos de consola, scripts y clics automáticos quedan bloqueados.
@@ -1382,8 +1392,25 @@ V.general = () => `
 </section>
 <section>
   <h2>Actualizaciones de Software</h2>
-  ${row('Miku Desktop v0.1.5 (Beta)', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
+  ${row('Miku Desktop v0.1.6 (Beta)', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
   <div id="update-status" style="margin-top:6px;font-size:12.5px;color:var(--mut)"></div>
+</section>
+<section>
+  <h2>Apoyar el Proyecto · Ko-fi</h2>
+  <div style="background:radial-gradient(120% 80% at 50% 0%, rgba(255, 94, 91, 0.12) 0%, rgba(13, 14, 20, 0.7) 100%);border:1px solid rgba(255, 94, 91, 0.25);border-radius:16px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+      <img src="assets/kofi_badge.png" width="44" height="44" style="border-radius:12px;object-fit:contain;flex:none;filter:drop-shadow(0 0 10px rgba(255, 94, 91, 0.5))" alt="Ko-fi">
+      <div style="min-width:0">
+        <div style="font-weight:700;font-size:13.5px;color:#fff">Invítame un café en Ko-fi</div>
+        <div style="font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.4">
+          Tu aporte ayuda a cubrir pruebas de APIs de IA y mantener Miku libre, abierta y sin anuncios.
+        </div>
+      </div>
+    </div>
+    <a href="https://ko-fi.com/cxmlo" target="_blank" rel="noopener noreferrer" class="sec-btn pri" style="height:36px;padding:0 18px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;background:#ff5e5b;color:#fff">
+      Apoyar en Ko-fi
+    </a>
+  </div>
 </section>
 <section>
   <h2>${t('reset_title')}</h2>
@@ -1775,26 +1802,103 @@ V.alertas = () => {
           </div>
         </div>`;
       }).join('') : '<p class="nt" style="padding:16px;background:#090a0f;border-radius:12px;text-align:center">No tienes juegos o aplicaciones registradas. Selecciona una en el menú de arriba para empezar.</p>'}
+  <section style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 18px;margin-top:14px">
+    <div>
+      <h3 style="margin:0 0 4px 0;font-size:13px;color:#fff">Probar Sistema de Alertas</h3>
+      <p style="margin:0;font-size:11.5px;color:var(--mut)">Emite una notificación de prueba instantánea para verificar la Isla Dinámica y Windows Notifications.</p>
     </div>
+    <button type="button" class="sec-btn pri" id="btn-test-alert" style="height:36px;padding:0 18px;font-weight:600;white-space:nowrap">Probar Alerta en Vivo</button>
   </section>
   `;
 };
 
 // 8. MIKU-LINK (Móvil)
-V.link = () => `
-<section>
-  <h2>${t('link_title')}</h2>
-  ${note(t('link_note'))}
-  <div style="display:flex;align-items:center;gap:24px;padding:16px 0;flex-wrap:wrap">
-    <canvas id="qr" width="140" height="140" style="border-radius:16px;background:#fff;padding:8px"></canvas>
-    <div>
-      <p style="font-weight:600;font-size:15px;margin-bottom:6px">Miku-Link Gateway</p>
-      <p style="color:var(--mut);font-size:12px;margin-bottom:8px">IP Local: <code id="local-ip-text">127.0.0.1:8000</code></p>
-      <p id="link-status-badge"><span class="pill ${STATE.linkConnected ? 'on' : ''}">${STATE.linkConnected ? `Conectado: ${STATE.linkName}` : 'Esperando conexión'}</span></p>
+V.link = () => {
+  const isConn = !!STATE.linkConnected;
+  const devName = STATE.linkName || 'REDMI Note 15 Pro+ 5G';
+  return `
+  <section>
+    <h2>Dispositivo Móvil Sincronizado</h2>
+    ${note('Gestión directa y privada con tu smartphone mediante red local cifrada:')}
+    
+    <div style="background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:20px;margin-top:14px">
+      <!-- Cabecera del teléfono -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:44px;height:72px;background:#151820;border:2px solid rgba(255,255,255,0.22);border-radius:10px;padding:3px;box-shadow:0 4px 14px rgba(0,0,0,0.5);display:flex;flex-direction:column;justify-content:space-between;align-items:center;flex:none">
+            <div style="width:12px;height:2px;background:rgba(255,255,255,0.3);border-radius:2px;margin-top:1px"></div>
+            <div style="width:100%;flex:1;background:linear-gradient(135deg, #1e293b, #0f172a);border-radius:6px;margin:2px 0;display:grid;place-items:center">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            </div>
+            <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);margin-bottom:1px"></div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:16px;font-weight:700;color:#fff">${esc(devName)}</span>
+              <span class="pill ${isConn ? 'on' : ''}" style="font-size:11px;padding:2px 8px">${isConn ? 'Conectado' : 'Registrado'}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:6px;font-size:12px;color:var(--mut)">
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#22c55e" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+                Wi-Fi Local
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+                ${isConn ? '88%' : '46%'} Batería
+              </span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button type="button" class="sec-btn" id="btn-phone-lock" style="font-size:12px;height:34px;padding:0 14px">Bloquear PC</button>
+          <button type="button" class="sec-btn pri" id="btn-phone-send-file" style="font-size:12px;height:34px;padding:0 14px">Enviar archivo</button>
+        </div>
+      </div>
+
+      <!-- Cuadrícula de Accesos Rápidos estilo Enlace Móvil -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px">
+        <div class="mode-card on" style="padding:14px;cursor:default">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2dd4a0" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            <strong style="font-size:12.5px;color:#fff">Portapapeles</strong>
+          </div>
+          <p style="margin:0;font-size:11px;color:var(--mut);line-height:1.4">Copia en tu teléfono o PC y el contenido se transfiere al instante.</p>
+        </div>
+
+        <div class="mode-card on" style="padding:14px;cursor:default">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <strong style="font-size:12.5px;color:#fff">Archivos Compartidos</strong>
+          </div>
+          <p style="margin:0;font-size:11px;color:var(--mut);line-height:1.4">Recibe fotos y documentos directo en Descargas/miku-link.</p>
+        </div>
+
+        <div class="mode-card on" style="padding:14px;cursor:default">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <strong style="font-size:12.5px;color:#fff">Notificaciones</strong>
+          </div>
+          <p style="margin:0;font-size:11px;color:var(--mut);line-height:1.4">Avisos de aplicaciones reflejados en la Isla Dinámica.</p>
+        </div>
+      </div>
     </div>
-  </div>
-</section>
-`;
+  </section>
+
+  <!-- 2. Código QR para enlazar o reconectar nuevo dispositivo -->
+  <section style="margin-top:18px">
+    <h2>Vincular Nuevo Dispositivo (Código QR)</h2>
+    ${note('Escanea este código con la app de Miku en tu smartphone (Android APK) para emparejar:')}
+    <div style="display:flex;align-items:center;gap:24px;padding:16px;background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;margin-top:10px;flex-wrap:wrap">
+      <canvas id="qr" width="140" height="140" style="border-radius:12px;background:#fff;padding:8px"></canvas>
+      <div>
+        <p style="font-weight:600;font-size:14px;color:#fff;margin-bottom:4px">Miku-Link Gateway</p>
+        <p style="color:var(--mut);font-size:12px;margin-bottom:8px">IP Local: <code id="local-ip-text">127.0.0.1:8000</code></p>
+        <p id="link-status-badge"><span class="pill ${isConn ? 'on' : ''}">${isConn ? `Conectado: ${esc(devName)}` : 'Esperando conexión'}</span></p>
+      </div>
+    </div>
+  </section>
+  `;
+};
 
 const renderRail = () => { $('#rail').innerHTML = railHtml(); };
 
@@ -2006,6 +2110,7 @@ function mount() {
         saveCfg();
         renderRail();
         render();
+        emit({ k: 'lang', lang: v });
       }
     });
     HoldButton($('#hb-reset'), { label: t('reset_btn'), doneLabel: 'Restablecido', hold: 1800, small: 1, onHold: holdReset });
@@ -2144,7 +2249,7 @@ function mount() {
           } else {
             btnUpdate.disabled = false;
             btnUpdate.textContent = 'Buscar actualización';
-            if (stUpdate) stUpdate.textContent = 'Miku está en la versión más reciente (Beta v0.1.5).';
+            if (stUpdate) stUpdate.textContent = 'Miku está en la versión más reciente (Beta v0.1.6).';
             showToast('Miku está al día');
           }
         } catch (e) {
@@ -2318,7 +2423,7 @@ function mount() {
           const inUseBy = mcpInUse[s.name];
           return {
             value: s.name,
-            label: inUseBy ? `${s.name} 🔒 (En uso por ${inUseBy})` : `${s.name} (Disponible)`
+            label: inUseBy ? `${s.name} [En uso por ${inUseBy}]` : `${s.name} (Disponible)`
           };
         })
       ];
@@ -2814,6 +2919,16 @@ function mount() {
         btnBrowse.textContent = 'Examinar...';
       };
     }
+    // Botón de prueba de alerta en vivo
+    const btnTestAlert = $('#btn-test-alert');
+    if (btnTestAlert) {
+      btnTestAlert.onclick = async () => {
+        showToast('Enviando alerta de prueba...');
+        const ok = await window.Bridge?.testAlert?.();
+        if (ok) showToast('Alerta de prueba emitida en la Isla y Windows');
+        else showToast('Error al emitir alerta de prueba');
+      };
+    }
   }
 
   if (CAT === 'link') {
@@ -2825,6 +2940,21 @@ function mount() {
     if (ipText && STATE.pairUrl) {
       const match = STATE.pairUrl.match(/ip=([0-9.]+)/);
       if (match) ipText.textContent = match[1] + ':8000';
+    }
+    const btnPhoneLock = $('#btn-phone-lock');
+    if (btnPhoneLock) {
+      btnPhoneLock.onclick = async () => {
+        showToast('Comando de bloqueo enviado');
+        try {
+          await fetch('/api/device/lock', { method: 'POST' });
+        } catch (_) {}
+      };
+    }
+    const btnPhoneSend = $('#btn-phone-send-file');
+    if (btnPhoneSend) {
+      btnPhoneSend.onclick = () => {
+        showToast('Arrastra cualquier archivo a la Isla Dinámica para transferirlo al celular.');
+      };
     }
   }
 }

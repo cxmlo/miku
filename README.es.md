@@ -12,7 +12,8 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.5--Beta-cyan)](https://github.com/cxmlo/miku/releases)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.6--Beta-cyan)](https://github.com/cxmlo/miku/releases)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Apoyar-ff5e5b?style=flat&logo=kofi&logoColor=white)](https://ko-fi.com/cxmlo)
 
 **[English](README.md)** · **[Español](README.es.md)**
 
@@ -21,7 +22,7 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 > [!NOTE]
 > **Fase Beta**: Miku se encuentra en fase Beta pública activa hasta la versión 1.0.0. Tanto la aplicación de escritorio (Windows) como la aplicación compañera móvil (Android APK) están disponibles para pruebas.
 >
-> **Novedades en v0.1.5 Beta**: Modos de ejecución estilo Antigravity (Toda mi PC, Sandbox seguro y Restringido), soporte nativo de modelos DeepSeek, navegación web de ajustes sin errores 404, y compilación automatizada de APK Android en CI/CD.
+> **Novedades en v0.1.6 Beta**: Nuevos iconos oficiales para cada ventana y el instalador, puntos lumínicos de estado (verde/rojo) en Ajustes, optimización radical de consumo de CPU en reposo para WebView2, ventana complementaria Miku-Link y soporte en Ko-fi.
 
 ---
 
@@ -167,6 +168,24 @@ En **Claude Code**, solo agrega esto a tu archivo `~/.claude/settings.json`:
 
 ¡Las contribuciones, reportes de fallos e ideas de nuevas funciones son bienvenidas!
 Si encuentras un error o deseas sugerir una mejora, por favor abre un Issue o envía un Pull Request.
+
+---
+
+## Apoyo y Comunidad
+
+Si te gusta Miku y deseas apoyar el desarrollo continuo, el coste de pruebas de APIs y mantener el proyecto 100% libre, abierto y sin publicidad:
+
+<div align="center">
+
+<a href="https://github.com/cxmlo/miku">
+  <img src="assets/github_banner.png" width="460" alt="Comunidad GitHub Miku" style="border-radius: 16px; margin: 12px 0;">
+</a>
+
+<br>
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Apoyar%20el%20proyecto-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/cxmlo)
+
+</div>
 
 ---
 

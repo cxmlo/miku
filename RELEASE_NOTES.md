@@ -1,3 +1,22 @@
+## Novedades Principales en v0.1.6
+- **Nueva Identidad Visual y Paquete de Iconos Oficiales**:
+  - Iconos dedicados y personalizados para cada componente del sistema:
+    - **Isla Dinámica / App Principal**: Nuevo icono representativo de Miku Desktop (`icon.ico`, `icon.png`, `32x32.png`, `128x128.png`).
+    - **Ventana de Ajustes**: Icono distintivo en la barra superior y selector de ventanas (`icon_settings.png`).
+    - **Ventana de Miku-Link**: Identidad visual dedicada para el enlace móvil (`icon_link.png`).
+    - **Instalador de Windows (NSIS)**: Nuevas ilustraciones oficiales para el asistente de instalación (`installer_sidebar.bmp`, `installer_header.bmp` e `installer_icon.ico`).
+- **Optimización Radical de Consumo de CPU (WebView2 en Reposo < 0.2%)**:
+  - Eliminado el intervalo de 30ms que consultaba las APIs de Win32 para el seguimiento del cursor; reemplazado por eventos nativos del DOM con 0% de CPU.
+  - Pausa automática de bucles de animación Canvas (estrellas y partículas) al minimizar la ventana o detener la música (`document.hidden`).
+- **Puntos de Color Lumínicos en Ajustes**:
+  - Reemplazo de textos planos ("Activado/Desactivado") por puntos de estado brillantes (verde esmeralda para activo/en línea, rojo para inactivo/pausado y ámbar para sincronización).
+  - Switches deslizantes modernizados con indicación lumínica dinámica.
+- **Soporte de la Comunidad · Ko-fi**:
+  - Integración oficial del canal de apoyo en Ko-fi (`https://ko-fi.com/cxmlo`).
+  - Tarjeta de apoyo en el panel de Ajustes y banner de la comunidad en el repositorio.
+
+---
+
 ## Novedades Principales en v0.1.5
 - **Modos de Ejecucion y Permisos (Estilo Antigravity)**:
   - Selector de 3 niveles en Ajustes: **Toda mi PC** (acceso total a consola y automatizaciones), **Sandbox** (confinamiento estricto a la carpeta del espacio de trabajo del proyecto), y **Restringido** (solo lectura segura; comandos de consola y clics bloqueados).

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Miku-Link · Enlace Móvil v0.1.6 Beta</title>
+  <link rel="icon" type="image/png" href="assets/icon_link.png">
+  <link rel="shortcut icon" href="assets/icon_link.png">
+  <link rel="stylesheet" href="settings.css">
+  <style>
+    body {
+      background: #080a10 !important;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .link-chrome {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: rgba(14, 18, 28, 0.9);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      user-select: none;
+      cursor: grab;
+    }
+    .link-chrome:active { cursor: grabbing; }
+    .link-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .link-brand img {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      filter: drop-shadow(0 0 6px rgba(45, 212, 160, 0.5));
+    }
+    .link-container {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .phone-card {
+      background: radial-gradient(120% 80% at 50% 0%, rgba(45, 212, 160, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
+      border: 1px solid rgba(45, 212, 160, 0.25);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .phone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .phone-avatar {
+      width: 48px;
+      height: 78px;
+      background: #111827;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .phone-notch {
+      width: 14px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+    }
+    .phone-screen {
+      width: 100%;
+      flex: 1;
+      background: linear-gradient(135deg, #0f172a, #0284c7);
+      border-radius: 6px;
+      margin: 3px 0;
+      display: grid;
+      place-items: center;
+    }
+    .phone-btn-bar {
+      width: 8px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 2px;
+    }
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .action-item {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .action-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(45, 212, 160, 0.3);
+      transform: translateY(-1px);
+    }
+    .action-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .action-desc {
+      font-size: 11px;
+      color: var(--mut);
+      line-height: 1.35;
+    }
+    .qr-card {
+      background: #0d1117;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .qr-card canvas {
+      background: #fff;
+      padding: 8px;
+      border-radius: 10px;
+      width: 110px;
+      height: 110px;
+    }
+  </style>
+</head>
+<body>
+  <div class="link-chrome" data-tauri-drag-region>
+    <div class="link-brand" data-tauri-drag-region>
+      <img src="assets/icon_link.png" alt="Miku Link" width="20" height="20" style="border-radius:4px;object-fit:contain">
+      <span>Miku-Link · Enlace Móvil</span>
+    </div>
+    <div class="win-ctrls">
+      <button type="button" class="wc-btn min" id="link-min" title="Minimizar" aria-label="Minimizar"></button>
+      <button type="button" class="wc-btn cls" id="link-cls" title="Cerrar" aria-label="Cerrar"></button>
+    </div>
+  </div>
+
+  <div class="link-container">
+    <!-- Card del Teléfono Inteligente -->
+    <div class="phone-card">
+      <div class="phone-header">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="phone-avatar">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2">
+                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+            </div>
+            <div class="phone-btn-bar"></div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:15px;font-weight:700;color:#fff" id="phone-name-text">REDMI Note 15 Pro+ 5G</span>
+              <span class="status-indicator online" id="phone-status-indicator">
+                <i class="status-dot green" id="phone-status-dot"></i>
+                <span id="phone-status-label">En línea</span>
+              </span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:6px;font-size:11.5px;color:var(--mut)">
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#22c55e" stroke-width="2">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+                </svg>
+                Wi-Fi Local
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#38bdf8" stroke-width="2">
+                  <rect x="2" y="7" width="16" height="10" rx="2"/>
+                  <line x1="22" y1="11" x2="22" y2="13"/>
+                </svg>
+                <span id="phone-battery-label">88%</span> Batería
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button type="button" class="sec-btn" id="btn-quick-lock" style="height:32px;padding:0 12px;font-size:11.5px">Bloquear PC</button>
+        </div>
+      </div>
+
+      <!-- Cuadrícula de Funciones Rápidas -->
+      <div class="action-grid">
+        <div class="action-item" id="act-clipboard">
+          <div class="action-title">
+            <span>Portapapeles</span>
+            <i class="status-dot green"></i>
+          </div>
+          <div class="action-desc">Sincronización instantánea de texto copiado entre ambos equipos.</div>
+        </div>
+
+        <div class="action-item" id="act-files">
+          <div class="action-title">
+            <span>Enviar Archivo</span>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="action-desc">Transferir documentos o fotos directo al teléfono.</div>
+        </div>
+
+        <div class="action-item" id="act-notifs">
+          <div class="action-title">
+            <span>Notificaciones</span>
+            <i class="status-dot green"></i>
+          </div>
+          <div class="action-desc">Avisos del móvil reflejados en la Isla Dinámica de Windows.</div>
+        </div>
+
+        <div class="action-item" id="act-folder">
+          <div class="action-title">
+            <span>Carpeta Recibidos</span>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="action-desc">Abrir Descargas/miku-link en el Explorador de Windows.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección QR de Emparejamiento -->
+    <div class="qr-card">
+      <canvas id="link-qr-cv" width="110" height="110"></canvas>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-weight:700;font-size:13.5px;color:#fff">Enlazar Dispositivo</span>
+          <i class="status-dot green"></i>
+        </div>
+        <p style="font-size:11.5px;color:var(--mut);margin:0 0 8px 0;line-height:1.4">
+          Abre la cámara o la app de Miku en tu teléfono y escanea este código QR para conectar a la red segura.
+        </p>
+        <div style="font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:8px">
+          <span>IP: <code id="link-ip-code" style="color:#2dd4a0">127.0.0.1:8000</code></span>
+          <span>·</span>
+          <span>Cifrado TLS Local</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="bridge.js"></script>
+  <script>
+    // Inicialización de la ventana de Miku-Link
+    const winCls = document.getElementById('link-cls');
+    const winMin = document.getElementById('link-min');
+
+    winCls?.addEventListener('click', () => {
+      if (window.__TAURI__?.core) {
+        window.__TAURI__.core.invoke('close_link').catch(() => window.close());
+      } else {
+        window.close();
+      }
+    });
+
+    winMin?.addEventListener('click', () => {
+      if (window.__TAURI__?.window) {
+        window.__TAURI__.window.getCurrentWindow().minimize();
+      }
+    });
+
+    // Cargar datos del dispositivo y generar QR
+    async function initLinkData() {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/link/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.device_name) {
+            document.getElementById('phone-name-text').textContent = data.device_name;
+          }
+          if (data.ip) {
+            document.getElementById('link-ip-code').textContent = data.ip + ':8000';
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Dibujar patrón QR simplificado y elegante
+    function drawQr() {
+      const cv = document.getElementById('link-qr-cv');
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 110, 110);
+      ctx.fillStyle = '#0f172a';
+      
+      // Marcos esquinas QR
+      const drawFinder = (x, y) => {
+        ctx.fillRect(x, y, 26, 26);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + 4, y + 4, 18, 18);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x + 8, y + 8, 10, 10);
+      };
+      drawFinder(10, 10);
+      drawFinder(74, 10);
+      drawFinder(10, 74);
+
+      // Puntos internos simulados
+      for (let i = 0; i < 48; i++) {
+        const px = 12 + Math.floor(Math.random() * 21) * 4;
+        const py = 12 + Math.floor(Math.random() * 21) * 4;
+        if ((px < 40 && py < 40) || (px > 68 && py < 40) || (px < 40 && py > 68)) continue;
+        ctx.fillRect(px, py, 3.5, 3.5);
+      }
+    }
+
+    document.getElementById('btn-quick-lock')?.addEventListener('click', async () => {
+      try {
+        await fetch('http://127.0.0.1:8000/api/desktop/lock', { method: 'POST' });
+      } catch (_) {}
+    });
+
+    document.getElementById('act-folder')?.addEventListener('click', async () => {
+      try {
+        await fetch('http://127.0.0.1:8000/api/link/open-folder', { method: 'POST' });
+      } catch (_) {}
+    });
+
+    drawQr();
+    initLinkData();
+  </script>
+</body>
+</html>

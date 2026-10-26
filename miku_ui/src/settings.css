@@ -206,6 +206,14 @@ mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' wid
 
 .pill{display:inline-flex;align-self:flex-start;padding:3px 12px;border-radius:99px;font-size:12px;background:#ff7a7026;color:#ff8f87}
 .pill.on{background:#4ddb7326;color:#4ddb73}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;transition:all .2s ease}
+.status-dot.green,.status-indicator.online .status-dot{background:#2dd4a0;box-shadow:0 0 8px rgba(45,212,160,0.65)}
+.status-dot.red,.status-indicator.offline .status-dot{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.45)}
+.status-dot.amber,.status-indicator.busy .status-dot{background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,0.55);animation:dotPulse 1.4s infinite ease-in-out}
+.status-indicator{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;letter-spacing:0.02em}
+.status-indicator.online{color:#2dd4a0}
+.status-indicator.offline{color:#94a3b8}
+.status-indicator.busy{color:#f59e0b}
 .sec-btn{padding:8px 16px;border-radius:99px;background:#26282d;font-size:13px;transition:transform .2s cubic-bezier(.3,1.6,.5,1),background .2s}
 .sec-btn:hover{background:#2f3137;transform:scale(1.04)}.sec-btn:active{transform:scale(.95)}
 .btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
