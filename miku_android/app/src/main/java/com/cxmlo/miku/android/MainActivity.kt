@@ -244,17 +244,26 @@ private fun MikuApp(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text("MIKU MOBILE", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Text("MIKU-LINK", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = Color.White)
                     Text(
-                        state.pcName.ifBlank { "Conecta con tu Miku Desktop" },
+                        if (state.connected) "Enlace activo · ${state.pcName}" else "Sincroniza con Miku Desktop Suite",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.LightGray,
                     )
                 }
-                Text(
-                    if (state.connected) "● EN LÍNEA" else "● SIN CONEXIÓN",
-                    color = if (state.connected) MikuPalette.Accent else MikuPalette.Error,
-                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (state.connected) Color(0x202DD4A0) else Color(0x20FF5252),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (state.connected) Color(0x602DD4A0) else Color(0x60FF5252))
+                ) {
+                    Text(
+                        if (state.connected) "● EN LÍNEA" else "● DESCONECTADO",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = if (state.connected) Color(0xFF2DD4A0) else Color(0xFFFF5252),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                }
             }
             state.error?.let { Text(it, color = MikuPalette.Error) }
             feedback?.let {
@@ -536,13 +545,23 @@ private fun SettingsPanel(
 private fun ActionCard(title: String, detail: String, enabled: Boolean, action: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MikuPalette.Surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x18FFFFFF)),
         onClick = action,
         enabled = enabled,
     ) {
-        Column(Modifier.padding(14.dp)) {
-            Text(title, color = Color.White, style = MaterialTheme.typography.titleSmall)
-            Text(detail, color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = if (enabled) Color.White else Color.Gray, style = MaterialTheme.typography.titleSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                Spacer(Modifier.height(2.dp))
+                Text(detail, color = Color(0xFFA0A5B5), style = MaterialTheme.typography.bodySmall)
+            }
+            Text("→", color = if (enabled) MikuPalette.Accent else Color.DarkGray, style = MaterialTheme.typography.titleMedium)
         }
     }
 }

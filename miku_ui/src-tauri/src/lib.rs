@@ -359,18 +359,19 @@ fn close_link(app: tauri::AppHandle) {
     }
 }
 
+use tauri::{
+    menu::{Menu, MenuItem, PredefinedMenuItem},
+    tray::TrayIconBuilder,
+    Emitter, Manager,
+};
+
 #[tauri::command]
 fn hide_main_window(app: tauri::AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.hide();
+        let _ = win.emit("miku-power-save", true);
     }
 }
-
-use tauri::{
-    menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
-    Emitter, Manager,
-};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -435,29 +436,36 @@ pub fn run() {
             }
 
             let open_i = MenuItem::with_id(app, "open", "Abrir Isla Dinámica", true, None::<&str>)?;
-            let hide_i = MenuItem::with_id(app, "hide", "Ocultar Isla (Ahorro Energía)", true, None::<&str>)?;
+            let hide_i = MenuItem::with_id(app, "hide", "Ocultar Isla (Minimizar)", true, None::<&str>)?;
+            let sep1 = PredefinedMenuItem::separator(app)?;
             let link_i = MenuItem::with_id(app, "link", "Miku-Link (Enlace Móvil)", true, None::<&str>)?;
+            let config_i = MenuItem::with_id(app, "config", "Configuración", true, None::<&str>)?;
+            let sep2 = PredefinedMenuItem::separator(app)?;
             let low_cost_i = MenuItem::with_id(app, "low_cost", "🔴 Modo Ahorro: Desactivado", true, None::<&str>)?;
-            let config_i = MenuItem::with_id(app, "config", "Configuración (API Keys)", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_i, &hide_i, &link_i, &low_cost_i, &config_i, &quit_i])?;
+            let sep3 = PredefinedMenuItem::separator(app)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Salir de Miku", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&open_i, &hide_i, &sep1, &link_i, &config_i, &sep2, &low_cost_i, &sep3, &quit_i])?;
 
             let low_cost_item_clone = low_cost_i.clone();
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("Miku · Dynamic Island")
                 .menu(&menu)
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "open" => {
                         if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("miku-power-save", false);
                             let _ = window.show();
                             let _ = window.set_focus();
                         }
+                        let _ = low_cost_item_clone.set_text("🔴 Modo Ahorro: Desactivado");
                     }
                     "hide" => {
                         if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("miku-power-save", true);
                             let _ = window.hide();
                         }
-                        let _ = low_cost_item_clone.set_text("🟢 Modo Ahorro: Activado");
+                        let _ = low_cost_item_clone.set_text("🟢 Modo Ahorro: Activado (Isla Oculta)");
                         #[cfg(target_os = "windows")]
                         {
                             use std::os::windows::process::CommandExt;
@@ -475,6 +483,9 @@ pub fn run() {
                         let next = !IS_LOW.load(std::sync::atomic::Ordering::Relaxed);
                         IS_LOW.store(next, std::sync::atomic::Ordering::Relaxed);
                         let _ = low_cost_item_clone.set_text(if next { "🟢 Modo Ahorro: Activado" } else { "🔴 Modo Ahorro: Desactivado" });
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("miku-power-save", next);
+                        }
                         #[cfg(target_os = "windows")]
                         {
                             use std::os::windows::process::CommandExt;

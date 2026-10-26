@@ -144,6 +144,8 @@ def run():
         "--hidden-import=pygame",
         "--hidden-import=fastapi",
         "--hidden-import=pydantic",
+        "--collect-all=qrcode",
+        "--hidden-import=qrcode",
         os.path.join(WORKSPACE_DIR, "server.py")
     ]
 

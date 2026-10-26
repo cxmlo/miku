@@ -1827,8 +1827,8 @@ V.link = () => {
         <div style="display:flex;align-items:center;gap:16px">
           <div style="width:44px;height:72px;background:#151820;border:2px solid rgba(255,255,255,0.22);border-radius:10px;padding:3px;box-shadow:0 4px 14px rgba(0,0,0,0.5);display:flex;flex-direction:column;justify-content:space-between;align-items:center;flex:none">
             <div style="width:12px;height:2px;background:rgba(255,255,255,0.3);border-radius:2px;margin-top:1px"></div>
-            <div style="width:100%;flex:1;background:linear-gradient(135deg, #1e293b, #0f172a);border-radius:6px;margin:2px 0;display:grid;place-items:center">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <div style="width:100%;flex:1;background:url('http://127.0.0.1:8000/api/desktop/wallpaper') center/cover no-repeat, linear-gradient(135deg, #1e293b, #0f172a);border-radius:6px;margin:2px 0;display:grid;place-items:center;overflow:hidden">
+              <span style="opacity:0.6;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8))"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span>
             </div>
             <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);margin-bottom:1px"></div>
           </div>
@@ -2934,27 +2934,36 @@ function mount() {
 
   if (CAT === 'link') {
     const cv = $('#qr');
-    if (cv) {
-      try { QR.draw(cv, STATE.pairUrl || 'miku://pair?s=init&ip=127.0.0.1', 140); } catch (_) {}
-    }
-    const ipText = $('#local-ip-text');
-    if (ipText && STATE.pairUrl) {
-      const match = STATE.pairUrl.match(/ip=([0-9.]+)/);
-      if (match) ipText.textContent = match[1] + ':8000';
-    }
+    fetch('http://127.0.0.1:8000/api/link/qr_data')
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.qr_base64 && cv) {
+          const img = new Image();
+          img.onload = () => {
+            const ctx = cv.getContext('2d');
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            ctx.drawImage(img, 0, 0, cv.width, cv.height);
+          };
+          img.src = d.qr_base64;
+        }
+        const ipText = $('#local-ip-text');
+        if (ipText && d.ip) ipText.textContent = d.ip + ':8000';
+      })
+      .catch(_ => {});
+
     const btnPhoneLock = $('#btn-phone-lock');
     if (btnPhoneLock) {
       btnPhoneLock.onclick = async () => {
         showToast('Comando de bloqueo enviado');
         try {
-          await fetch('/api/device/lock', { method: 'POST' });
+          await fetch('http://127.0.0.1:8000/api/desktop/lock', { method: 'POST' });
         } catch (_) {}
       };
     }
     const btnPhoneSend = $('#btn-phone-send-file');
     if (btnPhoneSend) {
       btnPhoneSend.onclick = () => {
-        showToast('Arrastra cualquier archivo a la Isla Dinámica para transferirlo al celular.');
+        showToast('Arrastra cualquier archivo a la Isla o usa clic derecho en el Explorador para compartir al celular.');
       };
     }
     const btnPhoneUnpair = $('#btn-phone-unpair');
@@ -2962,10 +2971,11 @@ function mount() {
       btnPhoneUnpair.onclick = async () => {
         if (confirm('¿Estás seguro de que deseas desvincular y eliminar este dispositivo?\n\nSe revocarán todas las claves locales de cifrado y se cerrará la sesión inmediatamente en la app móvil.')) {
           try {
-            await fetch('/api/link/unpair', { method: 'POST' });
+            await fetch('http://127.0.0.1:8000/api/link/unpair', { method: 'POST' });
             STATE.linkConnected = false;
             STATE.linkName = '';
             showToast('Dispositivo eliminado y desvinculado');
+            try { new BroadcastChannel('miku').postMessage({ k: 'unpair' }); } catch (_) {}
             render();
           } catch (_) {
             showToast('Error al desvincular');
@@ -3223,5 +3233,21 @@ window.__lang = l => { CFG.lang = l; saveCfg(); renderRail(); render(); };
   renderRail();
   render();
   loadBackendData();
+
+  // Ahorro de energía: pausar canvas cuando no está en foco o visible
+  window.addEventListener('blur', () => {
+    if (GALAXY_RAF) { cancelAnimationFrame(GALAXY_RAF); GALAXY_RAF = null; }
+  });
+  window.addEventListener('focus', () => {
+    if (!GALAXY_RAF) initHeroGalaxy();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (GALAXY_RAF) { cancelAnimationFrame(GALAXY_RAF); GALAXY_RAF = null; }
+    } else {
+      if (!GALAXY_RAF) initHeroGalaxy();
+    }
+  });
+})();
   emit({ k: 'hello' });
 })();

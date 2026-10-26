@@ -802,8 +802,11 @@ async def pair_confirm(req: PairConfirmRequest):
 # ==========================================
 
 @app.post("/api/device/lock")
-async def device_lock(x_device_id: str = Header(None)):
-    if not miku_db.is_valid_device(x_device_id):
+@app.post("/api/desktop/lock")
+async def device_lock(request: Request, x_device_id: str = Header(None)):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    is_local = client_ip in ("127.0.0.1", "localhost", "::1", "testclient")
+    if not is_local and not miku_db.is_valid_device(x_device_id):
         raise HTTPException(status_code=403, detail="Dispositivo no autorizado")
     
     # Bloquear PC
@@ -924,6 +927,42 @@ async def link_status_endpoint():
         "device_name": dev_name,
         "devices": devices,
         "ip": local_ip
+    }
+
+@app.get("/api/link/qr_data")
+async def get_link_qr_data():
+    global PAIRING_SESSION
+    import uuid, socket, io, base64
+    session_id = uuid.uuid4().hex[:10]
+    PAIRING_SESSION = session_id
+    
+    local_ip = "127.0.0.1"
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("10.255.255.255", 1))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        pass
+
+    pair_url = f"miku://pair?s={session_id}&ip={local_ip}"
+    
+    qr_b64 = ""
+    try:
+        import qrcode
+        img = qrcode.make(pair_url)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    except Exception as e:
+        logger.warning(f"Error generando código QR en backend: {e}")
+
+    return {
+        "status": "ok",
+        "url": pair_url,
+        "qr_base64": qr_b64,
+        "ip": local_ip,
+        "session_id": session_id
     }
 
 @app.post("/api/link/unpair")
@@ -2506,7 +2545,7 @@ async def clipboard_monitor():
                     })
         except Exception as e:
             pass
-        await asyncio.sleep(2.5)
+        await asyncio.sleep(6.0 if LOW_COST_MODE else 2.5)
 
 class StdoutHook:
     def __init__(self, original_stdout):

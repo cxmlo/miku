@@ -303,8 +303,20 @@ function outfit(){const o=OUT;if(o=='none')return;c.save();c.lineJoin=c.lineCap=
  else if(o=='bow'){const a=pj(surf(.86,.55,1.02)),sq=Math.max(.45,Math.cos(.55+P.lx*.5));c.save();c.translate(a.x,a.y);c.rotate(.35+P.lx*.15);c.scale(sq,1);for(const d of[-1,1]){c.fillStyle=gr(0,-10,0,10,'#ff9bd0','#e0307f');c.beginPath();c.moveTo(0,0);c.bezierCurveTo(d*6,-11,d*17,-8,d*15,0);c.bezierCurveTo(d*17,8,d*6,11,0,0);c.fill()}ci(0,0,3.6,gr(0,-4,0,4,'#ffc0de','#c2185b'));c.restore()}
  else if(o=='scarf'){band(-.34,-.66,1.05,gr(0,-26,0,-12,'#f87171','#b91c1c'));const k=pj(surf(-.5,-.55,1.06));if(k.z>0){c.fillStyle=gr(0,k.y,0,k.y+26,'#ef4444','#b91c1c');c.beginPath();c.roundRect(k.x-7,k.y-2,14,28,5);c.fill();c.fillStyle='rgba(255,255,255,.8)';c.fillRect(k.x-7,k.y+10,14,3);ci(k.x,k.y,7,gr(0,k.y-7,0,k.y+7,'#f87171','#b91c1c'))}}
  c.restore()}
+window.__miku_paused = false;
+window.__miku_hidden = false;
+let frameRaf = null;
+function startFrameLoop() {
+  if (window.__miku_paused || window.__miku_hidden) return;
+  if (!frameRaf) frameRaf = requestAnimationFrame(frame);
+}
+function stopFrameLoop() {
+  if (frameRaf) { cancelAnimationFrame(frameRaf); frameRaf = null; }
+}
+
 function frame(now){
- requestAnimationFrame(frame);
+ if(window.__miku_paused || window.__miku_hidden){ frameRaf = null; return; }
+ frameRaf = requestAnimationFrame(frame);
  const dt=Math.min(.04,(now-last)/1000);last=now;t=now/1000;const s=X[cur],k=1-Math.exp(-dt*9);
  const TK=s.trk??1;let[tx,ty]=cur=='look'?ov:[mx*TK,my*TK];if(s.lk)[tx,ty]=s.lk;if(s.scan)tx=Math.sin(t*7);if(EAT.on){tx=EAT.gx;ty=EAT.gy}
  P.lx+=(tx-P.lx)*k;P.ly+=(ty-P.ly)*k;
@@ -470,7 +482,13 @@ function tick(now){
   }
  }
 }
-(function loop(now){requestAnimationFrame(loop);tick(now)})(performance.now());
+let loopRaf = null;
+function tickLoop(now){
+  if(window.__miku_paused || window.__miku_hidden){ loopRaf = null; return; }
+  loopRaf = requestAnimationFrame(tickLoop);
+  tick(now);
+}
+loopRaf = requestAnimationFrame(tickLoop);
 return{react}})(avFrame);
 function applyTheme(){const a=curAg(),r=document.documentElement.style,pr=a===PRIN;
  r.setProperty('--ac',a.c);r.setProperty('--acx',lum(a.c)>.6?'#111':'#fff');r.setProperty('--sky',pr?'#dfe3ec':mix(a.c,.4));
@@ -616,7 +634,7 @@ function updateIslandLang() {
   }
 }
 const TABS=[['overview','home',tr('tab_home')],['prompt','chat',tr('tab_chat')],['drop','plus',tr('tab_files')]];
-const HD=(tx,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="${tr('quick_settings')}" aria-label="${tr('quick_settings')}">${ic('cog')}</button><button class="ib spk" data-a="mute" title="${tr('sound')}" aria-label="${tr('sound')}">${ic(CFG.voice?'speaker':'speaker-off')}</button><button class="ib cls" data-a="island_hide" title="Ocultar Isla (Modo Ahorro)" aria-label="Ocultar">${ic('x')}</button></span></div>`;
+const HD=(tx,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="${tr('quick_settings')}" aria-label="${tr('quick_settings')}">${ic('cog')}</button><button class="ib spk" data-a="mute" title="${tr('sound')}" aria-label="${tr('sound')}">${ic(CFG.voice?'speaker':'speaker-off')}</button>${(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)?'':`<button class="ib cls" data-a="island_hide" title="Ocultar Isla (Modo Ahorro)" aria-label="Ocultar">${ic('x')}</button>`}</span></div>`;
 const MN=()=>{const n=Math.min(ST.tasks||0,4);return n?`<div class="minis">${[['#4FD3B1','#ff6b5e'],['#F0B94F','#2dd4a0'],['#A995EF','#22C5E8'],['#6CB2F5','#ffb020']].slice(0,n).map(([c,d])=>`<i class="mi" style="--c:${c};--d:${d}"></i>`).join('')}</div>`:''};
 function wrapRow(h,s){const m=h.match(/^(<div class="hd">.*?<\/span><\/div>)([\s\S]*)$/),hd=m?m[1]:'',b=m?m[2]:h,g=(X[s.st]||X.idle).g||BL;
  return hd+`<div class="row"><div class="card mk" style="--g:var(--gl)"><i class="cs" data-k=".6" style="width:67px;height:50px"></i><div class="cp">${b}</div></div></div>`}
@@ -981,12 +999,12 @@ const renderChatCard = () => {
 
 const SC={
  compact:{m:1,st:'idle',x:()=>`<div class="mini">${MINIH()}</div>`},
- boot:{w:460,hc:1,st:'idle',x:()=>`<div class="boot-scene"><img class="boot-avatar" src="${snap(bodyOf(PRIN),OUT,'full')}" alt="Miku"><div class="boot-copy"><div class="boot-header-row"><span class="boot-eyebrow">${tr('boot_eyebrow')}</span><span class="boot-beta-badge" title="Fase Beta pública activa">${tr('beta_tag')}</span></div><strong class="boot-title" id="bootStatus">${tr('boot_title')}</strong><div class="boot-steps"><div class="boot-step" data-boot-step="0"><i class="boot-step-dot"></i>${tr('boot_step_0')}</div><div class="boot-step" data-boot-step="1"><i class="boot-step-dot"></i>${tr('boot_step_1')}</div><div class="boot-step" data-boot-step="2"><i class="boot-step-dot"></i>${tr('boot_step_2')}</div></div><div class="boot-beta-footer"><span class="boot-beta-note">${tr('boot_beta_note')}</span><button type="button" class="boot-issue-btn" onclick="window.Bridge?.openExternalUrl?.('https://github.com/cxmlo/miku/issues');event.stopPropagation();">${tr('report_issue')}</button></div></div></div>`},
+ boot:{w:500,hc:1,st:'idle',x:()=>`<div class="boot-scene"><div style="display:flex;align-items:center;justify-content:center;width:104px;height:95px;flex:none"><i class="cs" data-k="1.0" style="width:104px;height:95px"></i></div><div class="boot-copy"><div class="boot-header-row"><span class="boot-eyebrow">${tr('boot_eyebrow')}</span><span class="boot-beta-badge" title="Fase Beta pública activa">${tr('beta_tag')}</span></div><strong class="boot-title" id="bootStatus">${tr('boot_title')}</strong><div class="boot-steps"><div class="boot-step" data-boot-step="0"><i class="boot-step-dot"></i>${tr('boot_step_0')}</div><div class="boot-step" data-boot-step="1"><i class="boot-step-dot"></i>${tr('boot_step_1')}</div><div class="boot-step" data-boot-step="2"><i class="boot-step-dot"></i>${tr('boot_step_2')}</div></div><div class="boot-beta-footer"><span class="boot-beta-note">${tr('boot_beta_note')}</span><button type="button" class="boot-issue-btn" onclick="window.Bridge?.openExternalUrl?.('https://github.com/cxmlo/miku/issues');event.stopPropagation();">${tr('report_issue')}</button></div></div></div>`,after:()=>{burst();P.jv=-80;P.sq=.2;setTimeout(()=>(scene=='boot'||scene=='intro')&&buddy.emote('happy',800,9),550);setTimeout(()=>(scene=='boot'||scene=='intro')&&buddy.emote('wave',1500,9),1350);startBootProgress();if(window.__mikuCoreConnected)finishBoot();}},
  prompt:{w:640,hc:1,st:'idle',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
     x:()=>renderChatCard()},
  result:{w:640,hc:1,st:'idle',em:'happy',after:()=>setTimeout(()=>{initLiquidMenu();$('#q')?.focus()},150),
     x:()=>renderChatCard()},
- intro:{w:400,stg:1,hc:1,st:'idle',x:()=>`<i class="cs" data-k="1.1" style="width:123px;height:92px"></i>`,after:()=>{burst();P.jv=-80;P.sq=.2;setTimeout(()=>scene=='intro'&&buddy.emote('happy',800,9),550);setTimeout(()=>scene=='intro'&&buddy.emote('wave',1500,9),1350);tm=setTimeout(()=>{if(scene!=='intro')return;go('boot',{__i:1});if(window.__mikuCoreConnected)finishBoot()},3300)}},
+ intro:{w:500,hc:1,st:'idle',x:()=>SC.boot.x(),after:()=>SC.boot.after()},
  overview:{w:620,hc:1,st:'idle',after:()=>{
   const IX=ISLN();
   if(PG==1){
@@ -1186,7 +1204,7 @@ function tap(){if(LOCKI)return;clearTimeout(tt);taps++;tt=setTimeout(()=>taps=0,
 function look(e){if(drag.on){drag.x=e.clientX;drag.y=e.clientY}const r=$('#mk').getBoundingClientRect(),gx=drag.on?70:260,gy=drag.on?55:180;mx=clamp((e.clientX-r.left-r.width/2)/gx);my=clamp((e.clientY-r.top-r.height/2)/gy)}
 addEventListener('pointermove',look);
 window.__pickingFile = false;
-const KEEP=['compact','drop','uploading','tool_use','intro','prompt','result'],collapse=()=>{if(!window.__pickingFile&&!KEEP.includes(scene))go('compact')};
+const KEEP=['compact','boot','intro','drop','uploading','tool_use','prompt','result'],collapse=()=>{if(!window.__pickingFile&&window.__mikuCoreConnected&&scene!=='boot'&&scene!=='intro'&&!KEEP.includes(scene))go('compact')};
 addEventListener('pointerdown',e=>{wake();if(!isl.contains(e.target))collapse()});
 addEventListener('blur',()=>{collapse()});
 try{
@@ -1194,7 +1212,7 @@ try{
  window.__TAURI__?.event?.listen?.('tauri://blur',()=>{collapse()});
  window.__TAURI__?.window?.getCurrentWindow?.()?.onFocusChanged?.(({payload:f})=>{if(!f)collapse()});
 }catch(_){}
-addEventListener('keydown',e=>{wake();if(scene=='approve'&&!e.target.closest('input,textarea')){if(e.key=='y'||e.key=='Y')ACT.apok();if(e.key=='n'||e.key=='N')ACT.denyap();}if(e.key=='Escape')scene=='tool_use'||scene=='drop'?ACT.cancel():go('compact');if(e.target.id=='q'&&e.key=='Enter')send()});
+addEventListener('keydown',e=>{wake();if(scene=='approve'&&!e.target.closest('input,textarea')){if(e.key=='y'||e.key=='Y')ACT.apok();if(e.key=='n'||e.key=='N')ACT.denyap();}if(e.key=='Escape'){if(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;scene=='tool_use'||scene=='drop'?ACT.cancel():go('compact')}if(e.target.id=='q'&&e.key=='Enter')send()});
 isl.addEventListener('wheel',e=>{wake();if(e.target.closest('.scr'))return;
  if(scene=='overview'){e.preventDefault();setVol(MUS.vol-Math.sign(e.deltaY)*5)}
  else if(scene=='compact'){e.preventDefault();e.deltaY>0?go('overview'):buddy.emote('look','up')}},{passive:false});
@@ -1466,6 +1484,11 @@ const ACT={
  cfgwin:()=>{window.Bridge?.openSettings?.()},
  island_update:()=>{openSettings();try{window.Bridge?.checkUpdate?.()}catch(_){}},
  island_hide:()=>{
+  if(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;
+  window.__miku_paused=true;
+  window.__miku_hidden=true;
+  stopFrameLoop();
+  if(loopRaf){cancelAnimationFrame(loopRaf);loopRaf=null;}
   try{
    if(window.__TAURI__?.core?.invoke){
     window.__TAURI__.core.invoke('hide_main_window');
@@ -1586,15 +1609,20 @@ function startBootProgress(){
  bootProgressTimer=setInterval(updateBootProgress,250);
 }
 function finishBoot(){
- if(scene!=='boot'||bootReady)return;
+ if((scene!=='boot'&&scene!=='intro')||bootReady)return;
  bootReady=true;
  clearInterval(bootProgressTimer);
  const status=$('#bootStatus');
  if(status)status.textContent=tr('boot_connected');
  $$('.boot-step').forEach(step=>{step.classList.remove('is-active');step.classList.add('is-done')});
+ buddy.emote('proud',1200,9);
  bootReadyTimer=setTimeout(()=>{
-  if(scene==='boot'){window.__mikuBooting=false;go('overview',{__i:1})}
- },850);
+  if(scene==='boot'||scene==='intro'){
+    window.__mikuBooting=false;
+    LOCKI=0;
+    go('overview',{__i:1});
+  }
+ },950);
 }
 window.feed=(a,b)=>{if(typeof a=='number'){const wx=window.screenX??window.screenLeft??0,wy=window.screenY??window.screenTop??0;look({clientX:a-wx,clientY:b-wy});return}const m=a||{};
  switch(m.type){
@@ -1622,8 +1650,8 @@ window.feed=(a,b)=>{if(typeof a=='number'){const wx=window.screenX??window.scree
     ST.ws=!!m.ok;
     window.__mikuCoreConnected=ST.ws;
     $('#bws')?.classList.toggle('on',ST.ws);
-    if(scene==='boot'&&ST.ws)finishBoot();
-    else if(scene==='boot'&&!ST.ws){
+    if((scene==='boot'||scene==='intro')&&ST.ws)finishBoot();
+    else if((scene==='boot'||scene==='intro')&&!ST.ws){
       if(bootReady){bootReady=false;clearTimeout(bootReadyTimer);startBootProgress()}
       if($('#bootStatus'))$('#bootStatus').textContent='Iniciando el servidor...';
     }
@@ -1961,15 +1989,15 @@ try{
   }else ST.agents=[...DEFAULT_AGENTS];
 }catch{ST.agents=[...DEFAULT_AGENTS]}
 try{const p=localStorage.getItem('miku_pair');if(p)PAIR=p}catch{}
-let acT;function armAC(){clearTimeout(acT);if(!SC[scene].m&&!KEEP.includes(scene)&&!(scene=='notify'&&ASKR))acT=setTimeout(collapse,CFG.autoclose*1000)}
+let acT;function armAC(){clearTimeout(acT);if(!SC[scene].m&&!KEEP.includes(scene)&&scene!=='boot'&&scene!=='intro'&&window.__mikuCoreConnected&&!(scene=='notify'&&ASKR))acT=setTimeout(collapse,CFG.autoclose*1000)}
 isl.addEventListener('pointermove',armAC);addEventListener('keydown',armAC);
 ACT.pg=x=>{PG=((PG+(+x))%2+2)%2;renderOv()};
 isl.addEventListener('pointermove',e=>{const s=e.target.closest?.('canvas.star');if(s){const r=s.getBoundingClientRect();s._hx=(e.clientX-r.left)/r.width;s._hy=(e.clientY-r.top)/r.height;s._hv=performance.now()}});
 requestAnimationFrame(starLoop);
 let PIN=0,hvT;
 isl.addEventListener('pointerenter',()=>{clearTimeout(hvT);if(scene=='compact')PIN=0;if(CFG.hover_open&&!drag.on&&scene=='compact'){wake();go('overview',{pg:HS?1:0})}});
-isl.addEventListener('pointerleave',()=>{clearTimeout(hvT);if(!CFG.hover_open||PIN)return;
- hvT=setTimeout(()=>{if(!PIN&&scene!='compact'&&!KEEP.includes(scene)&&!(scene=='notify'&&ASKR))go('compact')},700)});
+isl.addEventListener('pointerleave',()=>{clearTimeout(hvT);if(!CFG.hover_open||PIN||scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;
+ hvT=setTimeout(()=>{if(!PIN&&scene!='compact'&&!KEEP.includes(scene)&&scene!=='boot'&&scene!=='intro'&&window.__mikuCoreConnected&&!(scene=='notify'&&ASKR))go('compact')},700)});
 isl.addEventListener('pointerdown',()=>{if(CFG.hover_open)PIN=1});
 
 /* ── extras v6 ── */
@@ -2074,13 +2102,40 @@ if (urlP.get('ag')) {
 applyTheme();isl.style.width='120px';isl.style.height='30px';
 window.__mikuBooting=!location.hash;
 window.__mikuCoreConnected=false;
-requestAnimationFrame(frame);
-const requestedScene=location.hash?location.hash.slice(1):'intro';
-LOCKI=requestedScene==='intro'?1:0;
+startFrameLoop();
+const requestedScene=location.hash?location.hash.slice(1):'boot';
+LOCKI=(requestedScene==='intro'||requestedScene==='boot')?1:0;
 setTimeout(()=>{
   go(requestedScene,{__i:1});
-  if(requestedScene==='boot'&&window.__mikuCoreConnected)finishBoot();
+  if((requestedScene==='boot'||requestedScene==='intro')&&window.__mikuCoreConnected)finishBoot();
 },250);
+
+try {
+  window.__TAURI__?.event?.listen?.('miku-power-save', e => {
+    const isLow = !!e.payload;
+    window.__miku_paused = isLow;
+    if (isLow) {
+      stopFrameLoop();
+      if (loopRaf) { cancelAnimationFrame(loopRaf); loopRaf = null; }
+    } else {
+      startFrameLoop();
+      if (!loopRaf) loopRaf = requestAnimationFrame(tickLoop);
+    }
+  });
+} catch (_) {}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    window.__miku_hidden = true;
+    stopFrameLoop();
+  } else {
+    window.__miku_hidden = false;
+    if (!window.__miku_paused) {
+      startFrameLoop();
+      if (!loopRaf) loopRaf = requestAnimationFrame(tickLoop);
+    }
+  }
+});
 
 function initLiquidMenu(){
   // 1. Selector de agente en el chat

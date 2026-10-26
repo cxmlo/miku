@@ -570,7 +570,7 @@ canvas.star{display:block;flex:none;width:34px;height:34px;cursor:pointer;margin
   transition: all .16s ease;
 }
 .caf-remove:hover { background: rgba(255, 80, 80, 0.85); transform: scale(1.15); }
-.boot-scene { display:flex; align-items:center; gap:16px; width:100%; min-height:104px; padding:12px 16px; box-sizing:border-box; border:1px solid rgba(255,255,255,.1); border-radius:18px; background:rgba(18,19,25,.96); }
+.boot-scene { display:flex; align-items:center; gap:16px; width:100%; min-height:114px; padding:12px 18px; box-sizing:border-box; border:1px solid rgba(255,255,255,.1); border-radius:18px; background:rgba(18,19,25,.96); overflow:hidden; }
 .boot-avatar { display:block; width:82px; height:82px; flex:none; align-self:flex-end; object-fit:contain; object-position:center bottom; }
 .boot-copy { display:flex; min-width:0; flex:1; flex-direction:column; gap:2px; }
 .boot-header-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:1px; }
