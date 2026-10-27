@@ -675,7 +675,13 @@ function drawStar(cv,now){
  const src=q.getImageData(0,0,w,h).data,cx=cv.getContext('2d'),out=cx.createImageData(w,h),d=out.data;
  for(let i=0;i<src.length;i+=4){const o=src[i]*4;d[i]=STAR_LUT[o];d[i+1]=STAR_LUT[o+1];d[i+2]=STAR_LUT[o+2];d[i+3]=STAR_LUT[o+3]}
  cx.putImageData(out,0,0)}
-function starLoop(now){requestAnimationFrame(starLoop);if(!MUS.playing||document.hidden)return;for(const cv of document.querySelectorAll('canvas.star')){if(now-(cv._t||0)<33)continue;cv._t=now;drawStar(cv,now)}}
+let starRaf=null;
+function starLoop(now){
+  if(!MUS.playing||document.hidden||window.__miku_paused||window.__miku_hidden){starRaf=null;return}
+  starRaf=requestAnimationFrame(starLoop);
+  for(const cv of document.querySelectorAll('canvas.star')){if(now-(cv._t||0)<33)continue;cv._t=now;drawStar(cv,now)}
+}
+function triggerStarLoop(){if(MUS.playing&&!starRaf&&!document.hidden&&!window.__miku_paused&&!window.__miku_hidden){starRaf=requestAnimationFrame(starLoop)}}
 const MINIH=()=>{const g0=(X[cur]||X.idle).g||BL,col=`rgb(${g0.join(',')})`,b=base;let g='';
  if(b=='listening'||b=='talking')g='<span class="gl"><i></i><i></i><i></i><i></i></span>';
  else if(b=='thinking')g=tlHtml(1);else if(b=='searching')g=MG.search;else if(b=='working')g=MG.work;else if(b=='error')g=MG.err;if(!g&&THK.dur&&Date.now()-THK.end<3000)g=tlHtml(0);
@@ -1403,7 +1409,7 @@ function mkSound(host,o={}){
  const iv=setInterval(()=>{if(!host.isConnected){clearInterval(iv);return}if(going){at=at>=TOTAL?0:at+1;prog()}},1000);
  layout();mark();prog();sync();lead.setAttribute('aria-label',going?'Pausa':'Reproducir');return{sync}}
 function setVol(v){MUS.vol=clamp(v,0,100);const f=$('#vf'),p=$('#vp');if(f)f.style.width=MUS.vol+'%';if(p)p.textContent=Math.round(MUS.vol)+'%';window.Bridge?.media?.('vol', Math.round(MUS.vol));PLV?.set?.(MUS.vol)}
-function music(m){Object.assign(MUS,m);PLY?.sync?.();if(m.volume!=null)MUS.vol=m.volume;const e=$('#pmt');if(e&&scene=='overview')e.textContent=MUS.playing?MUS.title:'Música';label()}
+function music(m){Object.assign(MUS,m);PLY?.sync?.();if(m.volume!=null)MUS.vol=m.volume;const e=$('#pmt');if(e&&scene=='overview')e.textContent=MUS.playing?MUS.title:'Música';triggerStarLoop();label()}
 isl.addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b||b.matches('.sw'))return;const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,o=document.createElement('span');
  o.className='rip';o.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(o);o.addEventListener('animationend',()=>o.remove())});
 
@@ -1993,7 +1999,7 @@ let acT;function armAC(){clearTimeout(acT);if(!SC[scene].m&&!KEEP.includes(scene
 isl.addEventListener('pointermove',armAC);addEventListener('keydown',armAC);
 ACT.pg=x=>{PG=((PG+(+x))%2+2)%2;renderOv()};
 isl.addEventListener('pointermove',e=>{const s=e.target.closest?.('canvas.star');if(s){const r=s.getBoundingClientRect();s._hx=(e.clientX-r.left)/r.width;s._hy=(e.clientY-r.top)/r.height;s._hv=performance.now()}});
-requestAnimationFrame(starLoop);
+triggerStarLoop();
 let PIN=0,hvT;
 isl.addEventListener('pointerenter',()=>{clearTimeout(hvT);if(scene=='compact')PIN=0;if(CFG.hover_open&&!drag.on&&scene=='compact'){wake();go('overview',{pg:HS?1:0})}});
 isl.addEventListener('pointerleave',()=>{clearTimeout(hvT);if(!CFG.hover_open||PIN||scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;

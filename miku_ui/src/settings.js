@@ -410,7 +410,9 @@ addEventListener('pointermove',e=>{px=e.clientX;py=e.clientY;pt=performance.now(
 document.documentElement.addEventListener('pointerleave',()=>{px=py=-1e4});
 const bk=a=>a<0?0:a<45?.55:a<120?1:a<165?.55:0;
 function react(s,ex,ms,v){s.ex=ex;s.exUntil=performance.now()+ms;if(v&&!RM)s.vy=v}
-function init(el){const[col,out,crop,seed,mode]=el.dataset.av.split('|'),cv=el.firstElementChild,n=performance.now(),host=el.closest('button')||el;
+function init(el){
+ if(!el?.dataset?.av||!el.firstElementChild?.getContext) return null;
+ const[col,out,crop,seed,mode]=el.dataset.av.split('|'),cv=el.firstElementChild,n=performance.now(),host=el.closest('button')||el;
  const s={el,cv,x:cv.getContext('2d'),col,out,crop,lite:mode=='lite',ph:(+seed||0)*1.9+Math.random()*6.28,gx:0,gy:0,tgx:0,tgy:0,gt:0,ex:'idle',exUntil:0,
   nl:n+R(500,2500),nb:n+R(700,3800),bs:-1,dbl:0,nh:n+R(2500,7000),nw:n+R(9000,22000),y:0,vy:0,r:0,vr:0,sx:0,key:''};
  host.addEventListener('pointerenter',()=>react(s,'happy',950,-85));
@@ -420,7 +422,8 @@ function tick(now){
  const dt=Math.min(.05,Math.max(.001,(now-last)/1000));last=now;if(document.hidden)return;
  let bud=3;
  for(const el of document.querySelectorAll('.apw[data-av]')){
-  const s=S.get(el)||init(el),r=el.getBoundingClientRect();if(!r.width)continue;
+  const s=S.get(el)||init(el);if(!s)continue;
+  const r=el.getBoundingClientRect();if(!r.width)continue;
   const dx=px-(r.left+r.width/2),dy=py-(r.top+r.height/2),near=Math.hypot(dx,dy)<200&&now-pt<3500;
   if(!s.lite&&!RM){
    if(near){s.tgx=cl(Math.round(dx/36),-2,2);s.tgy=cl(Math.round(dy/28),-1,1);s.nl=now+700}
