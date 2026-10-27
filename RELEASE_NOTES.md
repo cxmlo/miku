@@ -1,3 +1,15 @@
+## Novedades Principales en v0.1.7
+- **Aislamiento Seguro en Demostración Web (Sandbox Mode)**:
+  - Desconexión completa de WebSockets y peticiones REST hacia `127.0.0.1:8000` en la web pública para evitar que las pruebas de visitantes afecten al PC local.
+  - Simulador de Configuración interactivo con datos mock completos y estables en navegador.
+- **Reducción de Consumo de Tokens e Inferencia Eficiente**:
+  - Filtrado dinámico de herramientas y reglas del sistema según contexto para reducir el coste de tokens por conversación al mínimo.
+  - Sincronización en tiempo real del menú contextual de Windows con Miku-Link.
+- **Sincronización Automática de Lanzamientos**:
+  - Actualización continua de la landing page con la última versión directamente desde GitHub Releases.
+
+---
+
 ## Novedades Principales en v0.1.6
 - **Nueva Identidad Visual y Paquete de Iconos Oficiales**:
   - Iconos dedicados y personalizados para cada componente del sistema:
