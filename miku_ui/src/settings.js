@@ -3091,6 +3091,71 @@ window.addEventListener('storage', e => {
 
 let _backendPollTimer = null;
 async function loadBackendData() {
+  const isWebShowcase = !window.__TAURI__ && !window.pywebview && (
+    !!window.IS_WEB_SHOWCASE ||
+    (typeof window !== 'undefined' && (
+      window.location.hostname.includes('github.io') ||
+      (window.self !== window.top && (location.protocol === 'about:' || location.protocol === 'https:'))
+    ))
+  );
+
+  if (isWebShowcase) {
+    STATE.keys = {
+      GEMINI_API_KEY: 'AIzaSy...DEMO_KEY',
+      GROQ_API_KEY: 'gsk_...DEMO_KEY',
+      OPENAI_API_KEY: 'sk-proj-...DEMO_KEY',
+      ANTHROPIC_API_KEY: 'sk-ant-...DEMO_KEY'
+    };
+    STATE.models = {
+      current: {
+        chat: 'google/gemini-2.5-flash',
+        computer_use: 'google/gemini-2.5-pro',
+        stt: 'groq/whisper-large-v3'
+      },
+      available: {
+        chat: [
+          'google/gemini-2.5-flash',
+          'google/gemini-2.5-pro',
+          'groq/llama-3.3-70b-versatile',
+          'openai/gpt-4o',
+          'anthropic/claude-3-7-sonnet'
+        ],
+        computer_use: [
+          'google/gemini-2.5-pro',
+          'anthropic/claude-3-7-sonnet'
+        ],
+        stt: [
+          'groq/whisper-large-v3',
+          'openai/whisper-1'
+        ]
+      }
+    };
+    STATE.execMode = 'full';
+    STATE.execDetails = { name: 'Modo Completo (PC + Nube)', desc: 'Agentes autónomos, visión de pantalla y sincronización móvil activa.' };
+    STATE.mcp = [
+      { name: 'sqlite-explorer', command: 'uvx mcp-server-sqlite --db data.db', enabled: true },
+      { name: 'filesystem-agent', command: 'npx -y @modelcontextprotocol/server-filesystem C:\\Users\\Desktop', enabled: true },
+      { name: 'brave-search', command: 'npx -y @modelcontextprotocol/server-brave-search', enabled: false }
+    ];
+    STATE.alerts = {
+      'Visual Studio Code': { limit_minutes: 120, enabled: true },
+      'League of Legends': { limit_minutes: 60, enabled: true },
+      'Spotify': { limit_minutes: 180, enabled: false }
+    };
+    STATE.detectableApps = ['Visual Studio Code', 'League of Legends', 'Valorant', 'Spotify', 'Discord', 'Google Chrome'];
+    STATE.runningApps = ['Visual Studio Code', 'Discord', 'Spotify'];
+    STATE.pairUrl = 'miku://pair?s=demo_showcase_2026&ip=192.168.1.50';
+    STATE.linkConnected = true;
+    STATE.linkName = 'Galaxy S24 Ultra (Miku-Link)';
+    window.__mics = [
+      { value: 'default', label: 'Predeterminado del sistema ★' },
+      { value: '1', label: 'Micrófono Studio USB' }
+    ];
+    renderRail();
+    render();
+    return;
+  }
+
   let backendOnline = false;
   try {
     if (window.Bridge?.getConfigKeys) {
@@ -3248,6 +3313,5 @@ window.__lang = l => { CFG.lang = l; saveCfg(); renderRail(); render(); };
       if (!GALAXY_RAF) initHeroGalaxy();
     }
   });
-})();
   emit({ k: 'hello' });
 })();

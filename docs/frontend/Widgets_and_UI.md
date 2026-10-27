@@ -94,7 +94,10 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
   - **Ventana de Ajustes Movible pero No Redimensionable**:
     - Bloqueo estricto del redimensionado (`resizable: false` tanto en `tauri.conf.json` como en `WebviewWindowBuilder::new(...).resizable(false)` en `lib.rs`), conservando el arrastre fluido desde la cabecera minimalista (`data-tauri-drag-region` y `startDragging()`).
     - Componentes renovados a **Apple Liquid Glass** sobre fondo negro puro (`#000000`), con gradientes de refracción curvados estilo gota de agua y biselado especular.
+  - **Modalidad Web Showcase / Sandbox Aislada**:
+    - Detección automática en `bridge.js` y `settings.js` de entornos web/demostración (GitHub Pages, `srcdoc` iframes o `window.IS_WEB_SHOWCASE = true`).
+    - Desconexión completa de WebSockets y peticiones REST hacia `127.0.0.1:8000` en la web pública para evitar que las pruebas interactivas de visitantes en la landing page controlen su servidor backend local o ejecuten acciones en su PC real.
+    - Carga estática interactiva de datos simulados (mock data) para todos los paneles de ajustes (General, Agentes, Modelos IA, Keys, MCP, Alertas de enfoque, Centro de Audio y Miku-Link) con iconos y estilos 100% integrados sin dependencias externas.
 
 ---
 👉 **Volver al Menú Principal:** [[Home]]
-

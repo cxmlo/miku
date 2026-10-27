@@ -7,14 +7,23 @@
 const Bridge = (() => {
   "use strict";
 
+  // Check if running in Web Showcase / Demo mode (e.g. GitHub Pages or iframe preview)
+  const isShowcase = !window.__TAURI__ && !window.pywebview && (
+    !!window.IS_WEB_SHOWCASE ||
+    (typeof window !== "undefined" && (
+      window.location.hostname.includes("github.io") ||
+      (window.self !== window.top && (location.protocol === "https:" || location.protocol === "about:"))
+    ))
+  );
+
   // In Tauri on Windows, location.hostname is "tauri.localhost", which does NOT resolve in Windows DNS.
   // We must explicitly use 127.0.0.1 for local communication.
-  const isLocal = !location.hostname || 
+  const isLocal = !isShowcase && (!location.hostname || 
                   location.hostname === "localhost" || 
                   location.hostname === "127.0.0.1" || 
                   location.hostname.endsWith(".localhost") || 
-                  location.hostname.includes("tauri");
-  const HOST = isLocal ? "127.0.0.1" : location.hostname;
+                  location.hostname.includes("tauri"));
+  const HOST = isLocal ? "127.0.0.1" : (location.hostname || "127.0.0.1");
   const BACKEND_PORT = "8000";
   const PORT = BACKEND_PORT;
   const BASE_URL = `http://${HOST}:${BACKEND_PORT}`;
@@ -30,6 +39,12 @@ const Bridge = (() => {
   const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("miku") : null;
 
   async function apiFetch(path, options = {}) {
+    if (isShowcase) {
+      return new Response(JSON.stringify({ ok: true, status: "showcase" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
     const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
     const headers = Object.assign({
       "x-api-key": API_KEY
@@ -38,6 +53,12 @@ const Bridge = (() => {
   }
 
   function init() {
+    if (isShowcase) {
+      console.log("[Bridge] Showcase demo mode active — server connection disabled.");
+      window.feed?.({ type: "ws", ok: true });
+      window.feed?.({ type: "api", ok: true });
+      return;
+    }
     connectWS();
     initLocalIp();
     initMouseTracker();
@@ -70,6 +91,7 @@ const Bridge = (() => {
 
   /* ---------------- WEBSOCKET ---------------- */
   function connectWS() {
+    if (isShowcase) return;
     if (ws && ws.readyState <= 1) return;
     try {
       ws = new WebSocket(`${WS_URL}?token=${API_KEY}`);
@@ -291,6 +313,11 @@ const Bridge = (() => {
 
   /* ---------------- MIKU-LINK PAIRING QR ---------------- */
   async function generatePairingUrl() {
+    if (isShowcase) {
+      const demoUrl = "miku://pair?s=demo_showcase_2026&ip=192.168.1.50";
+      window.setPairUrl?.(demoUrl);
+      return demoUrl;
+    }
     try {
       const infoResponse = await apiFetch("/api/desktop/info");
       if (!infoResponse.ok) {
@@ -371,6 +398,20 @@ const Bridge = (() => {
     if (!text || !text.trim()) return;
     const ag = agent || { id: "miku", name: "Miku" };
     window.feed?.({ type: "state", name: "thinking" });
+
+    if (isShowcase) {
+      setTimeout(() => {
+        window.feed?.({
+          type: "agent_reply",
+          agent_id: ag.id,
+          agent_name: ag.name,
+          text: "¡Hola! Estás probando la demostración interactiva en la web de Miku. Para interactuar con modelos locales, ejecutar Computer Use y controlar tu sistema, descarga Miku Desktop para Windows o Miku Mobile para Android."
+        });
+        window.feed?.({ type: "state", name: "happy" });
+        setTimeout(() => window.feed?.({ type: "state", name: "idle" }), 3500);
+      }, 700);
+      return;
+    }
 
     const payload = {
       message: text,
@@ -473,6 +514,11 @@ const Bridge = (() => {
 
   // 5b. Floating question choice
   function choice(id, value) {
+    if (isShowcase) {
+      window.feed?.({ type: "state", name: "happy" });
+      setTimeout(() => window.feed?.({ type: "state", name: "idle" }), 2000);
+      return;
+    }
     const payload = {
       type: "ui_event",
       action: "button_clicked",
@@ -488,6 +534,12 @@ const Bridge = (() => {
 
   // 6. Media / Music controls
   function media(action, param = null) {
+    if (isShowcase) {
+      if (action === "toggle") {
+        window.feed?.({ type: "music", playing: 1, title: "Midnight City", artist: "M83", dur: 244, pos: 45 });
+      }
+      return;
+    }
     apiFetch("/api/media/control", {
       method: "POST",
       headers: {

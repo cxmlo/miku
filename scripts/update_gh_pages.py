@@ -54,7 +54,7 @@ def update_gh_pages():
     parent_commit = res.stdout.strip() if res.returncode == 0 else None
 
     # 5. Commit tree
-    commit_cmd = ["git", "commit-tree", tree_id, "-m", "chore(web): update gh-pages landing page with Ko-fi hero placement and Island updates"]
+    commit_cmd = ["git", "commit-tree", tree_id, "-m", "chore(web): update gh-pages showcase with sandbox demo mode, fixed settings preview and v0.1.7"]
     if parent_commit:
         commit_cmd.extend(["-p", parent_commit])
     
