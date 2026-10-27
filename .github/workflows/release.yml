@@ -170,3 +170,32 @@ jobs:
           gh release upload "$TAG" miku-mobile.apk --clobber || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sync-website:
+    name: Sincronizar y Actualizar Web (gh-pages)
+    needs: [release-desktop, release-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Reconstruir y desplegar gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          python scratch/rebuild_gh_pages.py
+          python scripts/update_gh_pages.py
+          git push origin gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
