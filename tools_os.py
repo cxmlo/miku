@@ -3,7 +3,9 @@ import ctypes
 import pyautogui
 import time
 import subprocess
+from typing import Optional, Dict, Any
 import security_manager
+from action_result import ActionResult, ActionStatus, check_sensitive_action
 
 def gestionar_ventana(nombre: str, accion: str) -> str:
     """Gestiona el estado de una ventana abierta (maximizar, minimizar, cerrar, restaurar)."""
@@ -108,7 +110,10 @@ def abrir_aplicacion(nombre: str, maximizar: bool = False) -> str:
     for key, proto in protocolos.items():
         if key in n:
             try:
-                os.system(f'start {proto}')
+                if hasattr(os, "startfile"):
+                    os.startfile(proto)
+                else:
+                    os.system(f'xdg-open {proto}')
                 time.sleep(2.0)
                 if maximizar:
                     pyautogui.hotkey('win', 'up')
@@ -158,28 +163,109 @@ def abrir_aplicacion(nombre: str, maximizar: bool = False) -> str:
     except Exception as e:
         return f"Error al intentar abrir {nombre}: {e}"
 
-def escribir_texto(texto: str, presionar_enter: bool = False, limpiar_antes: bool = False) -> str:
-    """Escribe el texto en donde esté el foco actual, tecla por tecla como un humano."""
+def escribir_texto(texto: str, presionar_enter: bool = False, limpiar_antes: bool = False, en_campo: Optional[str] = None) -> ActionResult:
+    """Escribe texto en un campo interactivo o en el foco actual con soporte Unicode y clic previo opcional."""
     allowed, reason = security_manager.is_gui_automation_allowed()
     if not allowed:
-        return f"Operación denegada: {reason}"
+        return ActionResult(
+            status=ActionStatus.FAILED.value,
+            action="escribir_texto",
+            target=en_campo or "pantalla",
+            error=f"Operación denegada por seguridad: {reason}"
+        )
 
+    # Comprobación de seguridad en caso de texto sensible (credenciales, contraseñas)
+    sensitive_reason = check_sensitive_action(target=en_campo or "campo", text=texto)
+    if sensitive_reason:
+        return ActionResult(
+            status=ActionStatus.REQUIRES_USER.value,
+            action="escribir_texto",
+            target=en_campo or "campo",
+            requires_user_reason=sensitive_reason
+        )
+
+    click_evidence = ""
+    # 1. Si se especificó el campo, posicionar el ratón y hacer clic para enfocar
+    if en_campo and en_campo.strip():
+        try:
+            import computer_use
+            click_res = computer_use.hacer_clic_visual(intencion=en_campo.strip(), verificar_exito=False)
+            if click_res.requires_user():
+                return click_res
+            if click_res.is_failed():
+                return ActionResult(
+                    status=ActionStatus.FAILED.value,
+                    action="escribir_texto",
+                    target=en_campo,
+                    error=f"No se pudo hacer clic en '{en_campo}' para enfocar antes de escribir: {click_res.error}"
+                )
+            click_evidence = f"Ratón posicionado y clic emitido en '{en_campo}'. "
+            time.sleep(0.25)
+        except Exception as click_err:
+            return ActionResult(
+                status=ActionStatus.FAILED.value,
+                action="escribir_texto",
+                target=en_campo,
+                error=f"Error enfocando campo '{en_campo}': {click_err}"
+            )
+
+    # 2. Limpiar texto previo si fue solicitado
     if limpiar_antes:
-        pyautogui.hotkey('ctrl', 'a')
-        time.sleep(0.1)
-        pyautogui.press('backspace')
-        time.sleep(0.1)
-        
-    pyautogui.write(texto, interval=0.015)
-    
+        try:
+            pyautogui.hotkey('ctrl', 'a')
+            time.sleep(0.1)
+            pyautogui.press('backspace')
+            time.sleep(0.1)
+        except Exception:
+            pass
+
+    # 3. Escribir texto con máxima fidelidad (portapapeles + Ctrl+V para no romper @, tildes ni símbolos)
+    typed_ok = False
+    try:
+        import pyperclip
+        pyperclip.copy(texto)
+        time.sleep(0.05)
+        pyautogui.hotkey('ctrl', 'v')
+        time.sleep(0.12)
+        typed_ok = True
+    except Exception:
+        pass
+
+    if not typed_ok:
+        try:
+            pyautogui.write(texto, interval=0.015)
+            typed_ok = True
+        except Exception as write_err:
+            return ActionResult(
+                status=ActionStatus.FAILED.value,
+                action="escribir_texto",
+                target=en_campo or "foco actual",
+                error=f"Fallo al escribir texto: {write_err}"
+            )
+
+    # 4. Presionar Enter si fue solicitado
     if presionar_enter:
-        time.sleep(0.1)
+        time.sleep(0.15)
         pyautogui.press('enter')
-        time.sleep(1.0) 
-    
-    msg1 = " (texto previo limpiado)" if limpiar_antes else ""
-    msg2 = " y se presionó Enter" if presionar_enter else ""
-    return f"Texto escrito a mano alzada (longitud: {len(texto)} caracteres){msg1}{msg2}."
+        time.sleep(0.5)
+
+    ev_parts = []
+    if click_evidence:
+        ev_parts.append(click_evidence.strip())
+    ev_parts.append(f"Texto '{texto[:35]}' escrito correctamente")
+    if limpiar_antes:
+        ev_parts.append("(campo limpiado previamente)")
+    if presionar_enter:
+        ev_parts.append("y tecla Enter presionada")
+
+    evidence_text = " ".join(ev_parts) + "."
+    return ActionResult(
+        status=ActionStatus.CONFIRMED.value if en_campo else ActionStatus.EXECUTED_UNVERIFIED.value,
+        action="escribir_texto",
+        target=en_campo or "foco actual",
+        evidence=evidence_text,
+        data={"texto_len": len(texto), "enter": presionar_enter, "campo": en_campo}
+    )
 
 def atajo_teclado(accion: str) -> str:
     """Ejecuta atajos de teclado rápidos. Soporta alias comunes o combinaciones directas (ej. 'ctrl+j')."""
@@ -349,6 +435,8 @@ def ejecutar_comando_sistema(comando: str) -> str:
             "errors": "replace",
             "timeout": 15
         }
+        if os.name == "nt":
+            run_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
         if suggested_cwd:
             run_kwargs["cwd"] = suggested_cwd
 

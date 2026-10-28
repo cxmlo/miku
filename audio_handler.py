@@ -41,6 +41,24 @@ _oww_model = None
 _pygame_lock = threading.Lock()
 _speak_lock = threading.Lock()
 _voice_volume = 0.8
+_wake_paused = False
+
+try:
+    from miku_paths import WORKSPACE_DIR as _WDIR
+    _cfg_path = os.path.join(_WDIR, "settings_config.json")
+    if os.path.exists(_cfg_path):
+        with open(_cfg_path, "r", encoding="utf-8") as _f:
+            _wake_paused = bool(json.load(_f).get("wake_paused", 0))
+except Exception:
+    pass
+
+def is_wake_paused() -> bool:
+    return _wake_paused
+
+def set_wake_paused(paused: bool):
+    global _wake_paused
+    _wake_paused = bool(paused)
+    logger.info(f"[Audio] Detección de wake word 'Miku': {'PAUSADA' if _wake_paused else 'ACTIVA'}")
 
 def set_voice_volume(vol: int):
     """Ajusta el volumen de la voz de Miku (0 - 100)."""
@@ -568,8 +586,8 @@ def wait_for_wake_word(callback, is_asleep_event):
                     stream = sd.InputStream(samplerate=fs, channels=1, dtype='int16', device=active_device_index, blocksize=chunk_size)
                     stream.start()
                     
-            if not is_asleep_event.is_set():
-                time.sleep(0.1)
+            if _wake_paused or not is_asleep_event.is_set():
+                time.sleep(0.15)
                 if stream.read_available > 0:
                     stream.read(stream.read_available)
                 continue

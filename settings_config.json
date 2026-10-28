@@ -1,5 +1,5 @@
 {
-  "lang": "en",
+  "lang": "es",
   "personality": "calm",
   "voice_volume": 80,
   "voice": 1,
@@ -9,8 +9,8 @@
   "barge_in": 1,
   "wake_paused": 0,
   "hover_open": false,
-  "local_net": 1,
-  "biometric": 1,
+  "local_net": true,
+  "biometric": true,
   "accent_color": "#C4A750",
   "execution_mode": "full"
 }

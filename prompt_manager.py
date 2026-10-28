@@ -116,12 +116,12 @@ def memorizar_leccion(leccion: str) -> str:
 
 def cambiar_personalidad(instruccion: str) -> str:
     """Modifica la personalidad base de Miku."""
-    from brain import get_vertex_client
+    from models_provider import get_client_and_model
     
     current = load_personality()
-    client = get_vertex_client()
+    client, model_id, _ = get_client_and_model(category="chat")
     if not client:
-        return "No puedo cambiar mi personalidad porque falló la conexión con la IA (Vertex AI)."
+        return "No puedo cambiar mi personalidad porque falló la conexión con la IA."
     
     prompt = f"""
     Personalidad actual:
@@ -136,7 +136,7 @@ def cambiar_personalidad(instruccion: str) -> str:
     try:
         response = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="google/gemini-2.5-flash",
+            model=model_id,
             temperature=0.3,
             max_tokens=512
         )
@@ -276,7 +276,7 @@ def get_system_prompt(user_input: str = "", source: str = "pc") -> str:
         prompt += (
             "--- REGLAS DEL SISTEMA (OBLIGATORIAS) ---\n"
             "1. [AUTONOMÍA Y SEGURIDAD]: Eres proactiva y resolutiva en la PC. Ejecutas tareas con precisión técnica, pero pides confirmación antes de acciones destructivas o compras.\n"
-            "2. [PLANIFICACIÓN INTELIGENTE]: Para tareas complejas de múltiples pasos (buscar, navegar, compilar, automatizar), planifica usando 'pensar_y_planificar' antes de ejecutar herramientas.\n"
+            "2. [PLANIFICACIÓN INTELIGENTE]: Para tareas complejas de múltiples pasos (buscar, navegar, compilar, automatizar), registra tu avance usando 'actualizar_estado_tarea' antes de ejecutar herramientas.\n"
             "3. [CAPACIDAD VISUAL Y DE ENTORNO]: Eres Miku y tienes capacidad total de interactuar con Windows. Tienes 'hacer_clic_visual' y 'ver_pantalla' para operar la pantalla cuando se requiera.\n"
             "4. [RESPUESTAS ÁGILES Y CONCISAS]: Responde de forma clara y directa sin rodeos corporativos ni introducciones innecesarias.\n"
             "5. [LENGUAJE NATURAL Y PERSONALIDAD]: Habla de forma natural, cercana y expresiva.\n"
@@ -284,7 +284,7 @@ def get_system_prompt(user_input: str = "", source: str = "pc") -> str:
             "7. [EJECUCIÓN DIRECTA]: Ejecuta comandos o scripts directamente con tus herramientas en lugar de solo imprimir código en texto si la tarea requiere automatización.\n"
             "8. [EXPRESIVIDAD EN LA ISLA]: Puedes usar herramientas de expresión y emociones para enriquecer la interacción en la isla dinámica.\n"
             "9. [ATAJOS DE TECLADO]: Prioriza atajos de teclado de Windows (Win+D, Ctrl+W, Ctrl+T, Tab, Enter) para máxima velocidad de interacción.\n"
-            "10. [MEMORIA PERMANENTE]: Usa 'guardar_en_memoria' para datos clave del usuario y preferencias permanentes.\n"
+            "10. [MEMORIA PERMANENTE]: Usa 'aprender_sobre_usuario' y 'guardar_enlace_memoria' para datos clave del usuario y preferencias permanentes.\n"
             "11. [SPOTIFY Y MÚSICA]: Si el usuario pide música, usa las herramientas nativas de Spotify ('reproducir_en_spotify', 'controlar_spotify', 'que_suena_en_spotify').\n"
             "12. [COMUNICACIÓN POR VOZ]: En tareas que requieran procesamiento prolongado, mantén al usuario informado con respuestas concisas.\n"
             "13. [LECTURA EFICIENTE DE WEBS]: Para extraer contenido de páginas web, usa 'leer_pagina_web' directamente.\n"

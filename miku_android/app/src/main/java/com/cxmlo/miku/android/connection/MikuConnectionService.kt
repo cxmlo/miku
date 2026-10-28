@@ -77,6 +77,7 @@ class MikuConnectionService : Service() {
 
     companion object {
         private const val CHANNEL_ID = "miku_connection"
+        private const val CHANNEL_ALERTS_ID = "miku_alerts"
         private const val NOTIFICATION_ID = 4101
         private const val ACTION_STOP = "com.cxmlo.miku.android.STOP_CONNECTION"
 
@@ -95,22 +96,23 @@ class MikuConnectionService : Service() {
                 notice.id.hashCode(),
                 "${notice.agent}: ${notice.event}",
                 notice.detail.ifBlank { "Hay una actualización del agente." },
+                CHANNEL_ID
             )
         }
 
         fun notifyDownload(context: Context?, fileName: String) {
             if (context == null) return
-            notify(context, fileName.hashCode(), "Archivo listo en Miku", "Toca Control para guardarlo: $fileName")
+            notify(context, fileName.hashCode(), "Archivo listo en Miku", "Toca Control para guardarlo: $fileName", CHANNEL_ALERTS_ID)
         }
 
         fun notifyPhoneCommand(context: Context?, action: String) {
             if (context == null) return
-            notify(context, action.hashCode(), "Miku solicita una acción", "Abre la app para revisar: $action")
+            notify(context, action.hashCode(), "Miku solicita una acción", "Abre la app para revisar: $action", CHANNEL_ALERTS_ID)
         }
 
-        private fun notify(context: Context, id: Int, title: String, detail: String) {
+        private fun notify(context: Context, id: Int, title: String, detail: String, channelId: String = CHANNEL_ID) {
             createNotificationChannel(context)
-            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            val notification = NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.stat_notify_chat)
                 .setContentTitle(title)
                 .setContentText(detail)
@@ -129,6 +131,8 @@ class MikuConnectionService : Service() {
                 .setContentTitle("Miku Mobile")
                 .setContentText(message)
                 .setOngoing(true)
+                .setSilent(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(mainPendingIntent(context))
                 .build()
 
@@ -142,12 +146,29 @@ class MikuConnectionService : Service() {
 
         private fun createNotificationChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(
+                val mgr = context.getSystemService(NotificationManager::class.java) ?: return
+                
+                // 1. Canal de servicio permanente silencioso (0 vibraciones, 0 sonidos)
+                val connChannel = NotificationChannel(
                     CHANNEL_ID,
-                    "Conexión con Miku",
+                    "Conexión con Miku (Silencioso)",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    description = "Estado de sincronización en segundo plano con Miku Desktop"
+                    setSound(null, null)
+                    enableVibration(false)
+                }
+                mgr.createNotificationChannel(connChannel)
+
+                // 2. Canal de alertas importantes (transferencias y aprobaciones)
+                val alertChannel = NotificationChannel(
+                    CHANNEL_ALERTS_ID,
+                    "Alertas y Transferencias",
                     NotificationManager.IMPORTANCE_DEFAULT,
-                )
-                context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+                ).apply {
+                    description = "Archivos recibidos y confirmaciones del asistente"
+                }
+                mgr.createNotificationChannel(alertChannel)
             }
         }
     }

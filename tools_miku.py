@@ -106,7 +106,7 @@ def crear_o_actualizar_agente(id: str, nombre: str, rol: str, color: str = None)
                 "name": nombre.strip(),
                 "role": rol.strip(),
                 "c": chosen_col,
-                "model": "google/gemini-2.5-flash",
+                "model": "google/gemini-1.5-flash",
                 "hooks": 1,
                 "active": 1,
                 "outfit": "none"

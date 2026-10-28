@@ -3,9 +3,9 @@ const T=window.__TAURI__,BC=window.BroadcastChannel?new BroadcastChannel('miku')
 const emit=m=>{try{BC?.postMessage(m)}catch{}try{T?.event?.emit('miku',m)}catch{}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-// Ventana movible por la cabecera pero NO redimensionable
+// Ventana movible por la cabecera y redimensionable (responsive 380-1200+ px)
 try {
-  T?.window?.getCurrentWindow?.()?.setResizable?.(false)?.catch?.(()=>{});
+  T?.window?.getCurrentWindow?.()?.setResizable?.(true)?.catch?.(()=>{});
 } catch(_) {}
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -100,7 +100,7 @@ const GAL=['idle','listening','thinking','talking','searching','working','happy'
 const PRESET=['#F2A765','#F06CF0','#6C63FF','#FF5C66','#4FD3B1','#3B9EFF','#FFD84D','#9BE15D'];
 const lum=h=>{const n=parseInt(h.slice(1),16);return(.299*(n>>16)+.587*((n>>8)&255)+.114*(n&255))/255};
 const mix=(h,t=.4)=>{const n=parseInt(h.slice(1),16),f=s=>Math.round(((n>>s)&255)*(1-t)+255*t);return`rgb(${f(16)},${f(8)},${f(0)})`};
-function theme(){const r=document.documentElement.style;r.setProperty('--ac','#ffffff');r.setProperty('--acx','#040507');r.setProperty('--acs','rgba(255,255,255,0.15)')}
+function theme(){const r=document.documentElement.style;r.removeProperty('--ac');r.removeProperty('--acx');r.removeProperty('--acs');}
 
 /* ───── Motor de dibujo de Miku ───── */
 const MK=(()=>{
@@ -304,7 +304,7 @@ function drawChar(s,k,dt,op,breath,sh,bob){c.clearRect(-20,-20,200,200);c.global
  c.restore();
  }
 
-const off=document.createElement('canvas');off.width=off.height=400;const oc=off.getContext('2d');
+const off=document.createElement('canvas');off.width=off.height=400;const oc=off.getContext('2d',{willReadFrequently:true});
 const reset=()=>Object.assign(P,{al:.5,ll:0,ar:.5,lr:0,lx:0,ly:0,tilt:0,gi:1,r:59,g:158,b:255,sq:0,sv:0,jy:0,jv:0,sy:1,big:1,br:0,bl:0});
 
 function paint(color,outfit,tt,lx=0,ly=0,blink=0,o={}){
@@ -350,12 +350,17 @@ function avFrame(color,outfit,crop,gx,gy,bl,ex,peek){
  x.globalCompositeOperation='destination-in';const g=x.createRadialGradient(42,42,33,42,42,43);g.addColorStop(0,'#000');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,84,84);
  if(AVC.size>500)AVC.delete(AVC.keys().next().value);AVC.set(key,o);return o}
 
-/* Héroe grande: resortes para mirada, cuerpo, inclinación, brazos y saltos (nada de rigidez) */
-function live(cv,get){
+/* Héroe grande: resortes para mirada, cuerpo, inclinación, brazos y saltos (con modo subtle sutil) */
+function live(cv,get,opts={}){
  const x=cv.getContext('2d'),cl=(v,a,b)=>Math.max(a,Math.min(b,v)),R=(a,b)=>a+Math.random()*(b-a);
  let on=1,nb=1.2,bt=-9,dbl=0,prev=performance.now()/1000;
  const H={lx:0,vlx:0,ly:0,vly:0,sh:0,vsh:0,tilt:0,vt:0,bob:0,vb:0,sq:0,vsq:0,ex:'idle',exU:0,gx:0,gy:0,nl:0,nh:3,hov:0};
- const pulse=(v,sq,ms)=>{H.vb=v;H.sq=sq;H.ex='happy';H.exU=performance.now()+ms};
+ const pulse=(v,sq,ms)=>{
+  H.vb=opts.subtle?v*0.35:v;
+  H.sq=opts.subtle?sq*0.4:sq;
+  H.ex='happy';
+  H.exU=performance.now()+ms;
+ };
  cv.style.cursor='pointer';
  cv.addEventListener('pointerdown',()=>pulse(-560,.17,1100));
  cv.addEventListener('pointerenter',()=>{H.hov=1;pulse(-300,.05,850)});
@@ -364,20 +369,43 @@ function live(cv,get){
  const loop=now=>{
   if(!on||!cv.isConnected)return;
   requestAnimationFrame(loop);
+  if(document.hidden)return;
   const t=now/1000,dt=Math.min(.05,Math.max(.001,t-prev));prev=t;
   const g=get(),r=crop(g.outfit);
   if(cv.width!=r[2]||cv.height!=r[3]){cv.width=r[2];cv.height=r[3]}
   const b=cv.getBoundingClientRect(),dx=PX-(b.left+b.width/2),dy=PY-(b.top+b.height/2),act=performance.now()-PT<2800;
   let tx,ty;
-  if(act){tx=cl(dx/230,-1,1)*.95;ty=cl(dy/170,-1,1)*.55}
-  else{if(t>H.nl){H.gx=Math.random()<.4?0:R(-.8,.8);H.gy=Math.random()<.6?0:R(-.35,.4);H.nl=t+R(1.2,3.4)}tx=H.gx;ty=H.gy}
-  H.vlx+=((tx-H.lx)*95-H.vlx*10)*dt;H.lx+=H.vlx*dt;
-  H.vly+=((ty-H.ly)*95-H.vly*10)*dt;H.ly+=H.vly*dt;
-  H.vsh+=((tx*11-H.sh)*55-H.vsh*7.5)*dt;H.sh+=H.vsh*dt;
-  const tt=tx*.11+H.vlx*.03;H.vt+=((tt-H.tilt)*120-H.vt*12)*dt;H.tilt+=H.vt*dt;
+  if(act){
+   if(opts.subtle){
+    tx=cl(dx/340,-1,1)*0.60;
+    ty=cl(dy/260,-1,1)*0.38;
+   }else{
+    tx=cl(dx/230,-1,1)*.95;
+    ty=cl(dy/170,-1,1)*.55;
+   }
+  }else{
+   if(t>H.nl){
+    H.gx=Math.random()<.4?0:R(opts.subtle?-.35:.8,opts.subtle?.35:.8);
+    H.gy=Math.random()<.6?0:R(opts.subtle?-.2:.35,opts.subtle?.2:.4);
+    H.nl=t+R(1.4,3.8);
+   }
+   tx=H.gx;ty=H.gy;
+  }
+  const springK=opts.subtle?50:95;
+  const damp=opts.subtle?15:10;
+  H.vlx+=((tx-H.lx)*springK-H.vlx*damp)*dt;H.lx+=H.vlx*dt;
+  H.vly+=((ty-H.ly)*springK-H.vly*damp)*dt;H.ly+=H.vly*dt;
+  const shK=opts.subtle?2.2:11;
+  H.vsh+=((tx*shK-H.sh)*55-H.vsh*7.5)*dt;H.sh+=H.vsh*dt;
+  const tiltK=opts.subtle?0.03:0.11;
+  const tt=tx*tiltK+H.vlx*(opts.subtle?0.01:0.03);
+  H.vt+=((tt-H.tilt)*120-H.vt*12)*dt;H.tilt+=H.vt*dt;
   H.vb+=((0-H.bob)*300-H.vb*14)*dt;H.bob+=H.vb*dt;
   H.vsq+=((0-H.sq)*280-H.vsq*15)*dt;H.sq+=H.vsq*dt;
-  if(!act&&t>H.nh){H.vb=-R(300,460);H.nh=t+R(4,9)}
+  if(!act&&t>H.nh){
+   H.vb=opts.subtle?-R(80,140):-R(300,460);
+   H.nh=t+R(4,9);
+  }
   if(H.ex!='idle'&&performance.now()>H.exU)H.ex='idle';
   if(t>nb){bt=t;nb=t+R(2.2,5.8);dbl=Math.random()<.2}
   const kb=t-bt,blink=Math.max(bl(kb),dbl?bl(kb-.28):0);
@@ -534,7 +562,7 @@ const setIsl=ids=>{window.__pop=1;ids=ids.slice(0,ISLMAX);AG.forEach(a=>{const k
 /* ───── componentes ───── */
 const CHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
 const TICK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-const sw=(k,on)=>`<label class="sq"><input type="checkbox" data-k="${k}" ${on?'checked':''}><i></i></label>`;
+const sw=(k,on)=>`<label class="sw sq"><input type="checkbox" data-k="${k}" ${on?'checked':''}><i></i></label>`;
 const rg=k=>`<span class="so-host" data-k="${k}"></span>`;
 const row=(t,h,c,fx)=>`<div class="row${fx?' fx':''}"><div><b>${t}</b>${h?`<small>${h}</small>`:''}</div><div class="ctl">${c}</div></div>`;
 
@@ -758,20 +786,21 @@ function GlideSelect(host,{options,value,label='Seleccionar',onChange}){
  };
 }
 
-/* HoldButton */
-function HoldButton(host,{label,doneLabel='Listo',icon='',hold=1800,onHold,small}){
+/* HoldButton v2 */
+function HoldButton(host,{label,doneLabel='Listo',holdLabel='Sigue manteniendo',icon='',hold=1800,onHold,small,variant='n'}){
  if(!host)return;
- host.innerHTML=`<button type="button" class="hb ${small?'sm':''}" data-phase="idle" style="--hb-hold:${hold}ms;--hb-cycles:${hold/1100}"><span class="hb-sr">Mantén pulsado ${Math.round(hold/100)/10} segundos para confirmar</span></button>`;
- const b=host.firstChild,L=`<span class="hb-lb"><span class="hb-i">${icon}${esc(label)}</span><span class="hb-d">${esc(doneLabel)}</span></span>`;
- b.insertAdjacentHTML('afterbegin',L+`<span class="hb-clip" aria-hidden="true"><span class="hb-fill">${L}</span><span class="hb-crest">${L}</span></span>`);
+ const checkIcon='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+ const layer=`<span class="t"><span class="r">${icon}${esc(label)}</span><span class="h">${esc(holdLabel)}</span><span class="d">${checkIcon}${esc(doneLabel)}</span></span>`;
+ host.innerHTML=`<button type="button" class="hb ${variant} ${small?'sm':''}" data-phase="idle" data-s="idle" style="--hold:${hold}ms;--hb-hold:${hold}ms;--hb-cycles:${hold/1100}" aria-label="${esc(label)}">${layer}<span class="f" aria-hidden="true">${layer}</span></button>`;
+ const b=host.firstElementChild||host.firstChild;if(!b)return;
  let phase='idle',p=0,raf=0,start=0,rect=null,pid=null,kind=null,tC=0;
  const ease={lin:t=>t,out:t=>1-Math.pow(1-t,3)};
- const go=(n,k=null)=>{phase=n;kind=k;b.dataset.phase=n};
+ const go=(n,k=null)=>{phase=n;kind=k;b.dataset.phase=n;b.dataset.s=(n==='holding'?'hold':n)};
  const drive=(to,dur,fn)=>{cancelAnimationFrame(raf);const from=p,t0=performance.now(),step=now=>{const t=dur>0?Math.min(1,(now-t0)/dur):1;p=from+(to-from)*fn(t);b.style.setProperty('--hb-p',p.toFixed(4));if(t<1){raf=requestAnimationFrame(step);return}raf=0;if(to==1)done()};raf=requestAnimationFrame(step)};
  function done(){if(phase!='holding'||performance.now()-start<hold-50)return;clearTimeout(tC);go('done',kind);onHold?.();setTimeout(()=>{go('idle');drive(0,200,ease.out)},1400)}
  function begin(k){if(phase!='idle')return false;rect=b.getBoundingClientRect();start=performance.now();go('holding',k);drive(1,hold,ease.lin);tC=setTimeout(done,hold+100);return true}
  function release(){if(phase!='holding')return;clearTimeout(tC);go('idle');drive(0,200,ease.out)}
- const meas=()=>{b.style.setProperty('--hb-w',b.offsetWidth+'px');b.style.setProperty('--hb-h',b.offsetHeight+'px')};meas();new ResizeObserver(meas).observe(b);
+ const meas=()=>{if(b&&b.style){b.style.setProperty('--hb-w',b.offsetWidth+'px');b.style.setProperty('--hb-h',b.offsetHeight+'px')}};meas();if(window.ResizeObserver&&b){new ResizeObserver(meas).observe(b);}
  b.addEventListener('pointerdown',e=>{if(e.button!==0||!e.isPrimary||pid!==null)return;if(!begin('pointer'))return;pid=e.pointerId;try{b.setPointerCapture(e.pointerId)}catch{}});
  const end=e=>{if(e.pointerId!==pid)return;pid=null;try{b.releasePointerCapture(e.pointerId)}catch{}release()};
  b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);b.addEventListener('lostpointercapture',end);
@@ -788,6 +817,8 @@ function HoldButton(host,{label,doneLabel='Listo',icon='',hold=1800,onHold,small
 const I18N = {
   es: {
     cat_general: "General",
+    cat_island: "Isla Dinámica",
+    cat_permisos: "Permisos y PC",
     cat_agentes: "Agentes",
     cat_modelos: "Modelos de IA",
     cat_keys: "Claves de API",
@@ -795,6 +826,7 @@ const I18N = {
     cat_alertas: "Notificaciones y Juegos",
     cat_voz: "Sonido y voz",
     cat_link: "Miku-Link",
+    cat_peligro: "Zona de peligro",
     isl_title: "Isla Dinámica",
     hover_open_title: "Abrir al pasar el cursor",
     hover_open_desc: "La isla se despliega al pasar el ratón y se repliega automáticamente al salir.",
@@ -844,6 +876,8 @@ const I18N = {
   },
   en: {
     cat_general: "General",
+    cat_island: "Dynamic Island",
+    cat_permisos: "Permissions & PC",
     cat_agentes: "Agents",
     cat_modelos: "AI Models",
     cat_keys: "API Keys",
@@ -851,6 +885,7 @@ const I18N = {
     cat_alertas: "Games & Notifications",
     cat_voz: "Sound & Voice",
     cat_link: "Miku-Link",
+    cat_peligro: "Danger Zone",
     isl_title: "Dynamic Island",
     hover_open_title: "Open on cursor hover",
     hover_open_desc: "Island expands on mouse hover and automatically collapses when leaving.",
@@ -900,6 +935,8 @@ const I18N = {
   },
   ko: {
     cat_general: "일반 설정",
+    cat_island: "다이내믹 아일랜드",
+    cat_permisos: "권한 및 PC",
     cat_agentes: "에이전트",
     cat_modelos: "AI 모델",
     cat_keys: "API 키",
@@ -907,6 +944,7 @@ const I18N = {
     cat_alertas: "게임 및 알림",
     cat_voz: "사운드 및 음성",
     cat_link: "Miku-Link",
+    cat_peligro: "위험 구역",
     isl_title: "다이내믹 아일랜드",
     hover_open_title: "마우스 오버 시 열기",
     hover_open_desc: "마우스를 올리면 아일랜드가 확장되고 벗어나면 자동으로 접힙니다.",
@@ -969,7 +1007,8 @@ const CATS = [
   ['mcp', 'cat_mcp'],
   ['alertas', 'cat_alertas'],
   ['voz', 'cat_voz'],
-  ['link', 'cat_link']
+  ['link', 'cat_link'],
+  ['peligro', 'cat_peligro']
 ];
 let CAT = ls.get('miku_cat', 'general');
 if (!CATS.find(c => c[0] == CAT)) CAT = 'general';
@@ -999,7 +1038,12 @@ const STATE = {
   linkName: ''
 };
 
-function showToast(msg = 'Guardado correctamente') {
+function showToast(msg = 'Guardado correctamente', type = '') {
+  const autoType = type || (/error|fallo|inválid|no se pudo/i.test(msg) ? 'er' : 'ok');
+  if (window.MikuComponents?.toast?.show) {
+    window.MikuComponents.toast.show(msg, { type: autoType, duration: 3000 });
+    return;
+  }
   let t = document.getElementById('toast');
   if (!t) {
     t = document.createElement('div');
@@ -1215,21 +1259,32 @@ const stat = (id, on, t) => `<span class="pill ${on ? 'on' : ''}" id="${id}">${t
 
 const NAV_GROUPS = [
   {
-    title: 'Control',
+    title: 'BASE',
     items: [
-      { id: 'general', label: 'cat_general', icon: '<svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9.5h13V10"/></svg>' },
-      { id: 'agentes', label: 'cat_agentes', icon: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="4"/><path d="M8 11h.01M16 11h.01M9 15a3 3 0 0 0 6 0M12 2v2"/></svg>' },
-      { id: 'modelos', label: 'cat_modelos', icon: '<svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>' },
-      { id: 'keys', label: 'cat_keys', icon: '<svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 3l4 4M14 6l3 3"/></svg>' },
-      { id: 'mcp', label: 'cat_mcp', icon: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v6M15 3v6M9 15v6M15 15v6M3 9h6M15 9h6M3 15h6M15 15h6"/></svg>' }
+      { id: 'general',  label: 'cat_general',  icon: 'gear' }
     ]
   },
   {
-    title: 'Asistencia & Salud',
+    title: 'INTELIGENCIA',
     items: [
-      { id: 'alertas', label: 'cat_alertas', icon: '<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
-      { id: 'voz', label: 'cat_voz', icon: '<svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>' },
-      { id: 'link', label: 'cat_link', icon: '<svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>' }
+      { id: 'agentes',  label: 'cat_agentes',  icon: 'bot' },
+      { id: 'modelos',  label: 'cat_modelos',  icon: 'sparkles' },
+      { id: 'keys',     label: 'cat_keys',     icon: 'key' },
+      { id: 'mcp',      label: 'cat_mcp',      icon: 'server' }
+    ]
+  },
+  {
+    title: 'ASISTENCIA',
+    items: [
+      { id: 'alertas',  label: 'cat_alertas',  icon: 'bell' },
+      { id: 'voz',      label: 'cat_voz',      icon: 'mic' },
+      { id: 'link',     label: 'cat_link',     icon: 'link' }
+    ]
+  },
+  {
+    title: 'SISTEMA',
+    items: [
+      { id: 'peligro',  label: 'cat_peligro',  icon: 'danger', danger: true }
     ]
   }
 ];
@@ -1240,8 +1295,8 @@ function railHtml() {
       <div class="nav-group-title">${g.title}</div>
       <div class="nav-group-items">
         ${g.items.map(it => `
-          <button class="cat ${CAT === it.id ? 'on' : ''}" data-cat="${it.id}">
-            ${it.icon}
+          <button class="cat nv ${it.danger ? 'dg' : ''}" data-cat="${it.id}">
+            <svg class="ic" width="18" height="18"><use href="#ic-${it.icon}"/></svg>
             <span>${t(it.label)}</span>
           </button>
         `).join('')}
@@ -1251,6 +1306,8 @@ function railHtml() {
 }
 
 const V = {};
+V.island = () => (V.general ? V.general() : '');
+V.permisos = () => (V.general ? V.general() : '');
 
 
 /* ── Componente de Slider Suave (Click normal + sostenido/arrastre continuo) ── */
@@ -1365,28 +1422,28 @@ V.general = () => `
   <div style="font-size:12.5px;color:var(--mut);margin-bottom:12px">
     Define los límites de permisos con los que Miku puede interactuar con tu PC, ejecutar comandos y manipular archivos al estilo de Antigravity.
   </div>
-  <div class="exec-mode-grid" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:14px">
-    <div class="mode-card ${STATE.execMode === 'full' ? 'active' : ''}" data-setmode="full" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'full' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
-      <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Toda mi PC
+  <div class="exec-mode-grid">
+    <div class="mode-card ${STATE.execMode === 'full' ? 'active on' : ''}" data-setmode="full">
+      <div class="mode-card-head">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> <span>Toda mi PC</span>
       </div>
-      <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
+      <div class="mode-card-desc">
         Acceso total a la consola de Windows, cualquier disco o archivo, scripts y automatización de interfaz.
       </div>
     </div>
-    <div class="mode-card ${STATE.execMode === 'sandbox' ? 'active' : ''}" data-setmode="sandbox" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'sandbox' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
-      <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2dd4a0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Sandbox
+    <div class="mode-card ${STATE.execMode === 'sandbox' ? 'active on' : ''}" data-setmode="sandbox">
+      <div class="mode-card-head">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> <span>Sandbox</span>
       </div>
-      <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
+      <div class="mode-card-desc">
         Confinada al espacio de trabajo del proyecto. Protege carpetas del sistema y archivos fuera del workspace.
       </div>
     </div>
-    <div class="mode-card ${STATE.execMode === 'restricted' ? 'active' : ''}" data-setmode="restricted" style="cursor:pointer;padding:12px;border-radius:10px;background:var(--s2);border:1.5px solid ${STATE.execMode === 'restricted' ? 'var(--ac)' : 'var(--b1)'};transition:all .2s">
-      <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;color:var(--fg)">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Restringido
+    <div class="mode-card ${STATE.execMode === 'restricted' ? 'active on' : ''}" data-setmode="restricted">
+      <div class="mode-card-head">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <span>Restringido</span>
       </div>
-      <div style="font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.4">
+      <div class="mode-card-desc">
         Solo lectura y consultas seguras. Comandos de consola, scripts y clics automáticos quedan bloqueados.
       </div>
     </div>
@@ -1395,22 +1452,22 @@ V.general = () => `
 </section>
 <section>
   <h2>Actualizaciones de Software</h2>
-  ${row('Miku Desktop v0.1.7 (Beta)', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="hb sm" id="btn-check-update" style="border:0;cursor:pointer">Buscar actualización</button>`)}
+  ${row('Miku Desktop v0.1.7 (Beta)', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="btn sm" id="btn-check-update">Buscar actualización</button>`)}
   <div id="update-status" style="margin-top:6px;font-size:12.5px;color:var(--mut)"></div>
 </section>
 <section>
   <h2>Apoyar el Proyecto · Ko-fi</h2>
-  <div style="background:radial-gradient(120% 80% at 50% 0%, rgba(255, 94, 91, 0.12) 0%, rgba(13, 14, 20, 0.7) 100%);border:1px solid rgba(255, 94, 91, 0.25);border-radius:16px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+  <div style="background:var(--s2);border:1px solid var(--ln);border-radius:16px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
-      <img src="assets/kofi_badge.png" width="44" height="44" style="border-radius:12px;object-fit:contain;flex:none;filter:drop-shadow(0 0 10px rgba(255, 94, 91, 0.5))" alt="Ko-fi">
+      <img src="assets/kofi_badge.png" width="44" height="44" style="border-radius:12px;object-fit:contain;flex:none" alt="Ko-fi">
       <div style="min-width:0">
-        <div style="font-weight:700;font-size:13.5px;color:#fff">Invítame un café en Ko-fi</div>
+        <div style="font-weight:700;font-size:13.5px;color:var(--tx)">Invítame un café en Ko-fi</div>
         <div style="font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.4">
           Tu aporte ayuda a cubrir pruebas de APIs de IA y mantener Miku libre, abierta y sin anuncios.
         </div>
       </div>
     </div>
-    <a href="https://ko-fi.com/cxmlo" target="_blank" rel="noopener noreferrer" class="sec-btn pri" style="height:36px;padding:0 18px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;background:#ff5e5b;color:#fff">
+    <a href="https://ko-fi.com/cxmlo" target="_blank" rel="noopener noreferrer" class="btn p" style="text-decoration:none;white-space:nowrap">
       Apoyar en Ko-fi
     </a>
   </div>
@@ -1447,18 +1504,18 @@ V.agentes = () => {
   const ids = islIds();
   const inI = ids.includes(sel.id);
 
-  const chip = (g, k) => `<button class="dk" data-dk="${esc(g.id)}" style="--pc:${g.c}" title="${esc(g.name)}"><span class="apw" data-av="${g.c}|${g.outfit || 'none'}|full|${k}|"><canvas class="apimg" width="84" height="84"></canvas></span><em>${esc(g.name)}</em><i class="dkx" data-rm="${esc(g.id)}" title="Quitar de la isla">×</i></button>`;
+  const chip = (g, k) => `<button class="dk" data-dk="${esc(g.id)}" style="--pc:${g.c}" title="${esc(g.name)}"><span class="apw" data-av="${g.c}|${g.outfit || 'none'}|full|${k}|"><canvas class="apimg" width="84" height="84"></canvas></span><em>${esc(g.name)}</em><i class="dkx" data-rm="${esc(g.id)}" title="Quitar de la isla"><svg class="ic" width="12" height="12"><use href="#ic-trash"/></svg></i></button>`;
   const dock = () => `<div class="dock" id="dock"><small class="dkt">En la isla · ${ids.length}/${ISLMAX}</small><div class="dks">${[0, 1, 2].map(k => { const g = AG.find(x => x.id == ids[k]); return g ? chip(g, k) : `<span class="dk e"></span>`; }).join('')}</div></div>`;
 
   return `
-<div class="hero">
-  <div class="hero-main">
-    <div class="mw"><canvas class="hl" data-who="${esc(sel.id)}"></canvas></div>
-    <div class="ht">
+<div class="ag-hero-card">
+  <div class="ag-hero-main">
+    <div class="ag-canvas-wrap"><canvas class="hl" data-who="${esc(sel.id)}"></canvas></div>
+    <div class="ag-hero-info">
       <h2>${esc(sel.name)}<em>${t('ag_custom')}</em></h2>
-      <p><i class="sd on"></i><span class="nt" style="padding:0">${inI ? 'En la isla' : 'Disponible'}</span></p>
+      <p><i class="sd ${inI ? 'on' : ''}"></i><span class="nt" style="padding:0">${inI ? 'En la isla' : 'Disponible'}</span></p>
       <div style="margin-top:8px;display:flex;gap:8px;">
-        <button class="sec-btn sm ${inI ? '' : 'pri'}" data-act="${inI ? 'islDel' : 'islAdd'}">${inI ? t('ag_rem_isl') : t('ag_add_isl')}</button>
+        <button class="btn sm ${inI ? '' : 'p'}" data-act="${inI ? 'islDel' : 'islAdd'}">${inI ? t('ag_rem_isl') : t('ag_add_isl')}</button>
       </div>
     </div>
   </div>
@@ -1478,6 +1535,11 @@ V.agentes = () => {
   ${note('Arrastra cualquier agente a la isla para activarlo, o tócalo para editarlo.')}
 </section>
 
+<section>
+  <h2>Prioridad en la Isla Dinámica (Arrastra para reordenar · Los 3 primeros van a la isla)</h2>
+  <div id="ag-reorder-list"></div>
+</section>
+
 ${sel ? `
 <section>
   <h2>Configuración de ${esc(sel.name)}</h2>
@@ -1491,21 +1553,21 @@ ${sel ? `
     </div>
   `)}
   ${row('Servidor MCP Asignado', 'Conecta un servidor de herramientas exclusivo para este agente', `<span id="gs-ag-mcp"></span>`)}
-  <div class="ai-prompt-box" style="background:linear-gradient(135deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.01) 100%),#0c0d12;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px;margin:12px 0;box-shadow:0 4px 16px rgba(0,0,0,0.3)">
+  <div class="ai-prompt-box" style="background:var(--s2);border:1px solid var(--ln);border-radius:14px;padding:14px 16px;margin:12px 0">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#c084fc" stroke-width="2.2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
-      <b style="font-size:12.5px;color:#fff;font-weight:600">Generador de Prompt con IA</b>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
+      <b style="font-size:12.5px;color:var(--tx);font-weight:700">Generador de Prompt con IA</b>
       <span style="font-size:11px;color:var(--mut);margin-left:auto">Redacta el rol del agente con IA</span>
     </div>
-    <div style="display:flex;gap:10px;align-items:center">
-      <input class="tx-in" id="ag-ai-desc" placeholder="Describe brevemente su función (ej: Revisar código y hacer pull requests)..." style="flex:1;height:38px;font-size:12px;background:#14161f;border:1px solid rgba(255,255,255,0.12)">
-      <button type="button" class="sec-btn pri" id="btn-gen-prompt" style="height:38px;padding:0 16px;white-space:nowrap;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:7px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input class="tx-in" id="ag-ai-desc" placeholder="Describe brevemente su función (ej: Revisar código y hacer pull requests)..." style="flex:1;min-width:200px;height:36px;font-size:12.5px">
+      <button type="button" class="btn p" id="btn-gen-prompt">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
         <span>Generar Prompt</span>
       </button>
     </div>
   </div>
-  ${row('Instrucciones / Rol', 'Prompt del sistema específico para este agente', `<textarea class="tx-in" id="ag-edit-prompt" placeholder="Instrucciones del sistema para este agente..." style="width:100%;height:84px;resize:vertical;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.45;margin-top:4px">${esc(sel.prompt || '')}</textarea>`, 1)}
+  ${row('Instrucciones / Rol', 'Prompt del sistema específico para este agente', `<textarea class="tx-in" id="ag-edit-prompt" placeholder="Instrucciones del sistema para este agente..." style="width:100%;height:84px;resize:vertical;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.45;margin-top:4px">${esc(sel.prompt || sel.role || '')}</textarea>`, 1)}
   ${row('Quitar agente', 'Elimina este agente de tu lista', `<span id="hb-del-curr"></span>`)}
 </section>
 ` : ''}
@@ -1514,14 +1576,14 @@ ${sel ? `
   <h2>${t('ag_create')}</h2>
   ${row('Rol inicial', 'Plantilla o especialidad', `<span id="gs-tool"></span>`)}
   ${row('Nombre', '', inp('ag-name', 'Mi agente', 'text', '220px'), 1)}
-  <div class="ai-prompt-box" style="background:linear-gradient(135deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.01) 100%),#0c0d12;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px;margin:12px 0;box-shadow:0 4px 16px rgba(0,0,0,0.3)">
+  <div class="ai-prompt-box" style="background:var(--s2);border:1px solid var(--ln);border-radius:14px;padding:14px 16px;margin:12px 0">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#c084fc" stroke-width="2.2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
-      <b style="font-size:12.5px;color:#fff;font-weight:600">Generar Instrucciones con IA</b>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
+      <b style="font-size:12.5px;color:var(--tx);font-weight:700">Generar Instrucciones con IA</b>
     </div>
-    <div style="display:flex;gap:10px;align-items:center">
-      <input class="tx-in" id="ag-new-ai-desc" placeholder="Describe la tarea que realizará este nuevo agente..." style="flex:1;height:38px;font-size:12px;background:#14161f;border:1px solid rgba(255,255,255,0.12)">
-      <button type="button" class="sec-btn pri" id="btn-new-gen-prompt" style="height:38px;padding:0 16px;white-space:nowrap;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:7px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input class="tx-in" id="ag-new-ai-desc" placeholder="Describe la tarea que realizará este nuevo agente..." style="flex:1;min-width:200px;height:36px;font-size:12.5px">
+      <button type="button" class="btn p" id="btn-new-gen-prompt">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
         <span>Generar con IA</span>
       </button>
@@ -1542,9 +1604,12 @@ function selAgent(id, noEmit) {
 V.modelos = () => {
   const hasProviders = STATE.models?.has_providers || (STATE.models?.active_providers && STATE.models.active_providers.length > 0);
   const warnBanner = !hasProviders ? `
-  <div style="padding:12px 14px;background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.3);border-radius:14px;margin-bottom:12px;color:#ffd166;font-size:12.5px;line-height:1.45;">
-    <b>No tienes claves de API configuradas.</b><br>
-    Para activar modelos de IA, ve a la pestaña <b>Claves de API</b> e ingresa al menos una clave (Google Gemini, Groq, OpenAI, etc.).
+  <div class="al er" role="alert" style="margin-bottom:4px">
+    <svg class="ic" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+    <div class="b">
+      <b>No tienes claves de API configuradas</b>
+      <small>Para activar modelos de IA, ve a la pestaña <b>Claves de API</b> e ingresa al menos una clave (Google Gemini, Groq, OpenAI, etc.).</small>
+    </div>
   </div>` : '';
 
   const selProv = STATE.selectedModelProvider || 'all';
@@ -1565,7 +1630,7 @@ V.modelos = () => {
     ${note('Toca un proveedor para desplegar únicamente sus modelos disponibles según tu plan:')}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px">
       ${providers.map(p => `
-        <button type="button" class="sec-btn ${selProv === p.id ? 'pri' : ''}" data-model-prov="${p.id}" style="font-size:12px;padding:6px 14px;border-radius:99px">
+        <button type="button" class="btn sm ${selProv === p.id ? 'p' : ''}" data-model-prov="${p.id}">
           ${p.label}
         </button>
       `).join('')}
@@ -1685,14 +1750,14 @@ V.mcp = () => {
       ${RECOMMENDED_MCPS.map(r => {
         const isInst = installedNames.has(r.id.toLowerCase());
         return `
-        <div class="mcp-card" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px;background:#090a0f;">
+        <div class="mcp-card" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px;background:var(--s1);">
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="app-badge-icon">${r.icon}</span>
-            <b style="font-size:13px;color:#fff;">${esc(r.name)}</b>
+            <b style="font-size:13px;color:var(--tx);">${esc(r.name)}</b>
           </div>
-          <p style="font-size:11.5px;color:var(--mut);line-height:1.4;margin:0;">${esc(r.desc)}</p>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;border-top:1px solid #161822;padding-top:8px;">
-            <code style="font-size:10.5px;color:#8e919a;background:#12131a;padding:2px 6px;border-radius:4px;">${esc(r.id)}</code>
+          <p style="font-size:11.5px;color:var(--mu);line-height:1.4;margin:0;">${esc(r.desc)}</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;border-top:1px solid var(--ln);padding-top:8px;">
+            <code style="font-size:10.5px;color:var(--mu);background:var(--s2);padding:2px 6px;border-radius:4px;">${esc(r.id)}</code>
             ${isInst 
               ? `<span class="pill on" style="font-size:11px">Instalado</span>` 
               : `<span class="hb-mcp-inst" data-mcpid="${esc(r.id)}"></span>`
@@ -1725,7 +1790,7 @@ V.mcp = () => {
             </small>
           </div>
           <div style="display:flex;align-items:center;gap:12px;flex:none;">
-            <label class="sq" style="--w:40px;--h:22px;--p:2px;" title="${isEnabled ? 'Desactivar para ahorrar tokens' : 'Activar servidor MCP'}">
+            <label class="sq" title="${isEnabled ? 'Desactivar para ahorrar tokens' : 'Activar servidor MCP'}">
               <input type="checkbox" class="mcp-toggle-sw" data-mcp="${esc(s.name)}" ${isEnabled ? 'checked' : ''}>
               <i></i>
             </label>
@@ -1757,17 +1822,17 @@ V.alertas = () => {
   <section>
     <h2>Registrar Actividad de Juegos y Aplicaciones</h2>
     ${note('Selecciona una aplicación o juego activo en tu PC para que Miku monitoree tu tiempo y te avise cuando excedas el límite:')}
-    <div style="background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px;margin-top:12px">
-      <label style="display:block;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Juego o aplicación activa en tu PC</label>
+    <div style="background:var(--s1);border:1px solid var(--ln);border-radius:var(--r-card);padding:16px;margin-top:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Juego o aplicación activa en tu PC</label>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <div id="gs-app-select" class="gs-full" style="flex:1;min-width:260px"></div>
-        <button type="button" class="sec-btn pri" id="btn-add-discord-app" style="height:38px;padding:0 20px;font-weight:600;white-space:nowrap">+ Añadir Juego / App</button>
+        <button type="button" class="btn p" id="btn-add-discord-app" style="white-space:nowrap">Añadir juego o app</button>
       </div>
       
-      <div id="discord-custom-wrap" style="display:${selApp?.id === 'custom' ? 'block' : 'none'};margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
+      <div id="discord-custom-wrap" style="display:${selApp?.id === 'custom' ? 'block' : 'none'};margin-top:12px;padding-top:12px;border-top:1px solid var(--ln)">
         <div style="display:flex;gap:10px;align-items:center">
           <input class="tx-in" id="custom-app-path" type="text" placeholder="Ej: C:\\Juegos\\Juego.exe o nombre de proceso..." style="flex:1;height:38px">
-          <button type="button" class="sec-btn" id="btn-browse-app" style="height:38px;padding:0 16px;white-space:nowrap">Examinar...</button>
+          <button type="button" class="btn" id="btn-browse-app" style="white-space:nowrap">Examinar...</button>
         </div>
       </div>
     </div>
@@ -1785,7 +1850,7 @@ V.alertas = () => {
               ? item.icon
               : getKnownAppIcon(k, item.label));
         return `
-        <div class="alert-item-card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:14px">
+        <div class="alert-item-card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;background:rgba(255,255,255,0.035);border:1px solid var(--ln);border-radius:14px">
           <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
             <span style="flex:none;display:grid;place-items:center;width:32px;height:32px;background:rgba(255,255,255,0.04);border-radius:8px">${iconHtml}</span>
             <div style="min-width:0;flex:1">
@@ -1801,243 +1866,204 @@ V.alertas = () => {
               <div id="gs-alert-${esc(k)}" style="min-width:115px"></div>
             </div>
             <label class="sq" title="Activar/Desactivar"><input type="checkbox" data-alert-en="${esc(k)}" ${item.enabled ? 'checked' : ''}><i></i></label>
-            <button type="button" class="btn-del-alert" data-del-alert="${esc(k)}" title="Eliminar registro">✕</button>
+            <button type="button" class="btn-del-alert" data-del-alert="${esc(k)}" title="Eliminar registro"><svg class="ic" width="14" height="14"><use href="#ic-trash"/></svg></button>
           </div>
         </div>`;
-      }).join('') : '<p class="nt" style="padding:16px;background:#090a0f;border-radius:12px;text-align:center">No tienes juegos o aplicaciones registradas. Selecciona una en el menú de arriba para empezar.</p>'}
-  <section style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 18px;margin-top:14px">
+      }).join('') : '<p class="nt" style="padding:16px;background:rgba(255,255,255,0.035);border:1px solid var(--ln);border-radius:12px;text-align:center">No tienes juegos o aplicaciones registradas. Selecciona una en el menú de arriba para empezar.</p>'}
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--s1);border:1px solid var(--ln);border-radius:14px;padding:14px 18px;margin-top:14px">
     <div>
-      <h3 style="margin:0 0 4px 0;font-size:13px;color:#fff">Probar Sistema de Alertas</h3>
-      <p style="margin:0;font-size:11.5px;color:var(--mut)">Emite una notificación de prueba instantánea para verificar la Isla Dinámica y Windows Notifications.</p>
+      <h3 style="margin:0 0 4px 0;font-size:13px;color:var(--tx)">Probar Sistema de Alertas</h3>
+      <p style="margin:0;font-size:11.5px;color:var(--mu)">Emite una notificación de prueba instantánea para verificar la Isla Dinámica y Windows Notifications.</p>
     </div>
-    <button type="button" class="sec-btn pri" id="btn-test-alert" style="height:36px;padding:0 18px;font-weight:600;white-space:nowrap">Probar Alerta en Vivo</button>
+    <button type="button" class="btn p" id="btn-test-alert" style="white-space:nowrap">Probar Alerta en Vivo</button>
+  </div>
   </section>
   `;
 };
 
-// 8. MIKU-LINK (Móvil)
+// 9. ZONA DE PELIGRO
+V.peligro = () => `
+  <div class="al er" role="alert" style="margin-bottom:14px">
+    <svg class="ic" width="16" height="16"><use href="#ic-danger"/></svg>
+    <div style="flex:1"><b>Acciones irreversibles.</b> Requieren mantener presionado el botón de confirmación para evitar clics accidentales.</div>
+  </div>
+  <section style="border-color:rgba(255,69,58,.28)">
+    <h2 style="color:var(--er)">Zona de peligro</h2>
+    ${row('Restablecer ajustes de interfaz', 'Devuelve todos los ajustes visuales, idioma y volumen a sus valores predeterminados.', `<span id="hb-danger-reset-cfg"></span>`, 1)}
+    ${row('Restablecer lista de agentes', 'Elimina los agentes personalizados creados y restaura los agentes predeterminados.', `<span id="hb-danger-reset-agents"></span>`, 1)}
+    ${row('Desvincular todos los dispositivos móviles', 'Revoca los tokens de emparejamiento de Miku-Link y cierra conexiones activas.', `<span id="hb-danger-unpair-all"></span>`)}
+  </section>
+`;
+
+// 8. MIKU-LINK (Móvil — como Phone Link dentro de Configuración, Fase 5)
 V.link = () => {
-  const isConn = !!STATE.linkConnected;
-  const devName = STATE.linkName || 'REDMI Note 15 Pro+ 5G';
-  return `
-  <section>
-    <h2>Dispositivo Móvil Sincronizado</h2>
-    ${note('Gestión directa y privada con tu smartphone mediante red local cifrada:')}
-    
-    <div style="background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:20px;margin-top:14px">
-      <!-- Cabecera del teléfono -->
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06)">
-        <div style="display:flex;align-items:center;gap:16px">
-          <div style="width:44px;height:72px;background:#151820;border:2px solid rgba(255,255,255,0.22);border-radius:10px;padding:3px;box-shadow:0 4px 14px rgba(0,0,0,0.5);display:flex;flex-direction:column;justify-content:space-between;align-items:center;flex:none">
-            <div style="width:12px;height:2px;background:rgba(255,255,255,0.3);border-radius:2px;margin-top:1px"></div>
-            <div style="width:100%;flex:1;background:url('http://127.0.0.1:8000/api/desktop/wallpaper') center/cover no-repeat, linear-gradient(135deg, #1e293b, #0f172a);border-radius:6px;margin:2px 0;display:grid;place-items:center;overflow:hidden">
-              <span style="opacity:0.6;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8))"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span>
-            </div>
-            <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);margin-bottom:1px"></div>
-          </div>
-          <div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:16px;font-weight:700;color:#fff">${esc(devName)}</span>
-              <span class="pill ${isConn ? 'on' : ''}" style="font-size:11px;padding:2px 8px">${isConn ? 'Conectado' : 'Registrado'}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;margin-top:6px;font-size:12px;color:var(--mut)">
-              <span style="display:inline-flex;align-items:center;gap:4px">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#22c55e" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
-                Wi-Fi Local
-              </span>
-              <span style="display:inline-flex;align-items:center;gap:4px">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
-                ${isConn ? '88%' : '46%'} Batería
-              </span>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <button type="button" class="sec-btn" id="btn-phone-lock" style="font-size:12px;height:34px;padding:0 14px">Bloquear PC</button>
-          <button type="button" class="sec-btn pri" id="btn-phone-send-file" style="font-size:12px;height:34px;padding:0 14px">Enviar archivo</button>
-          <button type="button" class="sec-btn del" id="btn-phone-unpair" style="font-size:12px;height:34px;padding:0 14px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5" title="Desvincular y eliminar dispositivo">Desvincular</button>
-        </div>
-      </div>
-
-      <!-- Cuadrícula de Accesos Rápidos estilo Enlace Móvil -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px">
-        <div class="mode-card on" style="padding:14px;cursor:default">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2dd4a0" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-            <strong style="font-size:12.5px;color:#fff">Portapapeles</strong>
-          </div>
-          <p style="margin:0;font-size:11px;color:var(--mut);line-height:1.4">Copia en tu teléfono o PC y el contenido se transfiere al instante.</p>
-        </div>
-
-        <div class="mode-card on" style="padding:14px;cursor:default">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <strong style="font-size:12.5px;color:#fff">Archivos Compartidos</strong>
-          </div>
-          <p style="margin:0;font-size:11px;color:var(--mut);line-height:1.4">Recibe fotos y documentos directo en Descargas/miku-link.</p>
-        </div>
-
-        <div class="mode-card on" style="padding:14px;cursor:default">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-            <strong style="font-size:12.5px;color:#fff">Notificaciones</strong>
-          </div>
-          <p style="margin:0;font-size:11px;color:var(--mut);line-height:1.4">Avisos de aplicaciones reflejados en la Isla Dinámica.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 2. Código QR para enlazar o reconectar nuevo dispositivo -->
-  <section style="margin-top:18px">
-    <h2>Vincular Nuevo Dispositivo (Código QR)</h2>
-    ${note('Escanea este código con la app de Miku en tu smartphone (Android APK) para emparejar:')}
-    <div style="display:flex;align-items:center;gap:24px;padding:16px;background:#090a0f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;margin-top:10px;flex-wrap:wrap">
-      <canvas id="qr" width="140" height="140" style="border-radius:12px;background:#fff;padding:8px"></canvas>
-      <div>
-        <p style="font-weight:600;font-size:14px;color:#fff;margin-bottom:4px">Miku-Link Gateway</p>
-        <p style="color:var(--mut);font-size:12px;margin-bottom:8px">IP Local: <code id="local-ip-text">127.0.0.1:8000</code></p>
-        <p id="link-status-badge"><span class="pill ${isConn ? 'on' : ''}">${isConn ? `Conectado: ${esc(devName)}` : 'Esperando conexión'}</span></p>
-      </div>
-    </div>
-  </section>
-  `;
+  if (window.MikuLinkSection?.renderMikuLinkSectionHtml) {
+    return window.MikuLinkSection.renderMikuLinkSectionHtml();
+  }
+  return `<section class="cd" style="padding:20px"><div id="ml"></div></section>`;
 };
 
-const renderRail = () => { $('#rail').innerHTML = railHtml(); };
-
-/* Paleta secuencial fija y suave para cada sección del panel de configuración */
-const SECTION_THEMES = {
-  general:  { name: 'Ámbar Cálido',     tag: '#f5a623', rgb: '245, 166, 35' },
-  agentes:  { name: 'Miel Dorado',      tag: '#d98218', rgb: '217, 130, 24' },
-  modelos:  { name: 'Coral Terracota',  tag: '#e07253', rgb: '224, 114, 83' },
-  keys:     { name: 'Rosa Palo Suave',  tag: '#d16a8d', rgb: '209, 106, 141' },
-  mcp:      { name: 'Lavanda Amatista', tag: '#9d7fe6', rgb: '157, 127, 230' },
-  alertas:  { name: 'Azul Glaciar',     tag: '#4f9ced', rgb: '79, 156, 237' },
-  voz:      { name: 'Menta Esmeralda',  tag: '#2eb88a', rgb: '46, 184, 138' },
-  link:     { name: 'Cian Turquesa',    tag: '#2bb3c0', rgb: '43, 179, 192' }
+const renderRail = () => {
+  const r = $('#rail');
+  if (!r) return;
+  const html = railHtml();
+  if (r.dataset.rendered !== html) {
+    r.innerHTML = html;
+    r.dataset.rendered = html;
+    if (window.MikuUI?.gel) {
+      r.dataset.axis = 'y';
+      window.MikuUI.gel(r, '.cat');
+    }
+  }
+  $$('.cat', r).forEach(b => b.classList.toggle('on', b.dataset.cat == CAT));
+  if (r._gel) r._gel(true);
 };
+
+// SECTION_THEMES eliminado: sistema monocromático v2 (§21)
 
 function heroHtml() {
   const titles = {
     general: 'Centro de Control',
+    island: 'Isla Dinámica',
+    permisos: 'Nivel de Permisos',
     agentes: 'Agentes Autónomos',
     modelos: 'Modelos de Lenguaje & Visión',
     keys: 'Claves de API (.env)',
     mcp: 'Servidores Model Context Protocol',
     alertas: 'Alertas Proactivas & Enfoque',
     voz: 'Centro de Audio & Voz',
-    link: 'Miku-Link Gateway'
+    link: 'Miku-Link Gateway',
+    peligro: 'Zona de peligro'
   };
   const subs = {
     general: 'Parámetros del sistema, isla dinámica y comportamiento general.',
+    island: 'Comportamiento del widget flotante de Windows, expansión y autocierre.',
+    permisos: 'Límites de acceso al sistema operativo, archivos y consola.',
     agentes: 'Configura agentes especializados, personalidades y accesorios.',
     modelos: 'Asigna el cerebro para chat, uso de PC y transcripción de voz.',
     keys: 'Conexión directa con Google Gemini, Groq, OpenAI y más.',
     mcp: 'Extiende las capacidades de Miku con SQLite, sistema de archivos y web.',
     alertas: 'Monitoreo de tiempo en pantalla y descansos inteligentes.',
     voz: 'Dispositivos de entrada de micrófono y niveles de volumen.',
-    link: 'Sincronización segura con tu smartphone y red local.'
+    link: 'Sincronización segura con tu smartphone y red local.',
+    peligro: 'Acciones irreversibles sobre datos, dispositivos y agentes.'
   };
-  const theme = SECTION_THEMES[CAT] || SECTION_THEMES.general;
   return `
   <div class="miku-hero-wrap">
-    <div class="miku-hero" style="background-color:#0d0e14 !important; background: linear-gradient(135deg, rgba(${theme.rgb}, 0.16) 0%, #0d0e14 65%, #08090d 100%) !important; border-color: rgba(${theme.rgb}, 0.22); box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 24px rgba(${theme.rgb}, 0.1)">
+    <div class="hero miku-hero" style="margin:0">
       <canvas class="hero-galaxy-cv" id="heroGalaxyCv"></canvas>
-      <div class="miku-hero-glow" style="background: radial-gradient(circle, rgba(${theme.rgb}, 0.26) 0%, rgba(${theme.rgb}, 0) 70%)"></div>
-      <div class="miku-hero-body">
-        <div class="miku-hero-tag" style="color:${theme.tag}">Miku Desktop Suite</div>
-        <h1 class="miku-hero-title">${titles[CAT] || 'Centro de Control'}</h1>
-        <p class="miku-hero-desc">${subs[CAT] || 'Asistente inteligente con agentes locales, visión y control de PC.'}</p>
+      <div class="au"><i></i><i></i><i></i></div>
+      <svg class="orb" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="a" cx="100" cy="100" r="92"/>
+        <circle class="b" cx="100" cy="100" r="70"/>
+        <circle class="c" cx="100" cy="100" r="50"/>
+        <circle class="k" cx="100" cy="100" r="9"/>
+      </svg>
+      <div class="miku-hero-body" id="ht">
+        <small class="miku-hero-tag">MIKU DESKTOP SUITE</small>
+        <h3 class="miku-hero-title" id="hh">${titles[CAT] || 'Centro de Control'}</h3>
+        <p class="miku-hero-desc" id="hp">${subs[CAT] || 'Parámetros del sistema, isla dinámica y comportamiento general.'}</p>
       </div>
     </div>
   </div>
   `;
 }
 
-let GALAXY_RAF = null;
-let HERO_MOUSE = { x: -999, y: -999, active: false };
-const GALAXY_PARTICLES = Array.from({ length: 54 }, () => ({
-  x: Math.random() * 880,
-  y: Math.random() * 168,
-  r: 0.8 + Math.random() * 2.2,
-  alpha: 0.25 + Math.random() * 0.7,
-  speed: 0.15 + Math.random() * 0.45,
-  seed: Math.random() * 100
-}));
+let HERO_PARTICLES_STATE = null;
 
 function initHeroGalaxy() {
   const cv = document.getElementById('heroGalaxyCv');
   if (!cv) return;
-  const parent = cv.parentElement;
-  cv.width = parent.offsetWidth || 820;
-  cv.height = 168;
-  const ctx = cv.getContext('2d');
-
-  if (GALAXY_RAF) cancelAnimationFrame(GALAXY_RAF);
-
-  parent.onpointerenter = () => { HERO_MOUSE.active = true; };
-  parent.onpointerleave = () => { HERO_MOUSE.active = false; HERO_MOUSE.x = -999; HERO_MOUSE.y = -999; };
-  parent.onpointermove = (e) => {
-    const rect = parent.getBoundingClientRect();
-    HERO_MOUSE.x = e.clientX - rect.left;
-    HERO_MOUSE.y = e.clientY - rect.top;
-    HERO_MOUSE.active = true;
-  };
-
-  const theme = SECTION_THEMES[CAT] || SECTION_THEMES.general;
-
-  function loop(now) {
-    if (!document.contains(cv)) return;
-    const t = now * 0.001;
-    ctx.clearRect(0, 0, cv.width, cv.height);
-
-    for (let p of GALAXY_PARTICLES) {
-      p.y -= p.speed * 0.4;
-      p.x += Math.sin(t + p.seed) * 0.25;
-
-      let extraGlow = 0;
-      if (HERO_MOUSE.active) {
-        const dx = p.x - HERO_MOUSE.x;
-        const dy = p.y - HERO_MOUSE.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < 110 && dist > 1) {
-          const force = (110 - dist) / 110;
-          p.x += (dx / dist) * force * 3.2;
-          p.y += (dy / dist) * force * 3.2;
-          extraGlow = force * 0.9;
-        }
-      }
-
-      if (p.y < -5) {
-        p.y = cv.height + 5;
-        p.x = Math.random() * cv.width;
-      }
-      if (p.x < -10) p.x = cv.width + 10;
-      if (p.x > cv.width + 10) p.x = -10;
-
-      const pulse = Math.min(1.4, 0.6 + 0.4 * Math.sin(t * 2 + p.seed) + extraGlow);
-      const radius = p.r * (1 + extraGlow * 0.6);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-      const isColored = (p.seed % 10 > 2.8);
-      ctx.fillStyle = isColored ? `rgba(${theme.rgb}, ${Math.min(1, p.alpha * pulse)})` : `rgba(255, 255, 255, ${Math.min(1, p.alpha * pulse * 0.8)})`;
-      ctx.shadowColor = isColored ? `rgba(${theme.rgb}, 0.85)` : 'rgba(255, 255, 255, 0.6)';
-      ctx.shadowBlur = radius * (extraGlow > 0 ? 6 : 3);
-      ctx.fill();
-    }
-    GALAXY_RAF = requestAnimationFrame(loop);
+  const hueFn = window.MikuTokens?.getSectionHue || (() => ({ h: 212, s: 75, l: 72 }));
+  const targetHue = hueFn(CAT);
+  if (!HERO_PARTICLES_STATE) {
+    HERO_PARTICLES_STATE = { c: { ...targetHue }, t: { ...targetHue } };
+  } else {
+    HERO_PARTICLES_STATE.t = { ...targetHue };
   }
-  GALAXY_RAF = requestAnimationFrame(loop);
+  if (window.MikuComponents?.createParticlesEngine) {
+    window.MikuComponents.createParticlesEngine(cv, HERO_PARTICLES_STATE);
+  }
+}
+
+let _lastRenderedCat = null;
+
+function updateHeroText() {
+  const titles = {
+    general: 'Centro de Control',
+    island: 'Isla Dinámica',
+    permisos: 'Nivel de Permisos',
+    agentes: 'Agentes Autónomos',
+    modelos: 'Modelos de Lenguaje & Visión',
+    keys: 'Claves de API (.env)',
+    mcp: 'Servidores Model Context Protocol',
+    alertas: 'Alertas Proactivas & Enfoque',
+    voz: 'Centro de Audio & Voz',
+    link: 'Miku-Link Gateway',
+    peligro: 'Zona de peligro'
+  };
+  const subs = {
+    general: 'Parámetros del sistema, isla dinámica y comportamiento general.',
+    island: 'Comportamiento del widget flotante de Windows, expansión y autocierre.',
+    permisos: 'Límites de acceso al sistema operativo, archivos y consola.',
+    agentes: 'Configura agentes especializados, personalidades y accesorios.',
+    modelos: 'Asigna el cerebro para chat, uso de PC y transcripción de voz.',
+    keys: 'Conexión directa con Google Gemini, Groq, OpenAI y más.',
+    mcp: 'Extiende las capacidades de Miku con SQLite, sistema de archivos y web.',
+    alertas: 'Monitoreo de tiempo en pantalla y descansos inteligentes.',
+    voz: 'Dispositivos de entrada de micrófono y niveles de volumen.',
+    link: 'Sincronización segura con tu smartphone y red local.',
+    peligro: 'Acciones irreversibles sobre datos, dispositivos y agentes.'
+  };
+  const hh = document.getElementById('hh');
+  const hp = document.getElementById('hp');
+  if (hh) hh.textContent = titles[CAT] || 'Centro de Control';
+  if (hp) hp.textContent = subs[CAT] || 'Parámetros del sistema, isla dinámica y comportamiento general.';
 }
 
 function render() {
   theme();
   renderRail();
   $$('.cat').forEach(b => b.classList.toggle('on', b.dataset.cat == CAT));
-  $('#pane').innerHTML = heroHtml() + (V[CAT] || V.general)();
-  mount();
+  window.MikuUI?.refresh?.();
+  const pane = $('#pane');
+  if (!pane) return;
+
+  const catChanged = _lastRenderedCat !== null && _lastRenderedCat !== CAT;
+  _lastRenderedCat = CAT;
+
+  let heroWrap = pane.querySelector('.miku-hero-wrap');
+  let cbody = document.getElementById('cbody');
+
+  if (!heroWrap || !cbody) {
+    pane.innerHTML = heroHtml() + `<div id="cbody" class="cbody bi">${(V[CAT] || V.general)()}</div>`;
+    pane.scrollTop = 0;
+    mount();
+    initHeroGalaxy();
+    return;
+  }
+
+  updateHeroText();
   initHeroGalaxy();
+
+  if (catChanged && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    cbody.classList.remove('bi');
+    cbody.classList.add('bo');
+    const targetCat = CAT;
+    setTimeout(() => {
+      if (CAT !== targetCat) return;
+      cbody.innerHTML = (V[CAT] || V.general)();
+      pane.scrollTop = 0;
+      cbody.classList.remove('bo');
+      void cbody.offsetWidth;
+      cbody.classList.add('bi');
+      mount();
+    }, 180);
+  } else {
+    cbody.innerHTML = (V[CAT] || V.general)();
+    if (catChanged) pane.scrollTop = 0;
+    mount();
+  }
 }
 
 const holdReset = () => { Object.assign(CFG, DEF); saveCfg(); setTimeout(render, 700); };
@@ -2048,7 +2074,7 @@ function sidebarLive() {
   if (STOP_SIDEBAR) return;
   const cv = document.getElementById('sidebar-hl');
   if (!cv) return;
-  STOP_SIDEBAR = MK.live(cv, () => ({ color: '#fff', outfit: PROUT }));
+  STOP_SIDEBAR = MK.live(cv, () => ({ color: '#fff', outfit: PROUT }), { subtle: true });
 }
 function heroLive() {
   STOP?.(); STOP = null;
@@ -2315,12 +2341,41 @@ function mount() {
       }
     });
 
+    const reorderEl = document.getElementById('ag-reorder-list');
+    if (reorderEl && window.MikuComponents?.mountReorderList) {
+      window.MikuComponents.mountReorderList(reorderEl, AG, {
+        maxActive: 3,
+        onSelect: (id) => {
+          selAgent(id);
+          render();
+        },
+        onReorder: (orderIds) => {
+          if (!Array.isArray(orderIds) || !orderIds.length) return;
+          const map = new Map(AG.map(a => [String(a.id), a]));
+          const nextAg = [];
+          orderIds.forEach(id => {
+            if (map.has(String(id))) {
+              nextAg.push(map.get(String(id)));
+              map.delete(String(id));
+            }
+          });
+          map.forEach(a => nextAg.push(a));
+          nextAg.forEach((a, idx) => {
+            a.isl = idx < 3 ? 1 : 0;
+          });
+          AG = nextAg;
+          saveAgents();
+        }
+      });
+    }
+
     const add = $('#hb-ag-add');
     if (add) {
       HoldButton(add, {
         label: 'Crear agente',
         doneLabel: 'Agente creado',
         hold: 850,
+        variant: 'p',
         onHold: () => {
           if (AG.length >= 8) { showToast('Máximo 8 agentes'); return; }
           const t = TOOLS.find(x => x[0] == tool),
@@ -2333,6 +2388,7 @@ function mount() {
             c,
             outfit: 'none',
             tool,
+            custom: 1,
             prompt: ($('#ag-prompt')?.value || '').trim()
           };
           AG.push(na);
@@ -2400,6 +2456,7 @@ function mount() {
         doneLabel: 'Eliminado',
         hold: 1400,
         small: 1,
+        variant: 'r',
         onHold: () => {
           AG = AG.filter(a => a.id != SELID);
           selAgent('miku');
@@ -2569,7 +2626,7 @@ function mount() {
       });
     };
 
-    const optLabel = m => (m.has_key ? '' : '⚠️ ') + (m.name || m.id) + (m.has_key ? '' : ' [Requiere Clave]');
+    const optLabel = m => (m.name || m.id) + (m.has_key ? '' : ' [Requiere Clave]');
     const chatOpts = filterByProv(avail.chat || []).map(m => ({ value: m.id, label: optLabel(m) }));
     const proOpts = filterByProv(avail.pro || []).map(m => ({ value: m.id, label: optLabel(m) }));
     const compOpts = filterByProv(avail.computer_use || []).map(m => ({ value: m.id, label: optLabel(m) }));
@@ -2665,7 +2722,7 @@ function mount() {
       const r = RECOMMENDED_MCPS.find(x => x.id === id);
       if (!r) return;
       HoldButton(host, {
-        label: '+ Instalar',
+        label: 'Instalar', variant: 'p',
         doneLabel: 'Instalado',
         hold: 700,
         small: 1,
@@ -2687,7 +2744,7 @@ function mount() {
     const btnAdd = $('#hb-add-mcp');
     if (btnAdd) {
       HoldButton(btnAdd, {
-        label: 'Añadir Servidor',
+        label: 'Añadir Servidor', variant: 'p',
         doneLabel: 'Añadido',
         hold: 800,
         onHold: async () => {
@@ -2714,6 +2771,7 @@ function mount() {
       HoldButton(host, {
         label: 'Eliminar',
         doneLabel: 'Eliminado',
+        variant: 'd',
         hold: 1000,
         small: 1,
         onHold: async () => {
@@ -2936,55 +2994,60 @@ function mount() {
   }
 
   if (CAT === 'link') {
-    const cv = $('#qr');
-    fetch('http://127.0.0.1:8000/api/link/qr_data')
-      .then(r => r.json())
-      .then(d => {
-        if (d && d.qr_base64 && cv) {
-          const img = new Image();
-          img.onload = () => {
-            const ctx = cv.getContext('2d');
-            ctx.clearRect(0, 0, cv.width, cv.height);
-            ctx.drawImage(img, 0, 0, cv.width, cv.height);
-          };
-          img.src = d.qr_base64;
-        }
-        const ipText = $('#local-ip-text');
-        if (ipText && d.ip) ipText.textContent = d.ip + ':8000';
-      })
-      .catch(_ => {});
+    window.MikuLinkSection?.mountMikuLinkSection?.();
+  } else {
+    window.MikuLinkSection?.stopMikuLinkTimers?.();
+  }
 
-    const btnPhoneLock = $('#btn-phone-lock');
-    if (btnPhoneLock) {
-      btnPhoneLock.onclick = async () => {
-        showToast('Comando de bloqueo enviado');
-        try {
-          await fetch('http://127.0.0.1:8000/api/desktop/lock', { method: 'POST' });
-        } catch (_) {}
-      };
+  if (CAT === 'peligro') {
+    const hbResetCfg = $('#hb-danger-reset-cfg');
+    if (hbResetCfg) {
+      HoldButton(hbResetCfg, {
+        label: 'Mantén para restablecer',
+        doneLabel: 'Restablecido',
+        hold: 1600,
+        variant: 'r',
+        onHold: () => {
+          holdReset();
+          showToast('Ajustes restablecidos a valores de fábrica');
+        }
+      });
     }
-    const btnPhoneSend = $('#btn-phone-send-file');
-    if (btnPhoneSend) {
-      btnPhoneSend.onclick = () => {
-        showToast('Arrastra cualquier archivo a la Isla o usa clic derecho en el Explorador para compartir al celular.');
-      };
+    const hbResetAg = $('#hb-danger-reset-agents');
+    if (hbResetAg) {
+      HoldButton(hbResetAg, {
+        label: 'Mantén para borrar agentes',
+        doneLabel: 'Restaurados',
+        hold: 1600,
+        variant: 'r',
+        onHold: () => {
+          AG = structuredClone(DEF_AG);
+          SELID = 'miku';
+          saveAgents();
+          showToast('Agentes restaurados a los predeterminados');
+          setTimeout(render, 300);
+        }
+      });
     }
-    const btnPhoneUnpair = $('#btn-phone-unpair');
-    if (btnPhoneUnpair) {
-      btnPhoneUnpair.onclick = async () => {
-        if (confirm('¿Estás seguro de que deseas desvincular y eliminar este dispositivo?\n\nSe revocarán todas las claves locales de cifrado y se cerrará la sesión inmediatamente en la app móvil.')) {
+    const hbUnpairAll = $('#hb-danger-unpair-all');
+    if (hbUnpairAll) {
+      HoldButton(hbUnpairAll, {
+        label: 'Mantén para desvincular',
+        doneLabel: 'Desvinculados',
+        hold: 1600,
+        variant: 'r',
+        onHold: async () => {
           try {
             await fetch('http://127.0.0.1:8000/api/link/unpair', { method: 'POST' });
             STATE.linkConnected = false;
             STATE.linkName = '';
-            showToast('Dispositivo eliminado y desvinculado');
             try { new BroadcastChannel('miku').postMessage({ k: 'unpair' }); } catch (_) {}
-            render();
+            showToast('Todos los dispositivos móviles fueron desvinculados');
           } catch (_) {
-            showToast('Error al desvincular');
+            showToast('Error al desvincular dispositivos');
           }
         }
-      };
+      });
     }
   }
 }
@@ -3023,6 +3086,8 @@ document.addEventListener('click', e => {
     CAT = b.dataset.cat;
     ls.set('miku_cat', CAT);
     render();
+    const pane = $('#pane');
+    if (pane) pane.scrollTop = 0;
     scrollTo({ top: 0 });
     b.scrollIntoView?.({ inline: 'center', block: 'nearest' });
   } else if (b.dataset.sel) {
@@ -3151,7 +3216,7 @@ async function loadBackendData() {
     STATE.linkConnected = true;
     STATE.linkName = 'Galaxy S24 Ultra (Miku-Link)';
     window.__mics = [
-      { value: 'default', label: 'Predeterminado del sistema ★' },
+      { value: 'default', label: 'Predeterminado del sistema' },
       { value: '1', label: 'Micrófono Studio USB' }
     ];
     renderRail();
@@ -3167,6 +3232,29 @@ async function loadBackendData() {
         STATE.keys = res.keys;
         backendOnline = true;
       }
+    }
+    if (!backendOnline) {
+      // El backend aún está iniciando en el puerto 8000; evitar ráfaga de peticiones fallidas y esperar a core_connected / poll
+      if (!_backendPollTimer) {
+        let attempts = 0;
+        _backendPollTimer = setInterval(async () => {
+          attempts++;
+          if (attempts > 25) {
+            clearInterval(_backendPollTimer);
+            _backendPollTimer = null;
+            return;
+          }
+          try {
+            const testRes = await window.Bridge?.getConfigKeys?.();
+            if (testRes && testRes.keys) {
+              clearInterval(_backendPollTimer);
+              _backendPollTimer = null;
+              loadBackendData();
+            }
+          } catch (_) {}
+        }, 1200);
+      }
+      return;
     }
     if (window.Bridge?.getExecutionMode) {
       const emRes = await window.Bridge.getExecutionMode();
@@ -3214,7 +3302,7 @@ async function loadBackendData() {
           { value: 'default', label: 'Predeterminado del sistema' },
           ...aRes.devices.map(d => ({
             value: String(d.index),
-            label: d.name + (d.is_default ? ' ★' : '')
+            label: d.name + (d.is_default ? ' (predeterminado)' : '')
           }))
         ];
         if (CAT === 'voz') {
@@ -3296,25 +3384,38 @@ function initWindowChrome() {
 }
 setTimeout(initWindowChrome, 50);
 window.__lang = l => { CFG.lang = l; saveCfg(); renderRail(); render(); };
+window.__goCat = cat => {
+  if (cat && V[cat]) {
+    CAT = cat;
+    renderRail();
+    render();
+  }
+};
+
+window.addEventListener('hashchange', () => {
+  const h = (location.hash || '').replace(/^#/, '');
+  if (h && V[h] && CAT !== h) {
+    window.__goCat(h);
+  }
+});
+
+window.addEventListener('miku-core-connected', () => {
+  if (_backendPollTimer) {
+    clearInterval(_backendPollTimer);
+    _backendPollTimer = null;
+  }
+  loadBackendData();
+});
 
 (async () => {
+  const initialHash = (location.hash || '').replace(/^#/, '');
+  if (initialHash && V[initialHash]) {
+    CAT = initialHash;
+  }
   renderRail();
   render();
-  loadBackendData();
-
-  // Ahorro de energía: pausar canvas cuando no está en foco o visible
-  window.addEventListener('blur', () => {
-    if (GALAXY_RAF) { cancelAnimationFrame(GALAXY_RAF); GALAXY_RAF = null; }
-  });
-  window.addEventListener('focus', () => {
-    if (!GALAXY_RAF) initHeroGalaxy();
-  });
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      if (GALAXY_RAF) { cancelAnimationFrame(GALAXY_RAF); GALAXY_RAF = null; }
-    } else {
-      if (!GALAXY_RAF) initHeroGalaxy();
-    }
-  });
+  if (!window.Bridge?.isCoreConnected || window.Bridge.isCoreConnected()) {
+    loadBackendData();
+  }
   emit({ k: 'hello' });
 })();

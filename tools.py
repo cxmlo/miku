@@ -419,21 +419,25 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "escribir_texto",
-            "description": "Escribe un texto en la computadora simulando pulsaciones de teclado, Ãºtil para escribir mensajes en chats, barras de bÃºsqueda, etc. AsegÃºrate de hacer clic primero en la caja de texto usando hacer_clic_visual si no estÃ¡ enfocada.",
+            "description": "Escribe texto en un campo o aplicación en la pantalla. Si especificas 'en_campo', Miku buscará automáticamente el campo en pantalla, moverá el ratón y hará clic para enfocarlo antes de escribir (NO necesitas llamar a 'hacer_clic_visual' antes si ya especificas 'en_campo').",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "texto": {
                         "type": "string",
-                        "description": "El texto que se va a escribir"
+                        "description": "El texto exacto que se va a escribir."
+                    },
+                    "en_campo": {
+                        "type": "string",
+                        "description": "Descripción visual del campo donde escribir (ej. 'barra de búsqueda', 'campo de chat'). Miku moverá el ratón y hará clic para enfocarlo automáticamente antes de escribir."
                     },
                     "presionar_enter": {
                         "type": "boolean",
-                        "description": "Si es true, presiona la tecla Enter justo despuÃ©s de escribir el texto (Ãºtil para enviar mensajes o buscar)."
+                        "description": "Si es true, presiona la tecla Enter justo después de escribir el texto (útil para enviar mensajes o ejecutar búsquedas)."
                     },
                     "limpiar_antes": {
                         "type": "boolean",
-                        "description": "Si es true, presiona Ctrl+A y Delete para borrar todo el texto existente antes de escribir. Ãšsalo SIEMPRE que vayas a escribir en una barra de bÃºsqueda (Spotify, Chrome, YouTube) para no mezclar palabras. DÃ©jalo en false si estÃ¡s continuando un texto (ej. en Word o bloc de notas)."
+                        "description": "Si es true, presiona Ctrl+A y Backspace para borrar todo el texto existente antes de escribir. Úsalo SIEMPRE que vayas a escribir en barras de búsqueda para no mezclar texto previo."
                     }
                 },
                 "required": ["texto"]
@@ -478,7 +482,7 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "ver_pantalla",
-            "description": "Toma una fotografÃ­a de la pantalla del ordenador en este momento exacto para que puedas verla. Ãšsalo de manera PROACTIVA antes de responder si el usuario utiliza palabras demostrativas ambiguas ('esto', 'aquÃ­', 'esta imagen', 'mi cÃ³digo') o si te pide ayuda con algo que estÃ¡ viendo. NUNCA respondas a ciegas si el usuario hace referencia a algo visual.",
+            "description": "Toma una captura de la pantalla para responder preguntas o analizar lo que el usuario está viendo (ej. '¿qué hay en pantalla?', 'lee este código o error'). IMPORTANTE: Si vas a hacer clic, escribir o interactuar con un elemento del escritorio, NO llames a esta herramienta: usa directamente 'hacer_clic_visual' o 'escribir_texto', ya que capturan y analizan la pantalla de forma automática.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -826,7 +830,7 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "escanear_ventana_activa",
-            "description": "(HERRAMIENTA LIMITADA) Escanea SOLO la ventana activa usando cÃ³digo. NO ve la pantalla completa. Solo Ãºsala para apps nativas de Windows simples. Para TODO lo demÃ¡s (navegadores, Spotify, hacer clic en pestaÃ±as, barra de tareas, etc.) usa 'hacer_clic_visual' que ve TODA la pantalla.",
+            "description": "Escanea los controles accesibles de la ventana activa de Windows mediante UI Automation local (0 tokens de visión). Obtiene IDs para hacer clic o escribir de forma determinista y económica. Usa esta herramienta como primera opción para interactuar con ventanas y aplicaciones de escritorio.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -838,17 +842,17 @@ tools_schema = [
         "type": "function",
         "function": {
             "name": "hacer_clic_visual",
-            "description": "(HERRAMIENTA PRINCIPAL DE INTERACCIÃ“N) Toma una foto de TODA la pantalla completa (incluyendo barra de tareas, pestaÃ±as del navegador, ventanas inactivas, TODO), analiza visualmente la imagen con IA, y hace clic donde sea necesario. Usa esta herramienta SIEMPRE que el usuario te pida hacer clic, cambiar de pestaÃ±a, abrir algo en la barra de tareas, interactuar con cualquier programa, etc. Funciona con CUALQUIER aplicaciÃ³n y CUALQUIER parte de la pantalla. DespuÃ©s de hacer clic, VERIFICA automÃ¡ticamente si la acciÃ³n funcionÃ³.",
+            "description": "Localiza visualmente un elemento en pantalla y hace clic en él (o doble clic). Captura y analiza la pantalla automáticamente en un solo paso, por lo que NO debes llamar a 'ver_pantalla' antes. Parámetro 'intencion': descripción concisa del elemento a cliquear (ej. 'icono de Gmail', 'barra de búsqueda', 'pestaña Cyberpunk'). Configura 'verificar_exito: true' para inspeccionar la pantalla tras el clic y obtener una confirmación verificada.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "intencion": {
                         "type": "string",
-                        "description": "La intenciÃ³n del usuario (ej. 'cambiar a la pestaÃ±a que dice Cyberpunk', 'reproducir la primera canciÃ³n', 'hacer clic en el icono de Chrome en la barra de tareas', 'abrir el primer video')"
+                        "description": "La intención o elemento a cliquear (ej. 'icono de Gmail', 'barra de búsqueda', 'reproducir primera canción'). Sé conciso."
                     },
                     "verificar_exito": {
                         "type": "boolean",
-                        "description": "Si es True, tomarÃ¡ una segunda foto DESPUÃ‰S del clic para confirmar que funcionÃ³. Si fallÃ³, intentarÃ¡ hacer clic en otro lado para arreglarlo. OBLIGATORIO usar True en clics complejos y propensos a fallar (seleccionar animes, resultados de bÃºsqueda). Usa False en clics simples y seguros."
+                        "description": "Si es True, toma una captura posterior para confirmar el cambio de estado (resultado CONFIRMED). Si es False, se emite el clic pero queda reportado como EXECUTED_UNVERIFIED."
                     }
                 },
                 "required": ["intencion"]

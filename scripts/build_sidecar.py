@@ -47,11 +47,11 @@ def run():
     else:
         pyinstaller_bin = "pyinstaller"
 
-    # Selección de modo: --onefile es el requerido por Tauri externalBin
-    is_onedir = "--onedir" in sys.argv
-    is_onefile = not is_onedir
-    build_mode = "--onedir" if is_onedir else "--onefile"
-    print(f"[Miku Build] Modo de empaquetado: {build_mode} {'(Carpeta onedir)' if is_onedir else '(Binario único para Tauri externalBin: miku-core-x86_64-pc-windows-msvc.exe)'}")
+    # Modo por defecto: --onedir para arranque instantáneo (1s) sin tiempo de descompresión
+    is_onefile = "--onefile" in sys.argv
+    is_onedir = not is_onefile
+    build_mode = "--onefile" if is_onefile else "--onedir"
+    print(f"[Miku Build] Modo de empaquetado: {build_mode} {'(Binario único onefile)' if is_onefile else '(Carpeta onedir: arranque instantáneo en ~1s)'}")
 
     # Limpiar binarios y directorios previos si existen
     for target in [
@@ -176,6 +176,7 @@ def run():
         dist_dir = os.path.join(BINARIES_DIR, "miku-core")
         raw_exe = os.path.join(dist_dir, "miku-core.exe")
         triple_dir = os.path.join(BINARIES_DIR, "miku-core-x86_64-pc-windows-msvc")
+        triple_exe = os.path.join(BINARIES_DIR, TARGET_NAME)
         if not os.path.exists(raw_exe):
             print(f"[ERROR] No se encontró la carpeta del servidor generada en {dist_dir}")
             sys.exit(1)
@@ -183,13 +184,15 @@ def run():
         if os.path.exists(triple_dir):
             shutil.rmtree(triple_dir, onerror=_remove_readonly)
         shutil.copytree(dist_dir, triple_dir)
-        triple_exe = os.path.join(triple_dir, "miku-core.exe")
+        # Asegurar binario con target triple para validación de Tauri externalBin
+        shutil.copy2(raw_exe, triple_exe)
         dest_binary = raw_exe
 
-    # Copiar también a la carpeta de la app instalada en la máquina si existe
-    if os.path.exists(LOCAL_APP_DIR):
-        print(f"[3/3] Sincronizando con la app instalada en {LOCAL_APP_DIR}...")
+    # Sincronizar con AppData\Local\Miku Desktop para arranque instantáneo (1s) sin descompresión
+    if LOCAL_APP_DIR:
+        print(f"[3/3] Sincronizando con {LOCAL_APP_DIR}...")
         try:
+            os.makedirs(LOCAL_APP_DIR, exist_ok=True)
             if is_onefile:
                 shutil.copy2(raw_exe, os.path.join(LOCAL_APP_DIR, "miku-core.exe"))
             else:
@@ -198,7 +201,7 @@ def run():
                     shutil.rmtree(dest_local_dir, onerror=_remove_readonly)
                 shutil.copytree(dist_dir, dest_local_dir)
                 shutil.copy2(raw_exe, os.path.join(LOCAL_APP_DIR, "miku-core.exe"))
-            print("[OK] Sincronizado exitosamente a la carpeta de la app instalada.")
+            print(f"[OK] Sincronizado exitosamente a {LOCAL_APP_DIR}")
         except Exception as e:
             print(f"[AVISO] No se pudo copiar directamente a {LOCAL_APP_DIR}: {e}")
 

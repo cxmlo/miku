@@ -58,7 +58,18 @@ def escribir_y_ejecutar_python(codigo: str) -> str:
         python_exe = sys.executable
         
         # Timeout de 60 segundos por si hace un bucle infinito
-        result = subprocess.run([python_exe, temp_file_path], capture_output=True, text=True, timeout=60)
+        run_kwargs = {
+            "capture_output": True,
+            "text": True,
+            "timeout": 60
+        }
+        if sys.platform == "win32":
+            run_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            si.wShowWindow = subprocess.SW_HIDE
+            run_kwargs["startupinfo"] = si
+        result = subprocess.run([python_exe, temp_file_path], **run_kwargs)
         
         try:
             os.remove(temp_file_path)

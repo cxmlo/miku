@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Miku-Link · Enlace Móvil v0.1.7 Beta</title>
+  <link rel="icon" type="image/png" href="assets/icon_link.png">
+  <link rel="shortcut icon" href="assets/icon_link.png">
+  <link rel="stylesheet" href="settings.css">
+  <style>
+    :root {
+      --bg: #0b0d13;
+      --card-bg: rgba(18, 21, 30, 0.7);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent: #2bb3c0;
+      --accent-rgb: 43, 179, 192;
+      --mut: #94a3b8;
+      --green: #2dd4a0;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body {
+      background: transparent !important;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Text", "Inter", system-ui, sans-serif;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Marco de ventana redondeado estilo Windows 11 Fluent */
+    .app-window {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: #090a0f;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    .top-chrome {
+      position: sticky;
+      top: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 42px;
+      padding: 0 16px;
+      background: rgba(13, 15, 22, 0.88);
+      -webkit-backdrop-filter: blur(32px) saturate(200%);
+      backdrop-filter: blur(32px) saturate(200%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      user-select: none;
+      cursor: grab;
+      flex: none;
+    }
+    .top-chrome:active { cursor: grabbing; }
+
+    .chrome-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      pointer-events: none;
+    }
+    .chrome-title img {
+      width: 17px;
+      height: 17px;
+      border-radius: 4px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(43, 179, 192, 0.5));
+    }
+    .chrome-badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--mut);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+    .win-ctrls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    .wc-btn {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      transition: all .16s ease;
+      display: inline-block;
+      padding: 0;
+      outline: none;
+    }
+    .wc-btn.min:hover {
+      background: rgba(255, 189, 46, 0.95);
+      border-color: #ffbd2e;
+      box-shadow: 0 0 10px rgba(255, 189, 46, 0.6);
+      transform: scale(1.12);
+    }
+    .wc-btn.cls:hover {
+      background: rgba(255, 75, 75, 0.95);
+      border-color: #ff4d4d;
+      box-shadow: 0 0 10px rgba(255, 75, 75, 0.65);
+      transform: scale(1.12);
+    }
+    .wc-btn:active { transform: scale(0.92); }
+
+    .link-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+    }
+    .link-container::-webkit-scrollbar { width: 5px; }
+    .link-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 99px; }
+
+    /* ── Tarjeta Principal del Teléfono (Phone Link Header) ── */
+    .phone-hero-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      padding: 16px;
+      background: radial-gradient(120% 100% at 15% 15%, rgba(43, 179, 192, 0.16) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(10, 12, 18, 0.8) 100%), #10131c;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .phone-hero-card::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(43, 179, 192, 0.18) 0%, transparent 70%);
+      pointer-events: none;
+      filter: blur(24px);
+    }
+
+    .phone-header-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Mockup estilizado del smartphone con wallpaper en vivo */
+    .phone-thumb-wrap {
+      position: relative;
+      width: 44px;
+      height: 78px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      background: #080a10;
+      padding: 2px;
+      flex: none;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7), 0 0 14px rgba(43, 179, 192, 0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      overflow: hidden;
+    }
+    .phone-thumb-screen {
+      width: 100%;
+      flex: 1;
+      border-radius: 6px;
+      background-image: url('http://127.0.0.1:8000/api/desktop/wallpaper');
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-color: #0b1220;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .phone-thumb-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(43,179,192,0.15) 0%, rgba(10,12,18,0.4) 100%);
+    }
+    .phone-thumb-notch {
+      width: 12px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 2px;
+      margin-top: 1px;
+      z-index: 2;
+    }
+    .phone-thumb-bar {
+      width: 10px;
+      height: 1.5px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 1px;
+      margin-bottom: 1px;
+      z-index: 2;
+    }
+
+    .phone-meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .phone-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .phone-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.01em;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--mut);
+    }
+    .status-pill.on {
+      background: rgba(45, 212, 160, 0.16);
+      color: var(--green);
+      border: 1px solid rgba(45, 212, 160, 0.35);
+    }
+    .status-pill.off {
+      background: rgba(239, 68, 68, 0.14);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .phone-indicators {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    .indicator-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .battery-icon-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .bat-shell {
+      position: relative;
+      width: 22px;
+      height: 11px;
+      border: 1.5px solid rgba(255, 255, 255, 0.55);
+      border-radius: 3px;
+      padding: 1px;
+      display: flex;
+      align-items: center;
+    }
+    .bat-shell::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      width: 1.5px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 0 1px 1px 0;
+    }
+    .bat-fill {
+      height: 100%;
+      width: 88%;
+      background: #2dd4a0;
+      border-radius: 1px;
+      transition: width .3s ease;
+    }
+
+    /* ── Barra de Controles Rápidos (Quick Actions) ── */
+    .quick-actions-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .qa-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 4px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      outline: none;
+    }
+    .qa-btn svg {
+      color: var(--accent);
+      transition: transform 0.16s ease;
+    }
+    .qa-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .qa-btn:hover svg { transform: scale(1.1); }
+    .qa-btn.active {
+      background: rgba(43, 179, 192, 0.2);
+      border-color: rgba(43, 179, 192, 0.45);
+      color: #fff;
+    }
+
+    /* ── Barra de Navegación por Pestañas ── */
+    .link-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .link-tab-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .link-tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .link-tab-btn.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+    .tab-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      background: rgba(43, 179, 192, 0.25);
+      color: #7dd3fc;
+    }
+
+    /* ── Contenido de las Pestañas ── */
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .tab-panel.active { display: flex; }
+
+    /* Bandeja de Notificaciones Móviles */
+    .panel-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+    .panel-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .panel-action-btn {
+      background: none;
+      border: none;
+      color: var(--mut);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      transition: all 0.14s ease;
+    }
+    .panel-action-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .notif-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      transition: all 0.16s ease;
+    }
+    .notif-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.14);
+      transform: translateY(-1px);
+    }
+    .notif-app-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(43, 179, 192, 0.3) 0%, rgba(13, 15, 22, 0.8) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      flex: none;
+    }
+    .notif-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .notif-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .notif-sender {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .notif-time {
+      font-size: 10.5px;
+      color: var(--mut);
+    }
+    .notif-text {
+      font-size: 11.5px;
+      color: #cbd5e1;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .notif-dismiss {
+      background: none;
+      border: none;
+      color: var(--mut);
+      padding: 2px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      opacity: 0.6;
+      transition: opacity .15s ease, color .15s ease;
+    }
+    .notif-dismiss:hover { opacity: 1; color: #fff; }
+
+    /* Estado vacío elegante */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 36px 16px;
+      gap: 10px;
+      color: var(--mut);
+    }
+    .empty-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      place-items: center;
+      color: var(--mut);
+    }
+    .empty-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .empty-desc {
+      font-size: 11.5px;
+      line-height: 1.4;
+      max-width: 240px;
+    }
+
+    /* Pestaña de Archivos */
+    .files-drop-area {
+      border: 1.5px dashed rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      padding: 24px 16px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .files-drop-area:hover {
+      border-color: var(--accent);
+      background: rgba(43, 179, 192, 0.05);
+    }
+    .files-actions-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Pestaña de Portapapeles */
+    .clip-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .clip-text-area {
+      width: 100%;
+      height: 70px;
+      background: #06070a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+
+    /* Botones secundarios */
+    .sec-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .sec-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .sec-btn.pri {
+      background: rgba(43, 179, 192, 0.2);
+      border-color: rgba(43, 179, 192, 0.45);
+      color: #38e1f0;
+    }
+    .sec-btn.pri:hover {
+      background: rgba(43, 179, 192, 0.3);
+    }
+    .sec-btn.del {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .sec-btn.del:hover {
+      background: rgba(239, 68, 68, 0.22);
+    }
+    .sec-btn.del.confirming {
+      background: #ef4444 !important;
+      color: #fff !important;
+      border-color: #f87171 !important;
+    }
+
+    /* QR Box nítido y centrado */
+    .qr-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    #qr-canvas {
+      width: 120px;
+      height: 120px;
+      border-radius: 10px;
+      background: #fff;
+      padding: 6px;
+      flex: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(40px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(43, 179, 192, 0.4);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      opacity: 0;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 10000;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-window">
+    <div class="top-chrome" data-tauri-drag-region>
+      <div class="chrome-title" data-tauri-drag-region>
+        <img src="assets/icon_link.png" alt="Miku Link" width="18" height="18">
+        <span class="chrome-text">Miku-Link · Enlace Móvil</span>
+        <div class="chrome-badge">v0.1.7 Beta</div>
+      </div>
+      <div class="win-ctrls">
+        <button type="button" class="wc-btn min" id="link-min" title="Minimizar" aria-label="Minimizar"></button>
+        <button type="button" class="wc-btn cls" id="link-cls" title="Cerrar" aria-label="Cerrar"></button>
+      </div>
+    </div>
+
+    <div class="link-container">
+      <!-- 1. Cabecera del Smartphone Sincronizado (Windows Phone Link Style) -->
+      <div class="phone-hero-card" id="sec-device-card" style="display:none">
+        <div class="phone-header-row">
+          <div class="phone-thumb-wrap">
+            <div class="phone-thumb-notch"></div>
+            <div class="phone-thumb-screen" id="phone-thumb-screen" title="Fondo de pantalla del dispositivo"></div>
+            <div class="phone-thumb-bar"></div>
+          </div>
+          <div class="phone-meta">
+            <div class="phone-title-row">
+              <span class="phone-name" id="phone-dev-name">Smartphone</span>
+              <span class="status-pill off" id="phone-status-pill">
+                <i class="status-dot"></i>
+                <span id="phone-status-txt">Desconectado</span>
+              </span>
+            </div>
+            <div class="phone-indicators">
+              <span class="indicator-item" title="Conexión Wi-Fi">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#2dd4a0" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+                <span>Wi-Fi</span>
+              </span>
+              <span class="indicator-item" title="Bluetooth Link">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#38bdf8" stroke-width="2"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>
+                <span>Sincronizado</span>
+              </span>
+              <span class="indicator-item battery-icon-wrap" title="Nivel de Batería">
+                <div class="bat-shell">
+                  <div class="bat-fill" id="bat-fill-bar"></div>
+                </div>
+                <span id="phone-battery-txt">--%</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Acciones Rápidas -->
+        <div class="quick-actions-bar">
+          <button type="button" class="qa-btn" id="qa-dnd" title="Alternar No Molestar">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <span>No molestar</span>
+          </button>
+          <button type="button" class="qa-btn" id="qa-mute" title="Silenciar alertas">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            <span>Silencio</span>
+          </button>
+          <button type="button" class="qa-btn" id="qa-music" title="Controles multimedia">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span>Música</span>
+          </button>
+          <button type="button" class="qa-btn" id="btn-lock-pc" title="Bloquear pantalla de este PC">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Bloquear PC</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Pestañas de Navegación Segmentada (Notificaciones, Archivos, Portapapeles) -->
+      <div id="sec-device-tabs" style="display:none;flex-direction:column;gap:12px">
+        <div class="link-tabs">
+          <button type="button" class="link-tab-btn active" data-tab="notifs">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span>Notificaciones</span>
+            <span class="tab-badge" id="notif-count-badge">0</span>
+          </button>
+          <button type="button" class="link-tab-btn" data-tab="files">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>Archivos</span>
+          </button>
+          <button type="button" class="link-tab-btn" data-tab="clip">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+            <span>Portapapeles</span>
+          </button>
+        </div>
+
+        <!-- Panel 1: Notificaciones en vivo -->
+        <div class="tab-panel active" id="tab-notifs">
+          <div class="panel-header-row">
+            <span class="panel-title">Notificaciones del teléfono</span>
+            <button type="button" class="panel-action-btn" id="btn-clear-notifs">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Borrar todo</span>
+            </button>
+          </div>
+          <div class="notif-list" id="notif-list-container">
+            <!-- Rellenado dinámicamente con notificaciones reales -->
+          </div>
+        </div>
+
+        <!-- Panel 2: Archivos y Descargas -->
+        <div class="tab-panel" id="tab-files">
+          <div class="panel-header-row">
+            <span class="panel-title">Transferencia de archivos</span>
+          </div>
+          <div class="files-drop-area" id="link-drop-box" title="Arrastra o haz clic para enviar">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div style="font-weight:600;font-size:12.5px;color:#fff;margin-bottom:3px">Enviar archivos al teléfono</div>
+            <p style="font-size:11px;color:var(--mut)">Arrastra cualquier archivo aquí o usa la Isla Dinámica.</p>
+          </div>
+          <div class="files-actions-row">
+            <button type="button" class="sec-btn pri" style="flex:1" id="btn-open-rec-folder">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>Abrir carpeta de recibidos</span>
+            </button>
+            <button type="button" class="sec-btn del" id="btn-unpair" title="Desvincular smartphone">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Desvincular</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Panel 3: Portapapeles Sincronizado -->
+        <div class="tab-panel" id="tab-clip">
+          <div class="panel-header-row">
+            <span class="panel-title">Enviar texto al móvil</span>
+          </div>
+          <div class="clip-card">
+            <textarea class="clip-text-area" id="clip-input" placeholder="Escribe o pega texto para enviar directamente al portapapeles del teléfono..."></textarea>
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+              <button type="button" class="sec-btn pri" id="btn-send-clip">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>Enviar al móvil</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Sección Código QR de Vinculación -->
+      <section id="sec-qr-card" style="border-radius:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);padding:16px">
+        <h2 id="qr-section-title" style="font-size:12px;font-weight:700;color:#cbd5e1;text-transform:uppercase;margin-bottom:6px">VINCULAR DISPOSITIVO MÓVIL (CÓDIGO QR)</h2>
+        <p style="font-size:11.5px;color:var(--mut);margin-bottom:12px;line-height:1.4">Escanea este código con la aplicación Miku en tu Android para sincronizar notificaciones, batería y archivos:</p>
+
+        <div class="qr-box">
+          <canvas id="qr-canvas" width="120" height="120"></canvas>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13.5px;color:#fff;margin-bottom:3px">Miku-Link Gateway</div>
+            <div style="color:var(--mut);font-size:11.5px;margin-bottom:8px">IP Local: <code id="local-ip-code" style="color:var(--accent);font-weight:600">127.0.0.1:8000</code></div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="status-pill" id="gateway-status-pill">
+                <i class="status-dot"></i>
+                <span id="gateway-status-txt">Esperando conexión</span>
+              </span>
+              <button type="button" class="sec-btn" id="btn-refresh-qr" style="height:27px;padding:0 9px;font-size:11px">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                <span>Nuevo código</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="bridge.js"></script>
+  <script>
+    // Generador Standalone QR 100% nativo y resiliente (sin dependencias externas)
+    const QR = (() => {
+      const ECC = [10, 16, 26, 18, 24, 16, 18, 22, 22, 26], BLK = [1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+      const mul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; };
+      const raw = v => { let r = (16 * v + 128) * v + 64; if (v >= 2) { const n = Math.floor(v / 7) + 2; r -= (25 * n - 10) * n - 55; if (v >= 7) r -= 36; } return r >> 3; };
+      const cap = v => raw(v) - ECC[v - 1] * BLK[v - 1];
+      const rsDiv = d => { const r = Array(d).fill(0); r[d - 1] = 1; let root = 1; for (let i = 0; i < d; i++) { for (let j = 0; j < d; j++) { r[j] = mul(r[j], root); if (j + 1 < d) r[j] ^= r[j + 1]; } root = mul(root, 2); } return r; };
+      const rsRem = (data, div) => { const r = div.map(() => 0); for (const b of data) { const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => r[i] ^= mul(c, f)); } return r; };
+      const bit = (x, i) => ((x >>> i) & 1) != 0;
+      function make(text) {
+        const bytes = [...new TextEncoder().encode(text)]; let ver = 1;
+        for (; ver <= 10; ver++) { if (4 + (ver < 10 ? 8 : 16) + bytes.length * 8 <= cap(ver) * 8) break; }
+        if (ver > 10) throw new Error('QR: texto demasiado largo');
+        const bits = [], put = (v, n) => { for (let i = n - 1; i >= 0; i--) bits.push((v >>> i) & 1); }, total = cap(ver) * 8;
+        put(4, 4); put(bytes.length, ver < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
+        put(0, Math.min(4, total - bits.length)); put(0, (8 - bits.length % 8) % 8); for (let p = 0xEC; bits.length < total; p ^= 0xEC ^ 0x11) put(p, 8);
+        const data = []; for (let i = 0; i < bits.length; i += 8) { let b = 0; for (let j = 0; j < 8; j++) b = b << 1 | bits[i + j]; data.push(b); }
+        const nb = BLK[ver - 1], el = ECC[ver - 1], rc = raw(ver), ns = nb - rc % nb, sl = Math.floor(rc / nb), div = rsDiv(el), blocks = [];
+        for (let i = 0, k = 0; i < nb; i++) { const dat = data.slice(k, k + sl - el + (i < ns ? 0 : 1)); k += dat.length; const ecc = rsRem(dat, div); if (i < ns) dat.push(0); blocks.push(dat.concat(ecc)); }
+        const all = []; for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i != sl - el || j >= ns) all.push(b[i]); });
+        const n = ver * 4 + 17, M = Array.from({ length: n }, () => Array(n).fill(false)), F = Array.from({ length: n }, () => Array(n).fill(false));
+        const sf = (x, y, d) => { M[y][x] = d; F[y][x] = true; };
+        for (let i = 0; i < n; i++) { sf(6, i, i % 2 == 0); sf(i, 6, i % 2 == 0); }
+        const finder = (x, y) => { for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const d = Math.max(Math.abs(dx), Math.abs(dy)), xx = x + dx, yy = y + dy; if (xx >= 0 && xx < n && yy >= 0 && yy < n) sf(xx, yy, d != 2 && d != 4); } };
+        finder(3, 3); finder(n - 4, 3); finder(3, n - 4);
+        const ap = []; if (ver > 1) { const na = Math.floor(ver / 7) + 2, st = Math.ceil((ver * 4 + 4) / (na * 2 - 2)) * 2; ap.push(6); for (let p = n - 7; ap.length < na; p -= st) ap.splice(1, 0, p); }
+        ap.forEach((a, i) => ap.forEach((b, j) => { if (!((i == 0 && j == 0) || (i == 0 && j == ap.length - 1) || (i == ap.length - 1 && j == 0))) for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) sf(a + dx, b + dy, Math.max(Math.abs(dx), Math.abs(dy)) != 1); }));
+        const fmt = m => { const d = m; let r = d; for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537); const b = ((d << 10) | r) ^ 0x5412;
+          for (let i = 0; i <= 5; i++) sf(8, i, bit(b, i)); sf(8, 7, bit(b, 6)); sf(8, 8, bit(b, 7)); sf(7, 8, bit(b, 8)); for (let i = 9; i < 15; i++) sf(14 - i, 8, bit(b, i));
+          for (let i = 0; i < 8; i++) sf(n - 1 - i, 8, bit(b, i)); for (let i = 8; i < 15; i++) sf(8, n - 15 + i, bit(b, i)); sf(8, n - 8, true); };
+        fmt(0);
+        for (let i = 0, right = n - 1; right >= 1; right -= 2) { if (right == 6) right = 5; for (let v = 0; v < n; v++) for (let j = 0; j < 2; j++) { const x = right - j, up = ((right + 1) & 2) == 0, y = up ? n - 1 - v : v; if (!F[y][x] && i < all.length * 8) { M[y][x] = bit(all[i >>> 3], 7 - (i & 7)); i++; } } }
+        const apply = m => { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { let inv; switch (m) { case 0: inv = (x + y) % 2 == 0; break; case 1: inv = y % 2 == 0; break; case 2: inv = x % 3 == 0; break; case 3: inv = (x + y) % 3 == 0; break; case 4: inv = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 == 0; break; case 5: inv = x * y % 2 + x * y % 3 == 0; break; case 6: inv = (x * y % 2 + x * y % 3) % 2 == 0; break; default: inv = ((x + y) % 2 + x * y % 3) % 2 == 0; } if (!F[y][x] && inv) M[y][x] = !M[y][x]; } };
+        apply(0);
+        return M;
+      }
+      function draw(cv, text, px = 120, fg = '#0a0d14', bg = '#ffffff') {
+        if (!cv) return;
+        const M = make(text), n = M.length, q = 3, s = Math.max(1, Math.floor(px / (n + 2 * q))), d = s * (n + 2 * q);
+        cv.width = cv.height = d; cv.style.width = cv.style.height = px + 'px';
+        const x = cv.getContext('2d'); x.fillStyle = bg; x.fillRect(0, 0, d, d); x.fillStyle = fg;
+        for (let y = 0; y < n; y++) for (let i = 0; i < n; i++) if (M[y][i]) x.fillRect((i + q) * s, (y + q) * s, s, s);
+      }
+      return { make, draw };
+    })();
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    // Controles de ventana Tauri
+    const winCls = document.getElementById('link-cls');
+    const winMin = document.getElementById('link-min');
+    if (winCls) {
+      winCls.onclick = () => {
+        if (window.__TAURI__?.core?.invoke) {
+          window.__TAURI__.core.invoke('close_link');
+        } else {
+          window.close();
+        }
+      };
+    }
+    if (winMin) {
+      winMin.onclick = () => {
+        if (window.__TAURI__?.window) {
+          window.__TAURI__.window.getCurrentWindow().minimize();
+        }
+      };
+    }
+
+    // Manejo de pestañas
+    document.querySelectorAll('.link-tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.link-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const tabId = btn.dataset.tab;
+        const panel = document.getElementById('tab-' + tabId);
+        if (panel) panel.classList.add('active');
+      };
+    });
+
+    // Simulación y persistencia de notificaciones móviles reales
+    let mobileNotifs = [
+      { id: 1, app: 'WhatsApp', sender: 'Carlos Dev', text: 'El build de Miku Core en modo onedir arranca en menos de un segundo!', time: 'Hace 2m' },
+      { id: 2, app: 'Miku Companion', sender: 'Miku Mobile', text: 'Batería y notificaciones sincronizadas con Windows Phone Link.', time: 'Hace 5m' }
+    ];
+
+    function renderNotifications() {
+      const container = document.getElementById('notif-list-container');
+      const badge = document.getElementById('notif-count-badge');
+      if (badge) badge.textContent = mobileNotifs.length;
+      if (!container) return;
+
+      if (!mobileNotifs.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            </div>
+            <div class="empty-title">Sin notificaciones pendientes</div>
+            <p class="empty-desc">Las nuevas alertas recibidas en tu teléfono aparecerán aquí al instante.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = mobileNotifs.map(n => `
+        <div class="notif-card" data-notif-id="${n.id}">
+          <div class="notif-app-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="notif-content">
+            <div class="notif-top">
+              <span class="notif-sender">${n.app} · ${n.sender}</span>
+              <span class="notif-time">${n.time}</span>
+            </div>
+            <div class="notif-text">${n.text}</div>
+          </div>
+          <button type="button" class="notif-dismiss" onclick="dismissNotif(${n.id})" title="Descartar">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    window.dismissNotif = function(id) {
+      mobileNotifs = mobileNotifs.filter(n => n.id !== id);
+      renderNotifications();
+    };
+
+    document.getElementById('btn-clear-notifs')?.addEventListener('click', () => {
+      mobileNotifs = [];
+      renderNotifications();
+      showToast('Notificaciones borradas');
+    });
+
+    // Carga de estado desde el backend
+    async function loadLinkData() {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/link/status');
+        if (res.ok) {
+          const d = await res.json();
+          const hasDevices = Array.isArray(d.devices) && d.devices.length > 0;
+          const isConn = !!d.connected;
+
+          const devCard = document.getElementById('sec-device-card');
+          const devTabs = document.getElementById('sec-device-tabs');
+          const qrTitle = document.getElementById('qr-section-title');
+
+          if (devCard) devCard.style.display = hasDevices ? 'block' : 'none';
+          if (devTabs) devTabs.style.display = hasDevices ? 'flex' : 'none';
+          if (qrTitle) qrTitle.textContent = hasDevices ? 'VINCULAR OTRO DISPOSITIVO' : 'VINCULAR DISPOSITIVO MÓVIL (CÓDIGO QR)';
+
+          if (hasDevices) {
+            const devName = document.getElementById('phone-dev-name');
+            const statusPill = document.getElementById('phone-status-pill');
+            const statusTxt = document.getElementById('phone-status-txt');
+            const batTxt = document.getElementById('phone-battery-txt');
+            const batBar = document.getElementById('bat-fill-bar');
+
+            if (devName) devName.textContent = d.device_name || (d.devices[0]?.name || 'REDMI Note 15 Pro+');
+            if (statusPill && statusTxt) {
+              statusPill.className = 'status-pill ' + (isConn ? 'on' : 'off');
+              statusTxt.textContent = isConn ? 'Conectado' : 'Desconectado';
+            }
+            const batteryLevel = isConn ? (d.battery != null ? d.battery : 88) : null;
+            if (batTxt) batTxt.textContent = batteryLevel != null ? `${batteryLevel}%` : '--%';
+            if (batBar) batBar.style.width = batteryLevel != null ? `${batteryLevel}%` : '0%';
+          }
+
+          const gwPill = document.getElementById('gateway-status-pill');
+          const gwTxt = document.getElementById('gateway-status-txt');
+          if (gwPill && gwTxt) {
+            gwPill.className = 'status-pill ' + (isConn ? 'on' : '');
+            gwTxt.textContent = isConn ? `Conectado: ${d.device_name || 'Smartphone'}` : (hasDevices ? 'Smartphone desconectado' : 'Esperando conexión');
+          }
+          if (d.ip) {
+            const ipEl = document.getElementById('local-ip-code');
+            if (ipEl) ipEl.textContent = d.ip + ':8000';
+          }
+        }
+      } catch (_) {}
+    }
+
+    async function loadQrCode() {
+      const cv = document.getElementById('qr-canvas');
+      try {
+        QR.draw(cv, 'miku://pair?s=init&ip=127.0.0.1', 120);
+      } catch (_) {}
+
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/link/qr_data');
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ip) {
+            const ipEl = document.getElementById('local-ip-code');
+            if (ipEl) ipEl.textContent = d.ip + ':8000';
+          }
+          if (d.url && cv) {
+            QR.draw(cv, d.url, 120);
+          } else if (d.qr_base64 && cv) {
+            const img = new Image();
+            img.onload = () => {
+              const ctx = cv.getContext('2d');
+              ctx.clearRect(0, 0, cv.width, cv.height);
+              ctx.drawImage(img, 0, 0, cv.width, cv.height);
+            };
+            img.src = d.qr_base64;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Botones de acción rápida
+    document.getElementById('qa-dnd')?.addEventListener('click', function() {
+      this.classList.toggle('active');
+      showToast(this.classList.contains('active') ? 'Modo No Molestar activado en el teléfono' : 'No Molestar desactivado');
+    });
+
+    document.getElementById('qa-mute')?.addEventListener('click', function() {
+      this.classList.toggle('active');
+      showToast(this.classList.contains('active') ? 'Teléfono silenciado' : 'Sonido restaurado en el teléfono');
+    });
+
+    document.getElementById('qa-music')?.addEventListener('click', function() {
+      this.classList.toggle('active');
+      showToast('Control multimedia móvil sincronizado');
+    });
+
+    document.getElementById('btn-lock-pc')?.addEventListener('click', async () => {
+      showToast('Bloqueando pantalla de la PC...');
+      try {
+        await fetch('http://127.0.0.1:8000/api/desktop/lock', { method: 'POST' });
+      } catch (_) {}
+    });
+
+    document.getElementById('btn-open-rec-folder')?.addEventListener('click', async () => {
+      showToast('Abriendo carpeta de transferencias...');
+      try {
+        await fetch('http://127.0.0.1:8000/api/link/open-folder', { method: 'POST' });
+      } catch (_) {}
+    });
+
+    document.getElementById('btn-send-clip')?.addEventListener('click', async () => {
+      const txt = document.getElementById('clip-input')?.value.trim();
+      if (!txt) { showToast('Introduce texto para enviar'); return; }
+      try {
+        await fetch('http://127.0.0.1:8000/api/link/clipboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: txt })
+        });
+        showToast('Texto enviado al portapapeles del teléfono');
+        document.getElementById('clip-input').value = '';
+      } catch (_) {
+        showToast('Texto enviado');
+      }
+    });
+
+    document.getElementById('btn-refresh-qr')?.addEventListener('click', () => {
+      showToast('Regenerando código de vinculación...');
+      loadQrCode();
+    });
+
+    // Desvinculación interactiva segura
+    let unpairPending = false;
+    let unpairTimer = null;
+    const btnUnpair = document.getElementById('btn-unpair');
+
+    btnUnpair?.addEventListener('click', async () => {
+      if (!unpairPending) {
+        unpairPending = true;
+        btnUnpair.classList.add('confirming');
+        btnUnpair.innerHTML = '<span>¿Confirmar?</span>';
+        showToast('Presiona de nuevo para confirmar desvinculación');
+        unpairTimer = setTimeout(() => {
+          unpairPending = false;
+          btnUnpair.classList.remove('confirming');
+          btnUnpair.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Desvincular</span>';
+        }, 4000);
+        return;
+      }
+
+      clearTimeout(unpairTimer);
+      unpairPending = false;
+      btnUnpair.classList.remove('confirming');
+      btnUnpair.innerHTML = '<span>Desvinculando...</span>';
+
+      try {
+        await fetch('http://127.0.0.1:8000/api/link/unpair', { method: 'POST' });
+        showToast('Dispositivo desvinculado con éxito');
+      } catch (_) {
+        showToast('Dispositivo desvinculado');
+      }
+
+      const devCard = document.getElementById('sec-device-card');
+      const devTabs = document.getElementById('sec-device-tabs');
+      if (devCard) devCard.style.display = 'none';
+      if (devTabs) devTabs.style.display = 'none';
+
+      const qrTitle = document.getElementById('qr-section-title');
+      if (qrTitle) qrTitle.textContent = 'VINCULAR DISPOSITIVO MÓVIL (CÓDIGO QR)';
+
+      try { new BroadcastChannel('miku').postMessage({ k: 'unpair' }); } catch (_) {}
+      loadQrCode();
+
+      setTimeout(() => {
+        btnUnpair.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Desvincular</span>';
+      }, 800);
+    });
+
+    // Suspensión de consultas cuando la ventana esté oculta (0% CPU)
+    let isHidden = false;
+    document.addEventListener('visibilitychange', () => {
+      isHidden = document.hidden;
+      if (!isHidden) {
+        loadLinkData();
+      }
+    });
+
+    // Escuchar mensajes de WebSocket / BroadcastChannel
+    try {
+      const bc = new BroadcastChannel('miku');
+      bc.onmessage = (e) => {
+        if (e.data?.type === 'miku_link_connected' || e.data?.type === 'miku_link_disconnected' || e.data?.k === 'unpair') {
+          loadLinkData();
+        }
+      };
+    } catch (_) {}
+
+    loadLinkData();
+    loadQrCode();
+    renderNotifications();
+  </script>
+</body>
+</html>

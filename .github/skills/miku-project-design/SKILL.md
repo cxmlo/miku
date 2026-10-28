@@ -9,7 +9,7 @@ Use this skill before adding a feature that crosses desktop, Android, backend, v
 
 ## Workflow
 
-1. Read `docs/PROJECT_ARCHITECTURE_AND_DESIGN.md` before proposing or editing structure.
+1. Read `.agent/rules/miku-design-system.md` (`miku-catalogo.html` is the visual source of truth for Configuración and Miku-Link) and `docs/PROJECT_ARCHITECTURE_AND_DESIGN.md` before proposing or editing structure.
 2. Identify the owning client and the actual runtime entry point. Tauri packages `miku_ui/src/`; FastAPI still serves `miku_island/` for compatibility.
 3. Preserve the current visual identity and use semantic theme tokens instead of scattering new color/style literals.
 4. Keep Compose UI, observable screen state, repositories, persistence, and connection lifecycle in separate responsibilities; add abstractions only when they provide a real boundary.

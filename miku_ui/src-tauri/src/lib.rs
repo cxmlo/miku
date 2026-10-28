@@ -175,15 +175,22 @@ fn start_backend() {
     };
 
     let try_sidecar = || -> bool {
-        let sidecar_candidates = [
-            exe_dir.join("miku-core").join("miku-core.exe"),
-            exe_dir.join("binaries").join("miku-core").join("miku-core.exe"),
-            exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc").join("miku-core.exe"),
-            exe_dir.join("miku-core.exe"),
-            exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc.exe"),
-            exe_dir.join("resources").join("miku-core.exe"),
-            exe_dir.join("resources").join("miku-core").join("miku-core.exe"),
-        ];
+        let mut sidecar_candidates = Vec::new();
+        // 1. AppData\Local\Miku Desktop\ (carpeta descomprimida onedir: arranque instantáneo en 1s)
+        if let Ok(local_app) = std::env::var("LOCALAPPDATA") {
+            let miku_local = PathBuf::from(&local_app).join("Miku Desktop");
+            sidecar_candidates.push(miku_local.join("miku-core").join("miku-core.exe"));
+            sidecar_candidates.push(miku_local.join("miku-core.exe"));
+        }
+        // 2. Rutas relativas al directorio del ejecutable o recursos empaquetados
+        sidecar_candidates.push(exe_dir.join("miku-core").join("miku-core.exe"));
+        sidecar_candidates.push(exe_dir.join("resources").join("miku-core").join("miku-core.exe"));
+        sidecar_candidates.push(exe_dir.join("resources").join("binaries").join("miku-core").join("miku-core.exe"));
+        sidecar_candidates.push(exe_dir.join("binaries").join("miku-core").join("miku-core.exe"));
+        sidecar_candidates.push(exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc").join("miku-core.exe"));
+        sidecar_candidates.push(exe_dir.join("miku-core.exe"));
+        sidecar_candidates.push(exe_dir.join("binaries").join("miku-core-x86_64-pc-windows-msvc.exe"));
+        sidecar_candidates.push(exe_dir.join("resources").join("miku-core.exe"));
 
         for sidecar in &sidecar_candidates {
             if sidecar.exists() {
@@ -297,11 +304,11 @@ fn open_settings_window(app: tauri::AppHandle) {
     )
     .title("Configuración · Miku")
     .inner_size(1080.0, 780.0)
-    .min_inner_size(760.0, 600.0)
+    .min_inner_size(720.0, 520.0)
     .decorations(false)
     .transparent(true)
     .shadow(false)
-    .resizable(false)
+    .resizable(true)
     .center();
 
     match builder.build() {
@@ -325,22 +332,24 @@ fn open_settings(app: tauri::AppHandle) {
 
 #[tauri::command]
 fn open_link_window(app: tauri::AppHandle) {
-    if let Some(existing) = app.get_webview_window("link") {
+    if let Some(existing) = app.get_webview_window("settings") {
+        let _ = existing.eval("window.__goCat && window.__goCat('link');");
         let _ = existing.show();
         let _ = existing.set_focus();
         return;
     }
     let builder = tauri::WebviewWindowBuilder::new(
         &app,
-        "link",
-        tauri::WebviewUrl::App("miku_link.html".into())
+        "settings",
+        tauri::WebviewUrl::App("miku_settings.html#link".into())
     )
-    .title("Miku-Link · Enlace Móvil")
-    .inner_size(460.0, 700.0)
+    .title("Configuración · Miku")
+    .inner_size(1080.0, 780.0)
+    .min_inner_size(720.0, 520.0)
     .decorations(false)
     .transparent(true)
     .shadow(false)
-    .resizable(false)
+    .resizable(true)
     .center();
 
     if let Ok(win) = builder.build() {
@@ -354,7 +363,7 @@ fn open_link_window(app: tauri::AppHandle) {
 
 #[tauri::command]
 fn close_link(app: tauri::AppHandle) {
-    if let Some(win) = app.get_webview_window("link") {
+    if let Some(win) = app.get_webview_window("settings") {
         let _ = win.hide();
     }
 }
@@ -441,12 +450,9 @@ pub fn run() {
             let link_i = MenuItem::with_id(app, "link", "Miku-Link (Enlace Móvil)", true, None::<&str>)?;
             let config_i = MenuItem::with_id(app, "config", "Configuración", true, None::<&str>)?;
             let sep2 = PredefinedMenuItem::separator(app)?;
-            let low_cost_i = MenuItem::with_id(app, "low_cost", "🔴 Modo Ahorro: Desactivado", true, None::<&str>)?;
-            let sep3 = PredefinedMenuItem::separator(app)?;
             let quit_i = MenuItem::with_id(app, "quit", "Salir de Miku", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_i, &hide_i, &sep1, &link_i, &config_i, &sep2, &low_cost_i, &sep3, &quit_i])?;
+            let menu = Menu::with_items(app, &[&open_i, &hide_i, &sep1, &link_i, &config_i, &sep2, &quit_i])?;
 
-            let low_cost_item_clone = low_cost_i.clone();
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("Miku · Dynamic Island")
@@ -454,46 +460,25 @@ pub fn run() {
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "open" => {
                         if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.emit("miku-power-save", false);
+                            let _ = window.emit("miku-restore-requested", ());
                             let _ = window.show();
                             let _ = window.set_focus();
                         }
-                        let _ = low_cost_item_clone.set_text("🔴 Modo Ahorro: Desactivado");
                     }
                     "hide" => {
                         if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.emit("miku-power-save", true);
-                            let _ = window.hide();
-                        }
-                        let _ = low_cost_item_clone.set_text("🟢 Modo Ahorro: Activado (Isla Oculta)");
-                        #[cfg(target_os = "windows")]
-                        {
-                            use std::os::windows::process::CommandExt;
-                            let mut cmd = std::process::Command::new("powershell");
-                            cmd.args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/settings/low_cost_toggle -Method Post -TimeoutSec 2 -ErrorAction SilentlyContinue"]);
-                            cmd.creation_flags(0x08000000);
-                            let _ = cmd.spawn();
+                            // La webview colapsa a compacta, desvanece a Miku y congela
+                            // sus fotogramas; luego se oculta la ventana nativa.
+                            let _ = window.emit("miku-hide-requested", ());
+                            let win_clone = window.clone();
+                            std::thread::spawn(move || {
+                                std::thread::sleep(std::time::Duration::from_millis(300));
+                                let _ = win_clone.hide();
+                            });
                         }
                     }
                     "link" => {
                         open_link_window(app.clone());
-                    }
-                    "low_cost" => {
-                        static IS_LOW: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-                        let next = !IS_LOW.load(std::sync::atomic::Ordering::Relaxed);
-                        IS_LOW.store(next, std::sync::atomic::Ordering::Relaxed);
-                        let _ = low_cost_item_clone.set_text(if next { "🟢 Modo Ahorro: Activado" } else { "🔴 Modo Ahorro: Desactivado" });
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.emit("miku-power-save", next);
-                        }
-                        #[cfg(target_os = "windows")]
-                        {
-                            use std::os::windows::process::CommandExt;
-                            let mut cmd = std::process::Command::new("powershell");
-                            cmd.args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", "Invoke-RestMethod -Uri http://127.0.0.1:8000/api/settings/low_cost_toggle -Method Post -TimeoutSec 2 -ErrorAction SilentlyContinue"]);
-                            cmd.creation_flags(0x08000000);
-                            let _ = cmd.spawn();
-                        }
                     }
                     "config" => {
                         open_settings_window(app.clone());
@@ -516,6 +501,7 @@ pub fn run() {
                         }
                     }
                     tauri::WindowEvent::CloseRequested { api, .. } => {
+                        let _ = window.emit("miku-hide-requested", ());
                         let _ = window.hide();
                         api.prevent_close();
                     }

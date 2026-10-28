@@ -6,7 +6,7 @@ Estos archivos agrupan las habilidades de Miku para controlar y observar física
 Provee comandos de sistema a bajo nivel:
 - `gestionar_ventana(titulo, accion)`: Minimiza, maximiza o cierra ventanas.
 - `abrir_aplicacion(nombre)`: Ejecuta programas.
-- `escribir_texto(texto)` y `atajo_teclado(teclas)`: Simula pulsaciones físicas de teclado mediante librerías como `pyautogui`.
+- `escribir_texto(texto, presionar_enter=False, limpiar_antes=False, en_campo=None)` y `atajo_teclado(teclas)`: Simula pulsaciones de teclado o inyección mediante portapapeles (`pyperclip` + `Ctrl+V` para soporte Unicode total). Si se pasa `en_campo`, localiza el control visualmente mediante `computer_use.hacer_clic_visual`, mueve el ratón y hace clic para enfocar antes de escribir.
 - `ejecutar_comando_sistema(comando)`: Acceso al CMD/PowerShell.
 - `guardar_captura_en_escritorio()`: Toma un pantallazo y lo guarda localmente.
 

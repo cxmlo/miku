@@ -14,7 +14,7 @@ DEFAULT_AGENTS = [
         "name": "GitHub",
         "c": "#39D353",
         "role": "Control de versiones, commits, ramas, pull requests y estado de repositorios",
-        "model": "google/gemini-2.5-flash",
+        "model": "google/gemini-1.5-flash",
         "hooks": 1,
         "active": 1,
         "isl": 1,
@@ -25,7 +25,7 @@ DEFAULT_AGENTS = [
         "name": "Antigravity",
         "c": "#00D2FF",
         "role": "Desarrollo frontend, interfaz reactiva, animación y diseño UI/UX",
-        "model": "google/gemini-2.5-pro",
+        "model": "google/gemini-1.5-pro",
         "hooks": 1,
         "active": 1,
         "isl": 2,
@@ -120,7 +120,7 @@ class AgentManager:
         final_id = info.get("id", agent_id or "antigravity")
         final_name = agent_name or info.get("name", final_id.capitalize())
         role_desc = info.get("role", "Especialista técnico")
-        model_name = info.get("model", "google/gemini-2.5-flash")
+        model_name = info.get("model", "google/gemini-1.5-flash")
 
         self.agent_counter += 1
         self.active_agents.add(final_id)
@@ -145,10 +145,27 @@ class AgentManager:
         def run_task():
             logger.info(f"Iniciando tarea en paralelo para {final_name} ({final_id}): '{task}'...")
             try:
-                from brain import get_vertex_client
-                gemini_client = get_vertex_client()
+                # Usar el proveedor configurado en Ajustes (no solo Vertex AI)
+                gemini_client = None
+                try:
+                    from models_provider import get_client_and_model
+                    gemini_client, resolved_model, _prov = get_client_and_model(category="pro")
+                    if not gemini_client:
+                        gemini_client, resolved_model, _prov = get_client_and_model(category="chat")
+                    if gemini_client and resolved_model:
+                        model_name_resolved = resolved_model
+                    else:
+                        model_name_resolved = None
+                except Exception as prov_err:
+                    logger.warning(f"No se pudo resolver proveedor para agente {final_name}: {prov_err}")
+                    model_name_resolved = None
                 if not gemini_client:
-                    raise Exception("No hay cliente Vertex AI disponible.")
+                    from brain import get_vertex_client
+                    gemini_client = get_vertex_client()
+                    model_name_resolved = None
+                if not gemini_client:
+                    raise Exception("No hay ningún proveedor de IA disponible. Configura una API Key en Ajustes.")
+                effective_model = model_name_resolved or model_name
 
                 from tools import tools_schema, available_functions
                 herramientas_prohibidas = [
@@ -193,7 +210,7 @@ class AgentManager:
                     time.sleep(1.5)
                     response = gemini_client.chat.completions.create(
                         messages=messages,
-                        model=model_name,
+                        model=effective_model,
                         temperature=0.3,
                         max_tokens=3000,
                         tools=agent_tools_schema

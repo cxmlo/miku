@@ -1,0 +1,152 @@
+/* ==========================================================================
+   Miku Design System — Base Typography, Blur Enter/Exit & Accessibility
+   Source of truth: miku-catalogo.html & .agent/rules/miku-design-system.md
+   ========================================================================== */
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--s0);
+  color: var(--tx);
+  font: 500 var(--fs-base)/1.5 var(--font);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tx);
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+  font-weight: 800;
+  margin: 0 0 4px;
+  letter-spacing: -.015em;
+}
+
+p.sub {
+  margin: 0 0 28px;
+  color: var(--mu);
+  max-width: 640px;
+}
+
+.mu {
+  color: var(--mu);
+}
+
+.cap {
+  font-size: 12px;
+  color: var(--mu);
+  margin: 12px 0 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+
+/* Iconos SVG de trazo (§2 de miku-design-system) */
+svg.ic,
+.ic {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+/* Regla obligatoria de blur de entrada y salida (§4 de miku-design-system) */
+.bi {
+  animation: bin var(--d-enter) var(--e) both;
+}
+
+@keyframes bin {
+  from {
+    opacity: 0;
+    filter: blur(12px);
+    scale: .97;
+    translate: 0 10px;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+    translate: 0;
+  }
+}
+
+.bo {
+  animation: bout var(--d-exit) var(--e) both;
+}
+
+@keyframes bout {
+  to {
+    opacity: 0;
+    filter: blur(10px);
+    scale: .98;
+  }
+}
+
+/* Colapso suave de listas con grid-template-rows: 1fr -> 0fr (§4) */
+.tw {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--d-enter) var(--spring);
+}
+
+.tw.in {
+  grid-template-rows: 1fr;
+}
+
+.tw > div {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Soporte obligatorio de prefers-reduced-motion (§4) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    transition-duration: .01ms !important;
+    transition-delay: 0s !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+

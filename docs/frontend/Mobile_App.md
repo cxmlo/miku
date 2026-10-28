@@ -83,6 +83,10 @@ Genera un APK descargable compilado en la nube de Expo.
 
 El protocolo local usa HTTP/WebSocket en la red interna o túnel seguro de Cloudflare si se conecta remotamente.
 
+## Diseño Miku UI y Sincronización QR
+- **Diseño Liquid Glass**: La app móvil utiliza la paleta oficial Miku UI (`#06070B` fondo, `#0E111A` tarjetas/superficies translúcidas, `#38BDF8` cian de acento, bordes de 1dp translúcidos y botones píldora `99.dp`).
+- **Sincronización QR Canónica**: La sesión de emparejamiento QR está centralizada a través de `get_canonical_pairing_info` en el backend, sincronizando de forma idéntica los códigos QR mostrados en la Isla, Ajustes y la ventana dedicada de Miku-Link.
+
 ## Comunicación
 
 - **Emparejamiento y Gateway**: [[Backend_Gateway]]

@@ -56,14 +56,33 @@ graph TD
   - `MCP`: Catálogo con instalación en un clic y conexión en caliente de servidores Model Context Protocol (`filesystem`, `memory`, `sqlite`, `github`, etc.).
   - `Alertas`: Monitor de tiempo de uso en juegos y aplicaciones estilo Discord con avisos proactivos en la Isla y notificaciones nativas de Windows Toast.
 ### 3. Ventana Miku-Link (`miku_link.html`)
-- **Gestión de Enlace Móvil**: Ventana nativa e independiente con ícono dedicado (`app.default_window_icon()`) para visualizar el estado de conexión del companion Android, generar códigos QR de emparejamiento, explorar la carpeta de descargas recibidas (`Downloads/miku-link`) y desvincular dispositivos con un solo clic.
+- **Estilo Windows 11 Phone Link**: Ventana nativa e independiente con bordes curvos de 16px (`border-radius: 16px`), área de arrastre integrada y diseño oscuro acrílico.
+- **Fondo de Pantalla del Smartphone en Vivo**: Visualización del wallpaper sincronizado en la pantalla del smartphone con brillo ambiental.
+- **Indicadores Reales**: Nivel de batería real dinámico (barra de porcentaje y texto), conectividad Wi-Fi local y enlace Bluetooth.
+- **Controles Rápidos (Quick Actions)**: Alternadores para *No molestar*, *Silencio*, *Música* y *Bloquear PC*.
+- **Pestañas Segmentadas**:
+  - `Notificaciones`: Bandeja de notificaciones en tiempo real del smartphone Android con icono de aplicación, remitente, texto y botón para borrar todo.
+  - `Archivos`: Transferencia rápida y acceso directo a la carpeta de recibidos (`Downloads/miku-link`).
+  - `Portapapeles`: Envío instantáneo de texto e historial sincronizado entre PC y teléfono.
+- **Modo Sin Dispositivos**: Si no hay smartphones registrados, la tarjeta del teléfono se oculta automáticamente para mostrar únicamente el código QR nativo de emparejamiento.
 
-### 4. Modo de Ahorro y Control desde la Bandeja del Sistema (System Tray)
-- **Ocultación Reactiva de la Isla**: La cabecera de la Dynamic Island incluye un botón de cierre que oculta la ventana principal sin terminar el proceso de fondo, reduciendo la carga de renderizado al mínimo.
-- **Indicador Dinámico en el Tray**: El menú de la bandeja del sistema (`lib.rs`) expone el estado de ahorro de energía en tiempo real con códigos de color visuales:
-  - `🟢 Modo Ahorro: Activado` (Isla oculta, enrutador de herramientas ultra-estricto, consumo mínimo de tokens y CPU).
-  - `🔴 Modo Ahorro: Desactivado` (Modo estándar con todas las capacidades reactivas activadas).
-- **Control de Ventanas Secundarias**: Acceso directo a Configuración y Miku-Link con restauración garantizada del foco.
+### 4. Rendimiento (0.0% CPU en Reposo) & Dynamic Island Ergonómica
+- **Dirty Rendering en Reposo (0.0% CPU en WebView2)**:
+  - Cuando Miku está en reposo (`compact` / `idle`) y no hay movimiento del cursor por más de 2.4s, `island.js` suspende el bucle `requestAnimationFrame`, reduciendo el consumo de CPU de WebView2 a 0.0%.
+  - Reactivación instantánea ante movimiento del cursor (`pointermove`, `pointerenter`), clics, pulsaciones de teclas, parpadeos programados o mensajes por WebSocket.
+- **Dynamic Island para Preguntas y Respuestas Largas**:
+  - Marco de ventana nativo Tauri de 800x580 px fijo y transparente, eliminando la recreación destructiva del swapchain DirectX.
+  - Tarjeta de chat `#isl` con ancho expandido a 720px y límite ergonómico de altura (`max-height: 480px`) con scrollbar ultra-fino translúcido.
+  - Avatar de Miku anclado mediante `position: sticky; top: 10px; align-self: flex-start;`, permaneciendo siempre visible y alineado mientras el usuario lee respuestas extensas o bloques de código.
+- **Arranque Escalonado**:
+  - Al iniciar, se muestra primero Miku en el centro ejecutando su animación de saludo y burst de partículas.
+  - Tras 650ms, la tarjeta de información y estado del Core se expande suavemente hacia la derecha con una transición fluida.
+- **Visor e Instalador de Hooks de Agentes en Ajustes (Estilo Coucou)**:
+  - Pestaña Agentes con selector de entornos (*Antigravity*, *Claude Code*, *Cursor*, *Gemini CLI*).
+  - Tarjeta oscura con diff interactivo (`+`) que muestra exactamente la inyección del hook para el agente seleccionado.
+  - Botón de instalación en 1 clic con leyenda de seguridad que certifica que no se modifica ninguna otra clave ni configuración personal.
+- **Silenciamiento de Servicio en Android**:
+  - Canal de Foreground Service en `NotificationManager.IMPORTANCE_LOW` silencioso en `MikuConnectionService.kt`, reservando alertas con sonido únicamente para transferencias de archivos o aprobaciones del usuario.
 
 ### 5. Integración con el Explorador de Windows (Menú Contextual & SendTo)
 - **Compartir al Celular**: Al dar clic derecho sobre cualquier archivo o carpeta en Windows, aparece la opción **"Enviar a Mi teléfono (Miku)"** con el ícono oficial de Miku-Link.
@@ -77,9 +96,16 @@ graph TD
 - Sincroniza el estado entre ventanas mediante la API estándar `BroadcastChannel('miku')`.
 - Emite `core_connected` al iniciar el backend para auto-poblar datos sin recargas manuales.
 
-### Backend sidecar y desarrollo
+### Backend Sidecar y Arquitectura `--onedir` (Arranque Instantáneo en ~1s)
 
-La app Tauri inicia `miku-core.exe`, el sidecar compilado desde `server.py`; no hace falta ejecutar el servidor por separado. Editar `server.py` no actualiza un sidecar que ya fue compilado. Tras cerrar completamente Miku Desktop, recompilarlo desde la raíz del repositorio y reconstruir la app de desarrollo:
+La app Tauri inicia `miku-core.exe`, el sidecar compilado desde `server.py`:
+- **Migración a `--onedir`**: PyInstaller empaqueta el backend en modo directorio (`--onedir`) en lugar de ejecutable único (`--onefile`). Esto evita la extracción temporal de ~150MB en `AppData\Local\Temp\_MEIxxxxxx` en cada lanzamiento, reduciendo el arranque de más de 20 segundos a **menos de 1 segundo**.
+- **Despliegue y Rutas**:
+  - Los binarios se compilan en `binaries/miku-core/` y se copian automáticamente a `%LOCALAPPDATA%\Miku Desktop\miku-core\`.
+  - El instalador NSIS (`hooks.nsi` y `tauri.conf.json`) incluye los recursos y despliega la carpeta en `%LOCALAPPDATA%`.
+  - Al iniciar, Tauri (`lib.rs`) comprueba primero `%LOCALAPPDATA%\Miku Desktop\miku-core\miku-core.exe`, ejecutándolo en su propio directorio de trabajo de forma instantánea.
+
+Comandos de compilación:
 
 ```powershell
 .\venv\Scripts\python.exe scripts\build_sidecar.py
@@ -88,7 +114,7 @@ npm run tauri -- build --debug --no-bundle
 Pop-Location
 ```
 
-La segunda orden actualiza `miku_ui\src-tauri\target\debug\miku_ui.exe` y su `miku-core.exe`. Antes de volver a abrir la app, comprobar que no haya un backend anterior ocupando el puerto 8000; una instancia existente impide que Tauri inicie el sidecar recién compilado.
+La segunda orden actualiza `miku_ui\src-tauri\target\debug\miku_ui.exe` y sus dependencias. Antes de volver a abrir la app, comprobar que no haya un backend anterior ocupando el puerto 8000.
 
 Cerrar la ventana principal la oculta en la bandeja y deja el Core disponible para el teléfono. Usa **Abrir Miku** para restaurarla; **Salir** desde el menú de bandeja es el cierre explícito que detiene el sidecar.
 

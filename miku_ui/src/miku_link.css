@@ -1,0 +1,432 @@
+/* ═══ MIKU-LINK · ESTILOS ESPECÍFICOS DE LA VENTANA ═══
+   Basado en el sistema de diseño Miku UI (Superficies Oscuras Sólidas)
+   Diseño horizontal apaisado estilo Microsoft Phone Link (960×620 fija) */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+}
+
+.link-window {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-win, 18px);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--s0, #000000);
+  border: 1px solid var(--ln);
+  box-shadow: none;
+}
+
+.link-chrome {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--s0, #000000);
+  border-bottom: 1px solid var(--ln);
+  cursor: grab;
+  flex: none;
+  user-select: none;
+}
+.link-chrome:active { cursor: grabbing; }
+
+.link-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.link-brand img {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: contain;
+}
+.link-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--fill);
+  color: var(--tx);
+  border: 1px solid var(--ln);
+  letter-spacing: 0.04em;
+}
+
+.win-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Layout en dos columnas estilo Phone Link ── */
+.link-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  padding: 16px 22px 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* ── Columna Izquierda: Mockup Móvil y Datos ── */
+.link-col-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  width: 260px;
+  height: 100%;
+  justify-content: flex-start;
+}
+
+.phone {
+  width: 200px;
+  height: 310px;
+  margin: 0 auto;
+  border-radius: 34px;
+  border: 6px solid var(--s2, #17181b);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  isolation: isolate;
+  background: rgba(0, 0, 0, .4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(255, 255, 255, .1);
+  flex: none;
+}
+.phone.noimg {
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 10px, transparent 10px 20px), var(--s1, #0e0f11);
+}
+.ph-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  scale: 1.08;
+  transition: opacity .6s var(--e), scale 1s var(--e);
+}
+.phone.hasimg .ph-bg { opacity: 1; scale: 1; }
+.phone.hasimg:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(rgba(0, 0, 0, .18), rgba(0, 0, 0, .5));
+}
+.ph-ph {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 110px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, .34);
+  font-size: 11.5px;
+  font-weight: 700;
+  pointer-events: none;
+  transition: opacity .4s;
+}
+.ph-ph .ic { width: 26px; height: 26px; stroke-width: 1.6; }
+.phone.hasimg .ph-ph { opacity: 0; }
+.ph-n {
+  position: relative;
+  z-index: 2;
+  width: 64px;
+  height: 15px;
+  background: var(--s2, #17181b);
+  margin: 0 auto;
+  border-radius: 0 0 12px 12px;
+}
+.ph-s {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-meta-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+}
+.device-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #fff;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phone-tags-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.device-telemetry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+.meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mu);
+}
+
+/* ── Columna Derecha: Pestañas Segmentadas y Paneles ── */
+.link-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  height: calc(100% - 10px);
+  margin-right: 10px;
+  margin-bottom: 10px;
+  background: var(--s1, #0e0f11);
+  border: 1px solid var(--ln);
+  border-radius: 20px;
+  padding: 16px 20px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.seg {
+  --ir: 99px;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 99px;
+  background: rgba(120, 120, 128, .24);
+  align-self: flex-start;
+  position: relative;
+}
+.seg button {
+  position: relative;
+  z-index: 1;
+  height: 30px;
+  padding: 0 20px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--mu);
+  transition: color .2s;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.seg button.on {
+  color: #fff;
+  font-weight: 800;
+}
+
+.link-tab-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+  padding-right: 4px;
+}
+.link-tab-container::-webkit-scrollbar { width: 5px; }
+.link-tab-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 99px; }
+
+.link-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+/* ── Tarjetas de Miku-Link ── */
+.card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-card, 20px);
+  padding: 18px 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.card-head .card-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ac);
+  display: block;
+  margin-bottom: 4px;
+}
+.card-head h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+}
+.card-head p {
+  font-size: 12.5px;
+  color: var(--mu);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.card-title-sec {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mu);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 12px;
+}
+
+.device-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.folder-action-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ln);
+}
+
+/* ── Grilla de Funciones ── */
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.mode-card {
+  padding: 16px;
+  border-radius: var(--r-card, 18px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: translate .2s var(--e), border-color .2s;
+}
+.mode-card:hover {
+  translate: 0 -2px;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.mode-card.on {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+}
+.mode-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+}
+.mode-desc {
+  font-size: 12px;
+  color: var(--mu);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ── Tarjeta QR y Vinculación ── */
+.qr-card {
+  padding: 22px;
+}
+.qr-box {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+#qr-canvas {
+  width: 128px;
+  height: 128px;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(255, 255, 255, .1);
+  flex: none;
+}
+.qr-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qr-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+.qr-ip {
+  font-size: 12px;
+  color: var(--mu);
+}
+.qr-ip code {
+  color: var(--ac);
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.qr-instruction {
+  font-size: 12px;
+  color: var(--mu);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ── Toast de Miku-Link ── */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  translate: -50% 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s var(--e), translate .25s var(--spring);
+  z-index: 9999;
+}
+#toast.show {
+  opacity: 1;
+  translate: -50% 0;
+  pointer-events: auto;
+}

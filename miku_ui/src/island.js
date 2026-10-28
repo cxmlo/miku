@@ -1101,7 +1101,7 @@ const SC={
   return `${HD()}<div class="card mk wdr" style="--g:var(--gl)"><i class="cs" data-k=".8" style="width:92px;height:70px"></i><div class="cp"><div class="wh"><b>Guardarropa${a===PRIN?'':` <em>${esc(a.name)}</em>`}</b><span class="wn" id="wn">${OL[cu]||cu}</span></div>${a===PRIN?'':`<div class="crow"><span class="wn">Color</span>${PRESET.map(h=>`<button class="sw8 ${h.toLowerCase()==a.c.toLowerCase()?'on':''}" style="--c:${h}" data-a="color:${h}" aria-label="Color ${h}" ${usedBy(h,a)?'disabled title="En uso por otro agente"':''}></button>`).join('')}<label class="colorin" title="Otro color"><input type="color" id="colin" value="${a.c.toLowerCase()}"></label></div>`}<div class="wrow">${WARDROBE.map(([k,l],n)=>`<button class="wb ${cu==k?'on':''}" data-a="wear:${k}" title="${l}" aria-label="${l}">${k=='none'?ic('none'):avt(bc,k,n,0,'head','lite')}</button>`).join('')}</div></div></div>`}},
  settings:{hc:1,st:'idle',after:()=>$$('.so-host').forEach(h=>SmoothSlider(h,{value:CFG[h.dataset.k]||80,unit:'%',onChange:v=>{CFG[h.dataset.k]=v;window.Bridge?.setVolume?.(v);window.Bridge?.setSetting?.(h.dataset.k,v);}})),x:()=>{const DT=(l,on)=>`<span class="dd"><i class="sd ${on?'on':''}"></i>${l}</span>`;
   return `${HD()}<div class="card mk" style="--g:var(--gl)"><i class="cs" data-k=".7" style="width:80px;height:60px"></i><div class="cp qs"><div class="sr" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><label class="sw"><input type="checkbox" data-k="voice" ${CFG.voice?'checked':''}><i></i></label><span style="font-weight:600;font-size:13px">Sonido y voz</span></div></div><div class="so-host" data-k="voice_volume" style="width:100%"></div></div><div class="sr" style="margin-top:4px"><label class="sw"><input type="checkbox" data-k="hover_open" ${CFG.hover_open?'checked':''}><i></i></label><span>Abrir al pasar el cursor</span></div><div class="sr st2">${DT('Core 8000',ST.ws)}${DT('API',ST.api)}<button class="lk2" data-a="go:link">${DT('Miku-Link',ST.link)}</button><button class="lnk" data-a="cfgwin">Ajustes…</button></div></div></div>`}},
- link:{hc:1,st:'idle',after:()=>{if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl();else drawQR(PAIR)},x:()=>`${HD()}<div class="lkg"><div class="card lkd"><i class="cs" data-k=".8" style="width:104px;height:78px"></i></div><div class="card lkr"><div class="lkt"><b>Vincular con el celular</b><div class="sub2">Escanea el código con la app móvil de Miku para sincronizar portapapeles, archivos y notificaciones.</div><small class="sub2" id="qu" style="margin:0"></small><span class="st ${ST.link?'on':''}">${ST.link?'Conectado: '+esc(ST.name):'Desconectado'}</span></div><canvas id="qr" width="120" height="120"></canvas></div></div><div class="card lopt"><div class="sr"><label class="sw"><input type="checkbox" data-k="local_net" ${CFG.local_net?'checked':''}><i></i></label><span class="mut">Permitir conexiones en la red local</span></div><div class="sr"><label class="sw"><input type="checkbox" data-k="biometric" ${CFG.biometric?'checked':''}><i></i></label><span class="mut">Pedir huella o bloqueo para «Permitir»</span></div></div><div class="chips">${B('Nuevo código','newcode','','retry')}${ST.link?B('Desvincular','unpair','','x'):''}</div>`},
+ link:{hc:1,st:'idle',after:()=>{drawQR(PAIR||'miku://pair?s=init&ip=127.0.0.1');window.Bridge?.syncLinkStatus?.();if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl();},x:()=>`${HD()}<div class="lkg"><div class="card lkd"><i class="cs" data-k=".8" style="width:104px;height:78px"></i></div><div class="card lkr"><div class="lkt"><b>Vincular con el celular</b><div class="sub2">Escanea el código con la app móvil de Miku para sincronizar portapapeles, archivos y notificaciones.</div><small class="sub2" id="qu" style="margin:0"></small><span class="st ${ST.link?'on':''}">${ST.link?'Conectado: '+esc(ST.name):'Desconectado'}</span></div><canvas id="qr" width="120" height="120"></canvas></div></div><div class="card lopt"><div class="sr"><label class="sw"><input type="checkbox" data-k="local_net" ${CFG.local_net?'checked':''}><i></i></label><span class="mut">Permitir conexiones en la red local</span></div><div class="sr"><label class="sw"><input type="checkbox" data-k="biometric" ${CFG.biometric?'checked':''}><i></i></label><span class="mut">Pedir huella o bloqueo para «Permitir»</span></div></div><div class="chips">${B('Nuevo código','newcode','','retry')}${ST.link?B('Desvincular','unpair','','x'):''}</div>`},
  gallery:{w:520,hc:1,st:'idle',x:()=>`${HD('Animaciones',B('Reproducir todas','playall','p','spark'))}<div class="card hubc"><i class="cs" data-k=".95" style="width:107px;height:80px"></i><div class="gal">${GAL.map(k=>`<button data-a="emo:${k}">${k=='ask'?'pregunta':k=='approve'?'permiso':k.replace('_',' ')}</button>`).join('')}</div></div>`},
  tool_use:{w:440,st:'searching',
   x:a=>`${HD(esc(a.label||'Analizando pantalla'))}<div class="card"><div class="tu"><span class="badge">${esc(a.badge||'Visión')}</span><div class="scan"></div></div><div class="sub2">${esc(a.sub||'Computer Use')}</div></div><div class="chips">${B('Cancelar','cancel','','x')}</div>`},
@@ -1594,6 +1594,16 @@ function drawQR(url){const cv=$('#qr');if(!cv)return;const ctx=cv.getContext('2d
 window.setPairQR=d=>{const i=new Image();i.onload=()=>$('#qr')?.getContext('2d').drawImage(i,0,0,288,288);i.src=d};
 window.setPairUrl=u=>{PAIR=u;PAIR_ERROR='';if($('#qr'))drawQR(u)};
 window.setPairError=message=>{PAIR_ERROR=message;if($('#qu'))$('#qu').textContent=message};
+window.setLinkStatus=(ok,name)=>{
+ ST.link=ok?1:0;
+ ST.name=name||'';
+ const stEl=document.querySelector('.lkt .st');
+ if(stEl){
+  stEl.className='st '+(ok?'on':'');
+  stEl.textContent=ok?('Conectado: '+esc(name||'Dispositivo')):'Desconectado';
+ }
+ const b=$('.bdg');if(b)b.innerHTML=BDG();
+};
 window.setMics=l=>{MICS=l.map(m=>[m.id||m,m.label||m])};
 function link(ok,name=''){ST.link=ok;ST.name=name;emit({k:'link',ok:!!ok,name});const b=$('.bdg');if(b)b.innerHTML=BDG();if(scene=='settings'||scene=='link')tabs();
  if(ok)go('notify',{title:'Miku-Link',text:name+' conectado',emote:'happy',ms:3000})}
@@ -1970,7 +1980,7 @@ function onMsg(m){if(!m)return;
  else if(m.k=='emote'){m.n.startsWith('look_')?buddy.look(m.n.slice(5),2200):buddy.emote(m.n,2200,4)}
  else if(m.k=='agents'){ST.agents=normIsl(m.list||[]);if(SELA>=ST.agents.length)SELA=-1;applyTheme();pushImgs();if(scene=='overview'){renderOv()}}
  else if(m.k=='select'){SELA=m.who=='miku'?-1:ST.agents.findIndex(x=>x.id==m.who);applyTheme();if(scene=='overview'){renderOv()}else if(scene=='wardrobe')go('wardrobe')}
- else if(m.k=='pair'){PAIR=m.url;try{localStorage.setItem('miku_pair',m.url)}catch{}if(scene=='link')go('link')}
+ else if(m.k=='pair'){PAIR=m.url;try{localStorage.setItem('miku_pair',m.url)}catch{}if(scene=='link')drawQR(m.url)}
  else if(m.k=='unpair'){window.Bridge?.unpairDevices?.();link(false)}
  else if(m.k=='hello'){emit({k:'link',ok:!!ST.link,name:ST.name});emit({k:'agents',list:ST.agents});emit({k:'outfit',who:'miku',v:PRIN.outfit||'none'});emit({k:'cfg',cfg:CFG});emit({k:'theme',c:curAg().c});emit(selMsg());pushImgs()}}
 document.addEventListener('change',e=>{if(e.target.id=='colin'&&scene=='wardrobe'){col.innerHTML=SC.wardrobe.x();fit()}});
@@ -1995,6 +2005,7 @@ try{
   }else ST.agents=[...DEFAULT_AGENTS];
 }catch{ST.agents=[...DEFAULT_AGENTS]}
 try{const p=localStorage.getItem('miku_pair');if(p)PAIR=p}catch{}
+setTimeout(()=>{window.Bridge?.syncLinkStatus?.()},1200);
 let acT;function armAC(){clearTimeout(acT);if(!SC[scene].m&&!KEEP.includes(scene)&&scene!=='boot'&&scene!=='intro'&&window.__mikuCoreConnected&&!(scene=='notify'&&ASKR))acT=setTimeout(collapse,CFG.autoclose*1000)}
 isl.addEventListener('pointermove',armAC);addEventListener('keydown',armAC);
 ACT.pg=x=>{PG=((PG+(+x))%2+2)%2;renderOv()};

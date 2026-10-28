@@ -60,11 +60,8 @@ const Bridge = (() => {
       return;
     }
     connectWS();
-    initLocalIp();
     initMouseTracker();
-    fetchMediaStatus();
     initSettingsSync();
-    fetchAgents();
   }
 
   function fetchAgents() {
@@ -107,8 +104,15 @@ const Bridge = (() => {
       window.feed?.({ type: "ws", ok: true });
       window.feed?.({ type: "api", ok: true });
 
+      initLocalIp();
+      fetchMediaStatus();
+      fetchAgents();
+
       try {
         channel?.postMessage({ k: "core_connected", ok: true });
+      } catch (_) {}
+      try {
+        window.dispatchEvent(new CustomEvent("miku-core-connected"));
       } catch (_) {}
 
       // Emote happy when connected
@@ -214,6 +218,9 @@ const Bridge = (() => {
       if (data.type === "ui_command" && data.action === "status_update") {
         handleStatusUpdate(data.text);
       }
+      if (data.type === "miku_link_connected" || data.type === "miku_link_disconnected" || data.type === "miku_link_unpaired") {
+        try { channel?.postMessage(data); } catch (_) {}
+      }
       window.feed?.(data);
       return;
     }
@@ -312,6 +319,18 @@ const Bridge = (() => {
   }
 
   /* ---------------- MIKU-LINK PAIRING QR ---------------- */
+  async function syncLinkStatus() {
+    try {
+      const res = await apiFetch("/api/link/status");
+      if (res.ok) {
+        const d = await res.json();
+        const isConn = !!d.connected;
+        const devName = d.device_name || (d.devices?.length ? d.devices[0].name : "");
+        window.setLinkStatus?.(isConn, devName);
+      }
+    } catch (_) {}
+  }
+
   async function generatePairingUrl() {
     if (isShowcase) {
       const demoUrl = "miku://pair?s=demo_showcase_2026&ip=192.168.1.50";
@@ -319,6 +338,21 @@ const Bridge = (() => {
       return demoUrl;
     }
     try {
+      // 1. Try unified qr_data endpoint first (same one that miku_link.html uses)
+      const qrRes = await apiFetch("/api/link/qr_data");
+      if (qrRes.ok) {
+        const d = await qrRes.json();
+        if (d.url) {
+          window.setPairUrl?.(d.url);
+          if (d.qr_base64 && window.setPairQR) {
+            window.setPairQR(d.qr_base64);
+          }
+          syncLinkStatus();
+          return d.url;
+        }
+      }
+
+      // 2. Fallback to /api/desktop/info + /api/pair/init
       const infoResponse = await apiFetch("/api/desktop/info");
       if (!infoResponse.ok) {
         throw new Error(`No se pudo obtener la dirección de Miku Desktop (HTTP ${infoResponse.status}).`);
@@ -344,12 +378,14 @@ const Bridge = (() => {
 
       const pairUrl = `miku://pair?s=${encodeURIComponent(sessionId)}&ip=${encodeURIComponent(ip)}`;
       window.setPairUrl?.(pairUrl);
+      syncLinkStatus();
       return pairUrl;
     } catch (e) {
       console.warn("[Bridge] Error generating pair URL:", e);
-      window.setPairUrl?.("");
-      window.setPairError?.("No se pudo preparar el QR. Comprueba que Miku Desktop esté conectado al backend y a la red local.");
-      return "";
+      const fallbackUrl = "miku://pair?s=init&ip=127.0.0.1";
+      window.setPairUrl?.(fallbackUrl);
+      window.setPairError?.("Sin conexión con backend. Mostrando enlace provisional.");
+      return fallbackUrl;
     }
   }
 
@@ -756,6 +792,7 @@ const Bridge = (() => {
     try {
       const res = await apiFetch("/api/audio/device", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ index })
       });
       return res.ok ? await res.json() : { status: "error" };
@@ -985,6 +1022,7 @@ const Bridge = (() => {
 
   return {
     init,
+    isCoreConnected: () => Boolean(ws && ws.readyState === WebSocket.OPEN),
     sendChat,
     dictate,
     getExecutionMode,
@@ -1003,6 +1041,7 @@ const Bridge = (() => {
     setSetting,
     setVolume,
     initLocalIp,
+    syncLinkStatus,
     generatePairingUrl,
     getConfigKeys,
     saveConfigKeys,

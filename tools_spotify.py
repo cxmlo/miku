@@ -37,7 +37,10 @@ def _get_active_device():
         import subprocess
         import time
         try:
-            subprocess.Popen(["start", "spotify:"], shell=True)
+            if hasattr(os, "startfile"):
+                os.startfile("spotify:")
+            else:
+                subprocess.Popen(["xdg-open", "spotify:"])
             time.sleep(4) # Esperar a que se abra en Windows
             devices = sp.devices()
         except:

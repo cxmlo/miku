@@ -5,7 +5,7 @@
     "hooks": 1,
     "id": "github",
     "isl": 1,
-    "model": "google/gemini-2.5-flash",
+    "model": "google/gemini-1.5-flash",
     "name": "GitHub",
     "outfit": "shades",
     "role": "Control de versiones, commits, ramas, pull requests y estado de repositorios"
@@ -16,7 +16,7 @@
     "hooks": 1,
     "id": "antigravity",
     "isl": 2,
-    "model": "google/gemini-2.5-pro",
+    "model": "google/gemini-1.5-pro",
     "name": "Antigravity",
     "outfit": "crown",
     "role": "Desarrollo frontend, interfaz reactiva, animación y diseño UI/UX"

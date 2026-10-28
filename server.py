@@ -789,12 +789,45 @@ async def post_mcp_auth_response(task_id: str, req: MCPAuthResponseRequest):
 class PairInitRequest(BaseModel):
     session_id: str
 
+class PairScanRequest(BaseModel):
+    session_id: str
+    name: str = "Teléfono"
+
 @app.post("/api/pair/init")
 async def pair_init(req: PairInitRequest):
-    global PAIRING_SESSION
-    # En producción este endpoint debería estar protegido, pero por simplicidad de UI local
+    global PAIRING_SESSION, PAIRING_STATE
     PAIRING_SESSION = req.session_id
+    now_ts = int(time.time())
+    PAIRING_STATE = {
+        "session_id": req.session_id,
+        "pin": req.session_id[:6] if len(req.session_id) >= 6 else "000000",
+        "issued_at": now_ts,
+        "expires_at": now_ts + 120,
+        "status": "waiting",
+        "device_name": "",
+    }
     return {"status": "ok"}
+
+@app.post("/api/pair/scan")
+async def pair_scan(req: PairScanRequest):
+    """Notifica al escritorio que el teléfono escaneó el QR o ingresó el PIN y está esperando confirmación del usuario."""
+    global PAIRING_SESSION, PAIRING_STATE
+    clean_input = (req.session_id or "").replace(" ", "")
+    valid_session = PAIRING_SESSION and (clean_input == PAIRING_SESSION or clean_input == PAIRING_STATE.get("pin", "").replace(" ", ""))
+    if not valid_session:
+        raise HTTPException(status_code=403, detail="Código o sesión inválida")
+    if PAIRING_STATE.get("expires_at") and time.time() > PAIRING_STATE["expires_at"]:
+        PAIRING_SESSION = None
+        PAIRING_STATE["status"] = "expired"
+        raise HTTPException(status_code=403, detail="Código expirado")
+    PAIRING_STATE["status"] = "linking"
+    PAIRING_STATE["device_name"] = req.name
+    await manager.broadcast_message({
+        "type": "miku_link_pairing",
+        "device_name": req.name,
+        "session_id": PAIRING_SESSION,
+    })
+    return {"status": "ok", "session_id": PAIRING_SESSION}
 
 class PairConfirmRequest(BaseModel):
     session_id: str
@@ -804,13 +837,19 @@ class PairConfirmRequest(BaseModel):
 
 @app.post("/api/pair/confirm")
 async def pair_confirm(req: PairConfirmRequest):
-    global PAIRING_SESSION
-    if PAIRING_SESSION is None or req.session_id != PAIRING_SESSION:
+    global PAIRING_SESSION, PAIRING_STATE
+    clean_input = (req.session_id or "").replace(" ", "")
+    valid_session = PAIRING_SESSION is not None and (
+        clean_input == PAIRING_SESSION or clean_input == PAIRING_STATE.get("pin", "").replace(" ", "")
+    )
+    if not valid_session:
         raise HTTPException(status_code=403, detail="Sesión inválida o expirada")
-        
+
     miku_db.add_device(req.device_id, req.name, req.public_key)
-    PAIRING_SESSION = None # Consumir
-    
+    PAIRING_SESSION = None  # Consumir token de un solo uso
+    PAIRING_STATE["status"] = "confirmed"
+    PAIRING_STATE["device_name"] = req.name
+
     server_pub = miku_db.get_server_public_key_b64()
     return {"status": "ok", "server_public_key": server_pub}
 
@@ -899,6 +938,36 @@ async def send_file_to_phone_endpoint(req: SendToPhoneRequest):
 
     return {"status": "ok", "filename": filename, "message": f"Archivo {filename} enviado al celular."}
 
+@app.post("/api/link/upload_to_phone")
+async def upload_file_to_phone_endpoint(file: UploadFile = File(...)):
+    """Sube un archivo seleccionado desde la interfaz (Ajustes / Miku-Link) y lo transfiere al celular vinculado."""
+    filename = os.path.basename(file.filename or "archivo")
+    stage_dir = os.path.join(tempfile.gettempdir(), "miku_temp_media")
+    os.makedirs(stage_dir, exist_ok=True)
+    dest_path = os.path.join(stage_dir, filename)
+
+    try:
+        content = await file.read()
+        with open(dest_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        logger.error(f"Error guardando archivo para enviar al celular: {e}")
+        raise HTTPException(status_code=500, detail=f"Error procesando archivo: {e}")
+
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "download_file",
+        "filename": filename
+    })
+
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "show_info",
+        "args": ["Miku-Link", f"Enviando '{filename}' a tu celular"]
+    })
+
+    return {"status": "ok", "filename": filename, "message": f"Archivo '{filename}' enviado al celular."}
+
 @app.get("/api/temp_media/{filename}")
 async def get_temp_media(filename: str):
     """Sirve archivos en tránsito hacia la app móvil."""
@@ -919,15 +988,56 @@ async def get_temp_media(filename: str):
 # ==========================================
 LOW_COST_MODE = False
 
-@app.get("/api/link/status")
-async def link_status_endpoint():
-    devices = miku_db.get_all_devices()
-    active_mobile = manager.connected_mobile()
-    is_connected = bool(active_mobile and active_mobile.get("type") == "miku_link_connected")
-    
-    first_dev = devices[0] if devices else None
-    dev_name = first_dev["name"] if first_dev else "Ningún dispositivo vinculado"
-    
+PAIRING_STATE: dict[str, Any] = {
+    "session_id": None,
+    "pin": "",
+    "issued_at": 0,
+    "expires_at": 0,
+    "status": "idle",
+    "device_name": "",
+}
+
+def _get_miku_link_state_file() -> str:
+    return os.path.join(os.path.dirname(get_models_config_path()), "miku_link_state.json")
+
+def _load_miku_link_persisted() -> dict[str, Any]:
+    path = _get_miku_link_state_file()
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+        except Exception:
+            pass
+    return {"dnd": False, "wallpaper_path": ""}
+
+def _save_miku_link_persisted(data: dict[str, Any]) -> None:
+    path = _get_miku_link_state_file()
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning(f"No se pudo persistir estado de Miku-Link: {e}")
+
+_PERSISTED_LINK = _load_miku_link_persisted()
+
+MIKU_LINK_RUNTIME: dict[str, Any] = {
+    "battery": None,
+    "charging": False,
+    "signal": "Wi-Fi",
+    "dnd": bool(_PERSISTED_LINK.get("dnd", False)),
+    "wallpaper_path": str(_PERSISTED_LINK.get("wallpaper_path", "")),
+    "notifications": [],
+    "messages": [],
+    "calls": [],
+    "active_call": None,
+    "apps": [],
+    "active_app": None,
+}
+
+def _resolve_local_ip() -> str:
     import socket
     local_ip = "127.0.0.1"
     try:
@@ -937,33 +1047,74 @@ async def link_status_endpoint():
         s.close()
     except Exception:
         pass
-        
+    return local_ip
+
+@app.get("/api/link/status")
+async def link_status_endpoint():
+    import socket
+    devices = miku_db.get_all_devices()
+    active_mobile = manager.connected_mobile()
+    is_connected = bool(active_mobile and active_mobile.get("type") == "miku_link_connected")
+
+    first_dev = devices[0] if devices else None
+    dev_name = (
+        active_mobile.get("name")
+        if is_connected and active_mobile.get("name")
+        else (first_dev["name"] if first_dev else "Ningún dispositivo vinculado")
+    )
+    local_ip = _resolve_local_ip()
+    wp_path = MIKU_LINK_RUNTIME.get("wallpaper_path") or ""
+    has_wp = bool(wp_path and os.path.exists(wp_path) and os.path.isfile(wp_path))
+
+    pairing_status = PAIRING_STATE.get("status", "idle")
+    if pairing_status in ("waiting", "linking") and PAIRING_STATE.get("expires_at", 0) < time.time():
+        pairing_status = "expired"
+        PAIRING_STATE["status"] = "expired"
+
     return {
         "status": "ok",
         "connected": is_connected,
+        "has_paired_device": bool(devices),
+        "pairing_status": pairing_status,
         "device_name": dev_name,
         "devices": devices,
-        "ip": local_ip
+        "ip": local_ip,
+        "hostname": socket.gethostname(),
+        "battery": MIKU_LINK_RUNTIME.get("battery"),
+        "charging": MIKU_LINK_RUNTIME.get("charging", False),
+        "signal": MIKU_LINK_RUNTIME.get("signal", "Wi-Fi"),
+        "dnd": bool(MIKU_LINK_RUNTIME.get("dnd", False)),
+        "has_wallpaper": has_wp,
+        "wallpaper_url": f"/api/link/phone_wallpaper?t={int(os.path.getmtime(wp_path))}" if has_wp else None,
+        "server_time": int(time.time()),
     }
 
 @app.get("/api/link/qr_data")
 async def get_link_qr_data():
-    global PAIRING_SESSION
-    import uuid, socket, io, base64
-    session_id = uuid.uuid4().hex[:10]
-    PAIRING_SESSION = session_id
-    
-    local_ip = "127.0.0.1"
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("10.255.255.255", 1))
-        local_ip = s.getsockname()[0]
-        s.close()
-    except Exception:
-        pass
+    global PAIRING_SESSION, PAIRING_STATE
+    import secrets, socket, io, base64
 
-    pair_url = f"miku://pair?s={session_id}&ip={local_ip}"
-    
+    session_id = secrets.token_urlsafe(15)
+    raw_pin = f"{secrets.randbelow(900000) + 100000:06d}"
+    formatted_pin = f"{raw_pin[:3]} {raw_pin[3:]}"
+    issued_at = int(time.time())
+    ttl_seconds = 120
+    expires_at = issued_at + ttl_seconds
+
+    PAIRING_SESSION = session_id
+    PAIRING_STATE = {
+        "session_id": session_id,
+        "pin": raw_pin,
+        "issued_at": issued_at,
+        "expires_at": expires_at,
+        "status": "waiting",
+        "device_name": "",
+    }
+
+    local_ip = _resolve_local_ip()
+    hostname = socket.gethostname()
+    pair_url = f"miku://pair?s={session_id}&ip={local_ip}&pin={raw_pin}&host={hostname}"
+
     qr_b64 = ""
     try:
         import qrcode
@@ -979,8 +1130,394 @@ async def get_link_qr_data():
         "url": pair_url,
         "qr_base64": qr_b64,
         "ip": local_ip,
-        "session_id": session_id
+        "hostname": hostname,
+        "session_id": session_id,
+        "pin": formatted_pin,
+        "issued_at": issued_at,
+        "expires_at": expires_at,
+        "ttl_seconds": ttl_seconds,
     }
+
+@app.post("/api/link/cancel_pair")
+async def cancel_link_pair():
+    global PAIRING_SESSION, PAIRING_STATE
+    PAIRING_SESSION = None
+    PAIRING_STATE["status"] = "cancelled"
+    await manager.broadcast_message({"type": "miku_link_pair_cancelled"})
+    return {"status": "ok"}
+
+@app.get("/api/link/phone_wallpaper")
+async def get_phone_wallpaper():
+    wp_path = MIKU_LINK_RUNTIME.get("wallpaper_path") or ""
+    if wp_path and os.path.exists(wp_path) and os.path.isfile(wp_path):
+        return FileResponse(wp_path)
+    raise HTTPException(status_code=404, detail="Sin fondo de pantalla configurado")
+
+@app.post("/api/link/phone_wallpaper")
+async def set_phone_wallpaper(file: UploadFile = File(...)):
+    ext = os.path.splitext(file.filename or ".png")[1].lower()
+    if ext not in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"):
+        ext = ".png"
+    wp_dir = os.path.join(os.path.dirname(get_models_config_path()), "miku_link_assets")
+    os.makedirs(wp_dir, exist_ok=True)
+    dest = os.path.join(wp_dir, f"phone_wallpaper{ext}")
+    content = await file.read()
+    with open(dest, "wb") as f:
+        f.write(content)
+    MIKU_LINK_RUNTIME["wallpaper_path"] = dest
+    _PERSISTED_LINK["wallpaper_path"] = dest
+    _save_miku_link_persisted(_PERSISTED_LINK)
+    url = f"/api/link/phone_wallpaper?t={int(time.time())}"
+    return {"status": "ok", "has_wallpaper": True, "wallpaper_url": url}
+
+@app.delete("/api/link/phone_wallpaper")
+async def delete_phone_wallpaper():
+    wp_path = MIKU_LINK_RUNTIME.get("wallpaper_path") or ""
+    if wp_path and os.path.exists(wp_path):
+        try:
+            os.remove(wp_path)
+        except Exception:
+            pass
+    MIKU_LINK_RUNTIME["wallpaper_path"] = ""
+    _PERSISTED_LINK["wallpaper_path"] = ""
+    _save_miku_link_persisted(_PERSISTED_LINK)
+    return {"status": "ok", "has_wallpaper": False}
+
+@app.post("/api/link/ring")
+async def link_ring_phone():
+    active_mobile = manager.connected_mobile()
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "ring_phone",
+    })
+    return {
+        "status": "ok",
+        "delivered": bool(active_mobile),
+        "message": "Comando de timbre enviado al teléfono" if active_mobile else "Timbre emitido (esperando respuesta del teléfono)",
+    }
+
+class LinkDndRequest(BaseModel):
+    enabled: bool
+
+@app.post("/api/link/dnd")
+async def link_set_dnd(req: LinkDndRequest):
+    MIKU_LINK_RUNTIME["dnd"] = bool(req.enabled)
+    _PERSISTED_LINK["dnd"] = bool(req.enabled)
+    _save_miku_link_persisted(_PERSISTED_LINK)
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "set_dnd",
+        "enabled": bool(req.enabled),
+    })
+    return {"status": "ok", "dnd": bool(req.enabled)}
+
+@app.get("/api/link/messages")
+async def link_get_messages():
+    active_mobile = manager.connected_mobile()
+    return {
+        "status": "ok",
+        "connected": bool(active_mobile),
+        "threads": MIKU_LINK_RUNTIME.get("messages", []),
+    }
+
+class LinkSendMessageRequest(BaseModel):
+    thread_id: str
+    recipient: Optional[str] = None
+    text: str
+
+@app.post("/api/link/messages/send")
+async def link_send_message(req: LinkSendMessageRequest):
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="El mensaje está vacío")
+    active_mobile = manager.connected_mobile()
+    now_str = datetime.now().strftime("%H:%M")
+    msg_id = f"msg_{int(time.time() * 1000)}"
+    threads = MIKU_LINK_RUNTIME.setdefault("messages", [])
+    target = next((t for t in threads if str(t.get("id")) == str(req.thread_id)), None)
+    if target is None:
+        target = {
+            "id": req.thread_id,
+            "name": req.recipient or req.thread_id,
+            "unread": 0,
+            "messages": [],
+        }
+        threads.insert(0, target)
+    delivery_state = "Enviado" if active_mobile else "Fallido"
+    msg_entry = {
+        "id": msg_id,
+        "dir": "out",
+        "text": text,
+        "time": now_str,
+        "status": delivery_state,
+    }
+    target.setdefault("messages", []).append(msg_entry)
+    if active_mobile:
+        await manager.broadcast_message({
+            "type": "ui_command",
+            "action": "send_sms",
+            "thread_id": req.thread_id,
+            "recipient": target.get("name"),
+            "text": text,
+            "message_id": msg_id,
+        })
+    return {"status": "ok", "delivered": bool(active_mobile), "message": msg_entry}
+
+class LinkReadThreadRequest(BaseModel):
+    thread_id: str
+
+@app.post("/api/link/messages/read")
+async def link_mark_thread_read(req: LinkReadThreadRequest):
+    threads = MIKU_LINK_RUNTIME.get("messages", [])
+    for t in threads:
+        if str(t.get("id")) == str(req.thread_id):
+            t["unread"] = 0
+    return {"status": "ok"}
+
+@app.get("/api/link/calls")
+async def link_get_calls():
+    active_mobile = manager.connected_mobile()
+    return {
+        "status": "ok",
+        "connected": bool(active_mobile),
+        "recent": MIKU_LINK_RUNTIME.get("calls", []),
+        "active_call": MIKU_LINK_RUNTIME.get("active_call"),
+        "server_time": int(time.time()),
+    }
+
+class LinkDialRequest(BaseModel):
+    number: str
+
+@app.post("/api/link/calls/dial")
+async def link_dial_call(req: LinkDialRequest):
+    num = (req.number or "").strip()
+    if not num:
+        raise HTTPException(status_code=400, detail="Número vacío")
+    active_mobile = manager.connected_mobile()
+    call_obj = {
+        "number": num,
+        "name": num,
+        "state": "dialing" if active_mobile else "active",
+        "started_at": int(time.time()),
+        "muted": False,
+        "speaker": False,
+    }
+    MIKU_LINK_RUNTIME["active_call"] = call_obj
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "dial_call",
+        "number": num,
+    })
+    return {"status": "ok", "delivered": bool(active_mobile), "active_call": call_obj}
+
+class LinkCallActionRequest(BaseModel):
+    action: str
+    value: Optional[bool] = None
+
+@app.post("/api/link/calls/action")
+async def link_call_action(req: LinkCallActionRequest):
+    act = (req.action or "").lower()
+    active_call = MIKU_LINK_RUNTIME.get("active_call")
+    if act == "hangup":
+        if active_call:
+            MIKU_LINK_RUNTIME.setdefault("calls", []).insert(0, {
+                "id": f"call_{int(time.time() * 1000)}",
+                "name": active_call.get("name") or active_call.get("number") or "Desconocido",
+                "number": active_call.get("number") or "",
+                "dir": "out",
+                "time": datetime.now().strftime("%H:%M"),
+            })
+        MIKU_LINK_RUNTIME["active_call"] = None
+    elif act == "mute" and active_call:
+        active_call["muted"] = bool(req.value) if req.value is not None else not active_call.get("muted", False)
+    elif act == "speaker" and active_call:
+        active_call["speaker"] = bool(req.value) if req.value is not None else not active_call.get("speaker", False)
+    elif act == "answer" and active_call:
+        active_call["state"] = "active"
+        active_call["started_at"] = int(time.time())
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": f"call_{act}",
+        "value": req.value,
+    })
+    return {"status": "ok", "active_call": MIKU_LINK_RUNTIME.get("active_call")}
+
+@app.get("/api/link/photos")
+async def link_get_photos():
+    """Devuelve las fotos reales recibidas del teléfono en Downloads/miku-link y shared_files."""
+    dirs = [
+        os.path.join(os.path.expanduser("~"), "Downloads", "miku-link"),
+        os.path.join(BASE_DIR, "shared_files"),
+    ]
+    exts = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
+    photos = []
+    seen = set()
+    for d in dirs:
+        if not os.path.exists(d):
+            continue
+        try:
+            for entry in os.scandir(d):
+                if not entry.is_file():
+                    continue
+                ext = os.path.splitext(entry.name)[1].lower()
+                if ext not in exts or entry.name in seen:
+                    continue
+                seen.add(entry.name)
+                st = entry.stat()
+                photos.append({
+                    "filename": entry.name,
+                    "size_kb": max(1, round(st.st_size / 1024)),
+                    "modified_at": int(st.st_mtime),
+                    "url": f"/api/link/photos/file/{entry.name}",
+                })
+        except Exception:
+            continue
+    photos.sort(key=lambda x: x["modified_at"], reverse=True)
+    return {"status": "ok", "photos": photos[:48]}
+
+@app.get("/api/link/photos/file/{filename}")
+async def link_get_photo_file(filename: str):
+    safe_name = os.path.basename(filename)
+    candidates = [
+        os.path.join(os.path.expanduser("~"), "Downloads", "miku-link", safe_name),
+        os.path.join(BASE_DIR, "shared_files", safe_name),
+    ]
+    for p in candidates:
+        if os.path.exists(p) and os.path.isfile(p):
+            return FileResponse(p, filename=safe_name)
+    raise HTTPException(status_code=404, detail="Foto no encontrada")
+
+@app.post("/api/link/photos/save/{filename}")
+async def link_save_photo_to_pictures(filename: str):
+    safe_name = os.path.basename(filename)
+    candidates = [
+        os.path.join(os.path.expanduser("~"), "Downloads", "miku-link", safe_name),
+        os.path.join(BASE_DIR, "shared_files", safe_name),
+    ]
+    src = next((p for p in candidates if os.path.exists(p) and os.path.isfile(p)), None)
+    if not src:
+        raise HTTPException(status_code=404, detail="Foto origen no encontrada")
+    pics_dir = os.path.join(os.path.expanduser("~"), "Pictures", "Miku-Link")
+    os.makedirs(pics_dir, exist_ok=True)
+    dest = os.path.join(pics_dir, safe_name)
+    shutil.copy2(src, dest)
+    return {"status": "ok", "saved_path": dest}
+
+@app.get("/api/link/notifications")
+async def link_get_notifications():
+    return {
+        "status": "ok",
+        "dnd": bool(MIKU_LINK_RUNTIME.get("dnd", False)),
+        "notifications": MIKU_LINK_RUNTIME.get("notifications", []),
+    }
+
+@app.delete("/api/link/notifications/{notif_id}")
+async def link_dismiss_notification(notif_id: str):
+    MIKU_LINK_RUNTIME["notifications"] = [
+        n for n in MIKU_LINK_RUNTIME.get("notifications", []) if str(n.get("id")) != str(notif_id)
+    ]
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "dismiss_notification",
+        "id": notif_id,
+    })
+    return {"status": "ok"}
+
+@app.delete("/api/link/notifications")
+async def link_clear_notifications():
+    MIKU_LINK_RUNTIME["notifications"] = []
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "clear_notifications",
+    })
+    return {"status": "ok"}
+
+@app.get("/api/link/apps")
+async def link_get_apps():
+    active_mobile = manager.connected_mobile()
+    return {
+        "status": "ok",
+        "connected": bool(active_mobile),
+        "apps": MIKU_LINK_RUNTIME.get("apps", []),
+        "active_app": MIKU_LINK_RUNTIME.get("active_app"),
+    }
+
+class LinkAppOpenRequest(BaseModel):
+    app_id: str
+    name: Optional[str] = None
+
+@app.post("/api/link/apps/open")
+async def link_open_app(req: LinkAppOpenRequest):
+    active_mobile = manager.connected_mobile()
+    app_entry = {
+        "id": req.app_id,
+        "name": req.name or req.app_id,
+        "started_at": int(time.time()),
+        "streaming": bool(active_mobile),
+    }
+    MIKU_LINK_RUNTIME["active_app"] = app_entry
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "open_mobile_app",
+        "app_id": req.app_id,
+        "name": req.name or req.app_id,
+    })
+    return {"status": "ok", "active_app": app_entry}
+
+@app.post("/api/link/apps/close")
+async def link_close_app():
+    MIKU_LINK_RUNTIME["active_app"] = None
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "close_mobile_app",
+    })
+    return {"status": "ok"}
+
+@app.post("/api/link/apps/screenshot")
+async def link_app_screenshot():
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "capture_mobile_screen",
+    })
+    return {"status": "ok", "message": "Solicitud de captura enviada al teléfono"}
+
+@app.post("/api/device/telemetry")
+async def device_telemetry_update(request: Request):
+    """Recibe telemetría real (batería, señal, notificaciones, SMS, llamadas, apps) desde el teléfono vinculado."""
+    data = await request.json()
+    if "battery" in data:
+        MIKU_LINK_RUNTIME["battery"] = data["battery"]
+    if "charging" in data:
+        MIKU_LINK_RUNTIME["charging"] = bool(data["charging"])
+    if "signal" in data:
+        MIKU_LINK_RUNTIME["signal"] = str(data["signal"])
+    if "notifications" in data and isinstance(data["notifications"], list):
+        MIKU_LINK_RUNTIME["notifications"] = data["notifications"]
+    if "notification" in data and isinstance(data["notification"], dict):
+        notif = data["notification"]
+        notif.setdefault("id", f"n_{int(time.time() * 1000)}")
+        notif.setdefault("time", datetime.now().strftime("%H:%M"))
+        MIKU_LINK_RUNTIME.setdefault("notifications", []).append(notif)
+        if not MIKU_LINK_RUNTIME.get("dnd"):
+            await manager.broadcast_message({
+                "type": "miku_link_notification",
+                "notification": notif,
+            })
+    if "messages" in data and isinstance(data["messages"], list):
+        MIKU_LINK_RUNTIME["messages"] = data["messages"]
+    if "calls" in data and isinstance(data["calls"], list):
+        MIKU_LINK_RUNTIME["calls"] = data["calls"]
+    if "active_call" in data:
+        MIKU_LINK_RUNTIME["active_call"] = data["active_call"]
+    if "apps" in data and isinstance(data["apps"], list):
+        MIKU_LINK_RUNTIME["apps"] = data["apps"]
+    await manager.broadcast_message({
+        "type": "miku_link_telemetry",
+        "battery": MIKU_LINK_RUNTIME.get("battery"),
+        "charging": MIKU_LINK_RUNTIME.get("charging"),
+        "signal": MIKU_LINK_RUNTIME.get("signal"),
+    })
+    return {"status": "ok"}
 
 @app.post("/api/link/unpair")
 async def link_unpair_endpoint(req: Optional[Dict[str, Any]] = None):
@@ -1296,9 +1833,18 @@ async def get_audio_input_devices():
         return {"devices": []}
 
 @app.post("/api/audio/device")
-async def set_audio_input_device(data: Optional[Dict[str, Any]] = None):
+async def set_audio_input_device(request: Request):
     """Establece el dispositivo de audio de entrada activo para transcripción y wake word."""
-    if data is None:
+    data: dict[str, Any] = {}
+    try:
+        raw_bytes = await request.body()
+        if raw_bytes:
+            parsed = json.loads(raw_bytes.decode("utf-8", errors="ignore"))
+            if isinstance(parsed, dict):
+                data = parsed
+            else:
+                data = {"index": parsed}
+    except Exception:
         data = {}
     try:
         raw_val = data.get("index")
@@ -1457,6 +2003,48 @@ async def update_models_config(req: UpdateModelsRequest):
     except Exception:
         pass
     return {"status": "ok", "current": current}
+
+class ModelTestRequest(BaseModel):
+    provider: str
+    model_id: str
+
+@app.post("/api/config/models/test")
+async def test_model_connectivity_endpoint(req: ModelTestRequest):
+    """Prueba la conectividad en vivo con un modelo y proveedor antes de activarlo."""
+    import models_provider
+    res = await asyncio.to_thread(models_provider.test_model_connectivity, req.provider, req.model_id)
+    return res
+
+class CustomModelRequest(BaseModel):
+    provider: str
+    model_id: str
+    name: Optional[str] = None
+    capabilities: Optional[List[str]] = None
+    context_window: Optional[int] = None
+    test_first: bool = False
+
+@app.post("/api/config/models/custom")
+async def save_custom_model_endpoint(req: CustomModelRequest):
+    """Registra un modelo personalizado en el catálogo local, verificando conectividad si se solicita."""
+    import models_provider
+    if req.test_first:
+        test_res = await asyncio.to_thread(models_provider.test_model_connectivity, req.provider, req.model_id)
+        if not test_res.get("success"):
+            return {
+                "status": "error",
+                "message": f"Prueba de conectividad fallida: {test_res.get('message', 'Error desconocido')}",
+                "test_result": test_res
+            }
+    save_res = models_provider.save_custom_model(
+        provider=req.provider,
+        model_id=req.model_id,
+        name=req.name,
+        capabilities=req.capabilities,
+        context_window=req.context_window
+    )
+    if save_res.get("success"):
+        return {"status": "ok", **save_res}
+    return {"status": "error", **save_res}
 
 # ==========================================
 # MODOS DE EJECUCIÓN (ANTIGRAVITY SANDBOX)
@@ -1937,7 +2525,14 @@ async def test_proactive_alert():
         try:
             import subprocess
             ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
-            subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], creationflags=subprocess.CREATE_NO_WINDOW)
+            kwargs = {}
+            if sys.platform == "win32":
+                kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                si.wShowWindow = subprocess.SW_HIDE
+                kwargs["startupinfo"] = si
+            subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], **kwargs)
         except Exception:
             pass
 
@@ -2262,14 +2857,17 @@ async def get_desktop_status():
             "tools_count": tools_count
         })
     
-    # Check if cloudflared is running using tasklist (no external dependencies needed)
+    # Check if cloudflared is running using psutil (in-memory, no cmd.exe console flashing)
     cloudflared_running = False
     try:
-        output = subprocess.check_output('tasklist', shell=True, text=True)
-        if "cloudflared.exe" in output.lower():
-            cloudflared_running = True
+        import psutil
+        for p in psutil.process_iter(['name']):
+            p_name = p.info.get('name') or ''
+            if 'cloudflared' in p_name.lower():
+                cloudflared_running = True
+                break
     except Exception as e:
-        print(f"Error checking cloudflared: {e}")
+        logger.debug(f"Error checking cloudflared: {e}")
         cloudflared_running = False
     
     return {
@@ -2616,12 +3214,21 @@ async def dev_activity_watcher_loop():
             # 1. Monitoreo de cambios Git locales (Agente GitHub)
             def check_git():
                 try:
+                    kwargs = {
+                        "cwd": repo_dir,
+                        "capture_output": True,
+                        "text": True,
+                        "timeout": 5
+                    }
+                    if sys.platform == "win32":
+                        kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                        si = subprocess.STARTUPINFO()
+                        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                        si.wShowWindow = subprocess.SW_HIDE
+                        kwargs["startupinfo"] = si
                     res = subprocess.run(
                         ["git", "status", "--porcelain"],
-                        cwd=repo_dir,
-                        capture_output=True,
-                        text=True,
-                        timeout=5
+                        **kwargs
                     )
                     return res.stdout.strip()
                 except Exception:
@@ -2739,7 +3346,14 @@ async def activity_alert_watcher_loop():
                                 try:
                                     import subprocess
                                     ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
-                                    subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], creationflags=subprocess.CREATE_NO_WINDOW)
+                                    kwargs = {}
+                                    if sys.platform == "win32":
+                                        kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                                        si = subprocess.STARTUPINFO()
+                                        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                                        si.wShowWindow = subprocess.SW_HIDE
+                                        kwargs["startupinfo"] = si
+                                    subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], **kwargs)
                                 except Exception:
                                     pass
 
@@ -2799,9 +3413,16 @@ async def startup_event():
         cf_path = cf_local if os.path.exists(cf_local) else (cf_system if os.path.exists(cf_system) else None)
         
         if cf_path:
+            kwargs = {}
+            if sys.platform == "win32":
+                kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                si.wShowWindow = subprocess.SW_HIDE
+                kwargs["startupinfo"] = si
             subprocess.Popen(
                 [cf_path, "tunnel", "run", "miku"],
-                creationflags=subprocess.CREATE_NO_WINDOW
+                **kwargs
             )
             logger.info("Túnel de Cloudflare iniciado en segundo plano.")
         else:

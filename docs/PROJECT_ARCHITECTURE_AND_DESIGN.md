@@ -73,13 +73,8 @@ Reglas para esta evolución:
 
 ## Dirección visual
 
-La Isla ya tiene un lenguaje visual propio:
-
-- superficies oscuras casi negras, tarjetas con bordes suaves y profundidad discreta;
-- azul/cian como acento de Miku y colores semánticos para estados de agentes;
-- personaje Canvas con estados expresivos, microanimaciones elásticas y respuesta a eventos;
-- sonido opcional como refuerzo de interacciones, no como único indicador de estado;
-- jerarquía compacta: estado y acción principal primero, detalles secundarios después.
+- **Configuración y Miku-Link (`miku-design-system`)**: Siguen estrictamente `.agent/rules/miku-design-system.md` y su fuente de verdad `miku-catalogo.html` (monocromo sobre negro `#000`/`#0e0f11`/`#17181b`, verde `#30d158` como único acento de confirmación/estado activo, rojo `#ff453a` solo para peligro/error, encabezados de partículas con `SECTION_HUES` por sección, movimiento con `--spring` y `--e`, blur de entrada/salida y cero valores hardcodeados).
+- **Isla Dinámica (`index.html`)**: Conserva su lenguaje visual propio y su motor Canvas `MK` sin tocarse durante el rediseño de Configuración.
 
 Android debe conservar esa identidad con patrones nativos de Compose: jerarquía tipográfica legible, targets táctiles adecuados, navegación del sistema, contraste accesible y estados de carga/error vacíos explícitos. Compartir roles y significado de tokens no obliga a copiar literalmente cada layout del escritorio.
 
@@ -161,7 +156,7 @@ No agregar dependencias de animación ni formatos complejos hasta que exista un 
 | Pruebas unitarias del enlace QR (incluye rechazo de localhost) | `miku_android/app/src/test/.../PairingLinkTest.kt` | Ejecutadas correctamente con las pruebas JVM de Android |
 | Paleta y tema Compose centralizados | `miku_android/.../ui/theme/Color.kt`, `Theme.kt` | Añadido en este corte |
 | Comprobación/sincronización del espejo `/island` desde el frontend Tauri canónico | `scripts/sync_island.py`, `tests/test_island_sync.py` | Añadido; la copia actual está sincronizada |
-| Regla de diseño/arquitectura de Antigravity y skill para agentes Copilot | `.agent/rules/design_system.md`, `.github/skills/miku-project-design/SKILL.md` | Actualizada y añadida |
+| Regla de diseño oficial (`miku-design-system`) y skill para agentes | `.agent/rules/miku-design-system.md`, `.agent/skills/miku-design-system/SKILL.md`, `.github/skills/miku-project-design/SKILL.md` | Actualizada y activa |
 | Guía de arquitectura, diseño, migración y packs futuros | Este documento | Añadida y enlazada desde el grafo `docs/` |
 
 ### Límites y validación
@@ -188,3 +183,74 @@ No agregar dependencias de animación ni formatos complejos hasta que exista un 
 - AGP 8.13 muestra un aviso de que encuentra XML SDK versión 4 con soporte de lectura hasta la versión 3. No bloqueó la compilación; conviene actualizar AGP/Android tooling en una tarea separada y probada, no como cambio incidental.
 - Todavía no se ha extraído MVVM/repositorios, no existe un cargador de asset packs, no se ha alcanzado paridad total con Expo y no se han retirado archivos legacy.
 - El árbol de trabajo puede contener otros cambios locales de Tauri/Island y backend previos a esta guía. Revisarlos antes de agruparlos en un commit; no asumir que todos pertenecen a la migración Android.
+
+---
+
+## Subsistema Computer Use por Niveles, Memoria Espacial V2 y Modelos Resilientes
+
+### 1. Computer Use por Niveles (Ahorro de Tokens y Verificación Real)
+
+El subsistema de interacción de escritorio (`computer_use.py`, `action_result.py`) opera mediante una arquitectura de tres niveles deterministas, reduciendo drásticamente el consumo de tokens y evitando la ejecución de modelos de visión locales pesados en el PC:
+
+```mermaid
+flowchart TD
+    A[Intención del Usuario / Brain] --> B{¿Acción Sensible?\npassword, 2FA, PIN, pagos, UAC}
+    B -- Sí --> C[Detener inmediatamente\nActionStatus.REQUIRES_USER]
+    B -- No --> D[Nivel 1: UI Automation Windows\n0 tokens API]
+    D -- Encontrado y Clicked --> E[Confirmar cambio\nActionStatus.CONFIRMED]
+    D -- No encontrado --> F[Nivel 2: Memoria Espacial V2\n0 tokens API]
+    F -- Coordenadas en Caché --> G[Verificar Ventana y Clic\nActionStatus.CONFIRMED]
+    F -- Cache Miss --> H[Nivel 3: Visión API Multimodal\nGemini 1.5 Flash / GPT-4o-mini]
+    H -- Elemento Detectado --> I[Clic y Guardar en Memoria Espacial V2]
+    H -- No detectado / Error --> J[ActionStatus.FAILED con diagnóstico]
+```
+
+#### Contrato de Verdad: `ActionResult` y `ActionStatus`
+Definido en `action_result.py`:
+- `CONFIRMED`: Acción ejecutada y verificada mediante cambios observables en pantalla, ventana activa o control UIA.
+- `EXECUTED_UNVERIFIED`: Acción física emitida (clic/tecla) pero sin evidencia concreta de cambio. **Nunca se almacena en la Memoria Espacial** para evitar contaminación de coordenadas erróneas.
+- `REQUIRES_USER`: Detección preventiva de credenciales maestras, códigos 2FA, contraseñas de cuentas, pasarelas de pago o elevación UAC. Miku se detiene de inmediato y solicita intervención manual.
+- `FAILED`: Error técnico devuelto sin enmascarar ni simular éxito falso al usuario.
+
+---
+
+### 2. Memoria Espacial V2 (`spatial_memory.py` y `spatial_memory.json`)
+
+La memoria espacial aprende las ubicaciones de elementos interactivos recurrentes para evitar llamadas de visión API continuas:
+- **Esquema versionado `version: 2`**: Migración automática y transparente desde esquemas anteriores sin pérdida de datos aprendidos.
+- **Eliminación del borrado destructivo**: Las discrepancias de título de ventana ya no borran irreversibles entradas de la memoria (`del cache[intent]` eliminado); ahora se tratan como *cache-misses* temporales.
+- **Matching tolerante de ventanas**: Coincidencia por patrones y expresiones regulares (`extract_window_pattern`), permitiendo que cambios dinámicos (ej. canción en Spotify o pestaña en Chrome) sigan reutilizando las coordenadas de la aplicación.
+- **Normalización de intenciones**: Limpieza semántica (`normalize_intent_key`) para unificar consultas equivalentes.
+- **Estadísticas de ahorro**: Función `get_memory_stats()` que expone el total de elementos aprendidos y métricas de aciertos de caché.
+
+---
+
+### 3. Resiliencia de Proveedores y Catálogo de Modelos (`models_provider.py`)
+
+- **Desacople limpio**: `identify_provider()` y resolución de modelos sin acoplamiento rígido de strings.
+- **Clasificación de errores (`classify_api_error`)**:
+  - `429 / 503` (*transient*): Se reintentan automáticamente con backoff y **rotación cíclica de API Keys** (`rotate_provider_key`) si hay múltiples claves configuradas separadas por comas en `.env`.
+  - `401 / 403` (*auth*): Errores de credenciales inválidas no se disfrazan ni se reintentan ciegamente; se comunican al usuario de forma transparente.
+  - `404` (*not_found*): Notificación explícita de modelo inexistente o sin acceso en la cuenta del usuario.
+- **Catálogo explícito de capacidades**:
+  Cada modelo declara sus capacidades reales (`vision`, `tools`, `native_computer_use`, `audio_stt`, `reasoning`), su origen (`verified`, `catalog`, `custom`) y su ventana de contexto (`context_window`).
+- **Endpoints de conectividad y modelos personalizados**:
+  - `POST /api/config/models/test`: Prueba la conectividad en vivo de cualquier modelo y devuelve `latency_ms` y mensaje de éxito o error real.
+  - `POST /api/config/models/custom`: Valida la conectividad del modelo antes de registrarlo en `models_config.json`, garantizando que nunca se guarden modelos rotos o inaccesibles.
+  - `POST /api/config/models/discover/{provider}`: Consulta en vivo las APIs oficiales del proveedor (Google, Groq, DeepSeek, OpenAI, Anthropic, OpenRouter, NVIDIA) y devuelve los modelos reales autorizados en la cuenta del usuario.
+  - `POST /api/config/models/discover-all`: Consulta en tiempo real todos los proveedores configurados y refresca el catálogo general en caliente.
+
+---
+
+### 4. Ajustes de Usuario en Frontend Tauri (`miku_ui/src/`)
+
+- **Diligenciamiento de Modelos en Tiempo Real y Clasificación por Categorías**:
+  - Clasificación en 6 categorías funcionales: `Solo Chat & Texto`, `Fotos & Visión`, `Control de PC & Visión`, `Código & Razonamiento Pro`, `Creación de Imágenes` y `Voz / Audio (STT)`.
+  - Barra de filtros interactivos en el frontend (`Todos`, `Solo Chat`, `Fotos / Visión`, `Control de PC`, `Código / Pro`, `Creación de Img`, `Voz / STT`) para encontrar al instante el modelo deseado.
+  - Tarjetas de modelos enriquecidas con insignias de categoría, descripciones de utilidad en español y botones de acción contextuales (`Usar en Chat`, `Usar en CU`, `Usar en Pro`, `Usar en STT`).
+  - Protección de protocolo LLM ante `REQUIRES_USER`: sellado de mensajes de herramientas y respuesta de asistente en el historial para prevenir errores HTTP 400 en OpenAI, DeepSeek y Google Gemini.
+- **Badges de capacidades y origen**: Fichas técnicas dinámicas para cada uno de los 4 cerebros activos (`Chat`, `Pro / Código`, `Computer Use`, `STT`), indicando insignias visuales (`👁️ Visión`, `🛠️ Tools`, `🖥️ Computer Use`, `🎙️ Audio STT`, `🧠 Razonamiento`, `✓ Verificado`, `Catálogo`, `★ Personalizado`) y el tamaño de ventana de contexto.
+- **Prueba de latencia con un clic**: Botón `[⚡ Probar]` por cada modelo en tiempo real; envía el identificador que espera el endpoint (`model_id`) y muestra la latencia devuelta por el backend o el mensaje real de error.
+- **Formulario de Registro Custom**: Permite añadir modelos locales (Ollama/vLLM) o de APIs emergentes con prueba de verificación inmediata antes de guardar.
+- **Sincronización Canónica**: Todo cambio frontend se realiza en `miku_ui/src/` y se verifica con `tests/test_island_sync.py`.
+

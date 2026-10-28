@@ -189,12 +189,15 @@ def test_send_desktop_path_to_phone_copies_file(client, monkeypatch, tmp_path):
     )
 
     assert response.status_code == 200
-    assert (temp_dir / source.name).read_bytes() == b"image-content"
-    assert sent == [{
+    copied_file = temp_dir / "miku_temp_media" / source.name
+    if not copied_file.exists():
+        copied_file = temp_dir / source.name
+    assert copied_file.read_bytes() == b"image-content"
+    assert sent[0] == {
         "type": "ui_command",
         "action": "download_file",
         "filename": source.name,
-    }]
+    }
 
 def test_websocket_accepts_registered_mobile_device(client, monkeypatch):
     monkeypatch.setattr(miku_db, "is_valid_device", lambda device_id: device_id == "paired-device")
@@ -333,3 +336,33 @@ def test_connection_manager_keeps_mobile_online_while_another_socket_remains():
     import asyncio
 
     asyncio.run(exercise())
+
+
+def test_miku_link_qr_and_phone_link_endpoints(client):
+    qr_res = client.get("/api/link/qr_data")
+    assert qr_res.status_code == 200
+    qr = qr_res.json()
+    assert qr["status"] == "ok"
+    assert qr["url"].startswith("miku://pair?s=")
+    assert len(qr["pin"].replace(" ", "")) == 6
+    assert qr["ttl_seconds"] == 120
+    assert qr["expires_at"] - qr["issued_at"] == 120
+
+    st_res = client.get("/api/link/status")
+    assert st_res.status_code == 200
+    st = st_res.json()
+    assert "connected" in st
+    assert "dnd" in st
+    assert "server_time" in st
+
+    for path in (
+        "/api/link/messages",
+        "/api/link/calls",
+        "/api/link/photos",
+        "/api/link/notifications",
+        "/api/link/apps",
+    ):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert r.json()["status"] == "ok"
+

@@ -7,13 +7,14 @@
     "frontendDist": "../src"
   },
   "app": {
+    "macOSPrivateApi": true,
     "withGlobalTauri": true,
     "windows": [
       {
         "label": "main",
         "title": "Miku Desktop",
         "width": 800,
-        "height": 400,
+        "height": 580,
         "visible": false,
         "transparent": true,
         "decorations": false,
@@ -29,8 +30,9 @@
         "url": "miku_settings.html",
         "width": 1080,
         "height": 780,
-        "resizable": false,
-        "minWidth": 760,
+        "resizable": true,
+        "minWidth": 720,
+        "minHeight": 520,
         "visible": false,
         "center": true,
         "decorations": false,
@@ -41,9 +43,11 @@
         "label": "link",
         "title": "Miku-Link · Enlace Móvil",
         "url": "miku_link.html",
-        "width": 460,
-        "height": 700,
+        "width": 960,
+        "height": 620,
         "resizable": false,
+        "minWidth": 840,
+        "minHeight": 560,
         "visible": false,
         "center": true,
         "decorations": false,
@@ -61,6 +65,9 @@
     "createUpdaterArtifacts": true,
     "externalBin": [
       "binaries/miku-core"
+    ],
+    "resources": [
+      "binaries/miku-core/**/*"
     ],
     "icon": [
       "icons/32x32.png",

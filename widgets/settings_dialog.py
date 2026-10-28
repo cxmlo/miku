@@ -51,8 +51,8 @@ AVAILABLE_MODELS = {
         {"id": "gemini-3.7-flash", "name": "Gemini 3.7 Flash (Vertex AI)", "provider": "google"},
         {"id": "gemini-3.6-flash", "name": "Gemini 3.6 Flash (Vertex AI)", "provider": "google"},
         {"id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash (Vertex AI)", "provider": "google"},
-        {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Vertex AI)", "provider": "google"},
-        {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Vertex AI)", "provider": "google"},
+        {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro (Google AI Studio)", "provider": "google"},
+        {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash (Google AI Studio)", "provider": "google"},
         {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet (Anthropic)", "provider": "anthropic"},
         {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus (Anthropic)", "provider": "anthropic"},
         {"id": "gpt-4o", "name": "GPT-4o (OpenAI)", "provider": "openai"},
@@ -85,8 +85,8 @@ class SettingsDialog(QDialog):
         
         self.mcp_config = self.load_config(CONFIG_PATH, {"servidores": {}})
         self.models_config = self.load_config(MODELS_CONFIG_PATH, {
-            "chat": "gemini-2.5-pro",
-            "computer_use": "gemini-2.5-pro",
+            "chat": "gemini-1.5-flash",
+            "computer_use": "gemini-1.5-flash",
             "stt": "whisper-large-v3"
         })
         self.env_vars = self._load_env()
