@@ -366,3 +366,22 @@ def test_miku_link_qr_and_phone_link_endpoints(client):
         assert r.status_code == 200
         assert r.json()["status"] == "ok"
 
+
+def test_miku_link_actions_and_mutations(client):
+    dnd_res = client.post("/api/link/dnd", json={"enabled": True})
+    assert dnd_res.status_code == 200
+    assert dnd_res.json()["dnd"] is True
+
+    dnd_off = client.post("/api/link/dnd", json={"enabled": False})
+    assert dnd_off.status_code == 200
+    assert dnd_off.json()["dnd"] is False
+
+    cancel_res = client.post("/api/link/cancel_pair")
+    assert cancel_res.status_code == 200
+    assert cancel_res.json()["status"] == "ok"
+
+    wall_res = client.get("/api/link/phone_wallpaper")
+    assert wall_res.status_code == 200
+    assert wall_res.json()["status"] == "ok"
+
+

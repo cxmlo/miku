@@ -190,3 +190,17 @@ El repositorio cuenta con:
 
 > En cumplimiento de la Regla §9 (*"Si el transporte real con el móvil aún no soporta alguna capacidad, muestra un estado vacío honesto ('No disponible en el dispositivo' o 'Requiere permiso en el teléfono') conectado a una función real de verificación de capacidades — nunca datos inventados como si fueran reales"*), todas las pestañas de Miku-Link se construirán con su UI completa del catálogo y consultarán un objeto real de capacidades/datos del dispositivo conectado.
 
+---
+
+## 6. Estado Final Tras Ejecución de Fases 1 a 7 (Completado)
+
+| Fase | Estado | Resumen de Resolución |
+|---|---|---|
+| **Fase 1 — Reglas y Gobernanza** | Completada | Regla `.agent/rules/miku-design-system.md` y skills `.agent/skills/miku-design-system/SKILL.md` / `.github/skills/miku-project-design/SKILL.md` activas como única ley visual para Configuración y Miku-Link. |
+| **Fase 2 — Tokens, Base CSS e i18n** | Completada | Creados `styles/tokens.css`, `styles/base.css`, `styles/components.css`, `styles/miku-link.css` y diccionario completo `i18n/es.js` (`window.MikuI18n.t`). Empaquetadas fuentes locales `@font-face` (`Nunito` y `JetBrains Mono`) sin CDN externo. |
+| **Fase 3 — Componentes Canónicos** | Completada | Implementados en `components/`: `IndicatorNav`, `SmoothSlider` (basado en `requestAnimationFrame`), `HoldButton` (`.hb` unificado con `.hb.sm` y `.dn.d`), `GlideSelect` (con portal flotante), `Particles` (aurora 3 capas + orbe + `SECTION_HUES`), `QR` / `Phone` y `toast` compatible con ambas firmas. |
+| **Fase 4 — Rediseño de Configuración** | Completada | Ventana `settings` redimensionable (`1080×780`, mín `720×520`), 14 secciones conectadas a `MikuI18n`, encabezados `Particles` con `--h` dinámico y transición `MikuMotion.enter`, y bug `DEF_AG` corregido a `structuredClone(DEFAULT_AGENTS)`. |
+| **Fase 5 — Miku-Link Integrado** | Completada | Integrado en `sections/mikuLinkSection.js` + `services/mikuLinkService.js` + endpoints reales `/api/link/*` en `server.py` (3 estados: `Desconectado` QR/PIN 120s, `Emparejando` y `Conectado` con 6 pestañas `Inicio`, `Mensajes`, `Llamadas`, `Fotos`, `Avisos`, `Apps`). |
+| **Fase 6 — Limpieza y Cero Hex Hardcodeados** | Completada | Eliminados todos los colores hexadecimales fuera de `tokens.css` en `settings.css` y `miku_ui.css`, retirada la ventana duplicada `"link"` de `tauri.conf.json` y `lib.rs`, y eliminados `miku_link.css`, `miku_link.html` y carpetas `backup_*`. |
+| **Fase 7 — Verificación y Documentación** | Completada | Suite de pruebas `pytest` (`test_island_sync.py` y `test_api_endpoints.py`) y documentación `docs/` sincronizada. Isla Dinámica (`index.html`, `island.js`, `island.css`) intacta al 100%. |
+

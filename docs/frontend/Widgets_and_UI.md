@@ -91,9 +91,9 @@ Además de la interfaz original PyQt6, Miku cuenta con una **Isla Dinámica flui
   - **Protección de la Isla Dinámica al Adjuntar Archivos y Contexto LLM**:
     - Apertura del selector de archivos nativo protegida con `window.__pickingFile = true` y validación centralizada mediante `collapse()`, impidiendo que la isla se cierre o repliegue al perder foco por abrir el explorador de Windows.
     - El endpoint `/chat` en `server.py` y `bridge.js` recibe `attachment_name`, `attachment_path` y `attachment_data`, guardando si es necesario en almacenamiento temporal e inyectando `[ARCHIVO ADJUNTADO]` junto con el análisis de contenido generado por `analizar_archivo_silencioso` directamente en el prompt del LLM.
-  - **Ventana de Ajustes Movible pero No Redimensionable**:
-    - Bloqueo estricto del redimensionado (`resizable: false` tanto en `tauri.conf.json` como en `WebviewWindowBuilder::new(...).resizable(false)` en `lib.rs`), conservando el arrastre fluido desde la cabecera minimalista (`data-tauri-drag-region` y `startDragging()`).
-    - Componentes renovados a **Apple Liquid Glass** sobre fondo negro puro (`#000000`), con gradientes de refracción curvados estilo gota de agua y biselado especular.
+  - **Ventana de Ajustes Redimensionable y Sistema de Diseño Miku (`miku-design-system`)**:
+    - Redimensionado fluido habilitado (`resizable: true`, mínimo `720×520`, por defecto `1080×780` en `tauri.conf.json` y `lib.rs`), conservando el arrastre desde la cabecera (`data-tauri-drag-region` y `startDragging()`).
+    - Arquitectura modular en `miku_ui/src/styles/` (`tokens.css`, `base.css`, `components.css`, `miku-link.css`), `miku_ui/src/components/` e internacionalización en español (`miku_ui/src/i18n/es.js`), con estética monocroma oscura (`#000000`, `--s1: #0e0f11`, `--s2: #17181b`), verde `#30d158` único para estados activos/confirmación, encabezados `Particles` con `SECTION_HUES` y sección **Miku-Link** integrada con 3 estados y 6 pestañas.
   - **Modalidad Web Showcase / Sandbox Aislada**:
     - Detección automática en `bridge.js` y `settings.js` de entornos web/demostración (GitHub Pages, `srcdoc` iframes o `window.IS_WEB_SHOWCASE = true`).
     - Desconexión completa de WebSockets y peticiones REST hacia `127.0.0.1:8000` en la web pública para evitar que las pruebas interactivas de visitantes en la landing page controlen su servidor backend local o ejecuten acciones en su PC real.

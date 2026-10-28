@@ -35,13 +35,23 @@ export function ensureToastContainer() {
  * y se pausan al pasar el cursor (hover).
  */
 export function toast(message, variant = 'n', subtitle = '') {
-  const v = variant === true ? 'ok' : variant === false ? 'er' : (variant || 'n');
+  let rawV = variant;
+  let sub = subtitle;
+  let customMs = null;
+  if (variant && typeof variant === 'object') {
+    rawV = variant.type || variant.variant || 'n';
+    sub = variant.subtitle || variant.sub || subtitle || '';
+    if (typeof variant.duration === 'number' && variant.duration > 0) {
+      customMs = variant.duration;
+    }
+  }
+  const v = rawV === true || rawV === 'ok' ? 'ok' : rawV === false || rawV === 'er' ? 'er' : 'n';
   const box = ensureToastContainer();
   const wrapper = document.createElement('div');
   wrapper.className = 'tw';
 
   const icSvg = icon(TOAST_ICONS[v] || 'info');
-  const subHtml = subtitle ? `<small>${escapeHtml(subtitle)}</small>` : '';
+  const subHtml = sub ? `<small>${escapeHtml(sub)}</small>` : '';
   wrapper.innerHTML =
     `<div>` +
       `<div class="toast ${escapeHtml(v)}">` +
@@ -51,9 +61,12 @@ export function toast(message, variant = 'n', subtitle = '') {
     `</div>`;
 
   box.appendChild(wrapper);
+  while (box.children.length > 4) {
+    collapseOut(box.firstElementChild, { removeOnComplete: true });
+  }
   collapseIn(wrapper);
 
-  let remainingMs = TOKENS.motion.toastMs;
+  let remainingMs = customMs || TOKENS.motion.toastMs;
   let startedAt = performance.now();
   let timerId = null;
 

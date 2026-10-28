@@ -789,8 +789,8 @@ function GlideSelect(host,{options,value,label='Seleccionar',onChange}){
 /* HoldButton v2 */
 function HoldButton(host,{label,doneLabel='Listo',holdLabel='Sigue manteniendo',icon='',hold=1800,onHold,small,variant='n'}){
  if(!host)return;
- const checkIcon='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
- const layer=`<span class="t"><span class="r">${icon}${esc(label)}</span><span class="h">${esc(holdLabel)}</span><span class="d">${checkIcon}${esc(doneLabel)}</span></span>`;
+ const checkIcon='<svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+ const layer=`<span class="t"><span class="r">${icon}${esc(label)}</span><span class="h">${esc(holdLabel)}</span><span class="dn d">${checkIcon}${esc(doneLabel)}</span></span>`;
  host.innerHTML=`<button type="button" class="hb ${variant} ${small?'sm':''}" data-phase="idle" data-s="idle" style="--hold:${hold}ms;--hb-hold:${hold}ms;--hb-cycles:${hold/1100}" aria-label="${esc(label)}">${layer}<span class="f" aria-hidden="true">${layer}</span></button>`;
  const b=host.firstElementChild||host.firstChild;if(!b)return;
  let phase='idle',p=0,raf=0,start=0,rect=null,pid=null,kind=null,tC=0;
@@ -1710,7 +1710,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Grafo de conocimiento persistente para que Miku recuerde proyectos, preferencias y decisiones pasadas.',
     cmd: 'npx',
     args: ['-y', '@modelcontextprotocol/server-memory'],
-    icon: '<svg viewBox="0 0 24 24" fill="#ffffff" width="22" height="22"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" fill="var(--tx)" width="22" height="22"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
   },
   {
     id: 'sqlite',
@@ -1718,7 +1718,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Conexión a bases de datos SQLite locales para análisis de datos, consultas SQL e informes.',
     cmd: 'npx',
     args: ['-y', '@modelcontextprotocol/server-sqlite'],
-    icon: '<svg viewBox="0 0 24 24" fill="#ffffff" width="22" height="22"><path d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zm0 3c3.86 0 7 1.12 7 2.5S15.86 10 12 10s-7-1.12-7-2.5S8.14 5 12 5zm0 14c-3.86 0-7-1.12-7-2.5V14.7c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5zm0-4.5c-3.86 0-7-1.12-7-2.5V10.2c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" fill="var(--tx)" width="22" height="22"><path d="M12 2C6.48 2 2 4.02 2 6.5v11C2 19.98 6.48 22 12 22s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zm0 3c3.86 0 7 1.12 7 2.5S15.86 10 12 10s-7-1.12-7-2.5S8.14 5 12 5zm0 14c-3.86 0-7-1.12-7-2.5V14.7c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5zm0-4.5c-3.86 0-7-1.12-7-2.5V10.2c1.86 1.14 4.31 1.8 7 1.8s5.14-.66 7-1.8v1.8c0 1.38-3.14 2.5-7 2.5z"/></svg>'
   },
   {
     id: 'github',
@@ -1726,7 +1726,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Exploración de repositorios de código, commits, ramas, pull requests y issues de GitHub.',
     cmd: 'npx',
     args: ['-y', '@modelcontextprotocol/server-github'],
-    icon: '<svg viewBox="0 0 24 24" fill="#ffffff" width="22" height="22"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" fill="var(--tx)" width="22" height="22"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>'
   },
   {
     id: 'google-drive',
@@ -1734,7 +1734,7 @@ const RECOMMENDED_MCPS = [
     desc: 'Búsqueda y consulta de documentos, hojas de cálculo y archivos de tu cuenta de Google Drive.',
     cmd: 'npx',
     args: ['-y', '@piotr-agier/google-drive-mcp'],
-    icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="#ffffff"><path d="M7.71 3.5L1.15 15l3.43 6 6.55-11.5L7.71 3.5zm3.43 6l4.29 7.5H23l-4.29-7.5H11.14zm5.15-6L12 10.5h6.86L23 3.5h-6.71z"/></svg>'
+    icon: '<svg viewBox="0 0 24 24" width="22" height="22" fill="var(--tx)"><path d="M7.71 3.5L1.15 15l3.43 6 6.55-11.5L7.71 3.5zm3.43 6l4.29 7.5H23l-4.29-7.5H11.14zm5.15-6L12 10.5h6.86L23 3.5h-6.71z"/></svg>'
   }
 ];
 
@@ -1854,7 +1854,7 @@ V.alertas = () => {
           <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
             <span style="flex:none;display:grid;place-items:center;width:32px;height:32px;background:rgba(255,255,255,0.04);border-radius:8px">${iconHtml}</span>
             <div style="min-width:0;flex:1">
-              <span class="marquee-wrap" style="color:#fff;font-size:14px;font-weight:600;display:block">
+              <span class="marquee-wrap" style="color:var(--tx);font-size:14px;font-weight:600;display:block">
                 <span class="marquee-text">${esc(item.label || k)}</span>
               </span>
               <small style="color:var(--mut);font-size:11.5px;display:block">Alerta tras ${item.threshold || 120} minutos</small>
@@ -1921,36 +1921,47 @@ const renderRail = () => {
 
 // SECTION_THEMES eliminado: sistema monocromático v2 (§21)
 
-function heroHtml() {
+function getSectionHeroMeta(catId) {
   const titles = {
-    general: 'Centro de Control',
+    general: 'Preferencias del sistema',
     island: 'Isla Dinámica',
     permisos: 'Nivel de Permisos',
-    agentes: 'Agentes Autónomos',
-    modelos: 'Modelos de Lenguaje & Visión',
-    keys: 'Claves de API (.env)',
-    mcp: 'Servidores Model Context Protocol',
-    alertas: 'Alertas Proactivas & Enfoque',
-    voz: 'Centro de Audio & Voz',
-    link: 'Miku-Link Gateway',
-    peligro: 'Zona de peligro'
+    agentes: 'Especialistas activos',
+    modelos: 'Enrutamiento de modelos',
+    keys: 'Credenciales de proveedores',
+    mcp: 'Servidores MCP conectados',
+    alertas: 'Avisos y recordatorios',
+    voz: 'Síntesis y micrófono',
+    link: 'Teléfono vinculado',
+    peligro: 'Restablecer y borrar datos'
   };
   const subs = {
-    general: 'Parámetros del sistema, isla dinámica y comportamiento general.',
+    general: 'Idioma, arranque automático, comportamiento de la isla y atajos globales.',
     island: 'Comportamiento del widget flotante de Windows, expansión y autocierre.',
     permisos: 'Límites de acceso al sistema operativo, archivos y consola.',
-    agentes: 'Configura agentes especializados, personalidades y accesorios.',
-    modelos: 'Asigna el cerebro para chat, uso de PC y transcripción de voz.',
-    keys: 'Conexión directa con Google Gemini, Groq, OpenAI y más.',
-    mcp: 'Extiende las capacidades de Miku con SQLite, sistema de archivos y web.',
-    alertas: 'Monitoreo de tiempo en pantalla y descansos inteligentes.',
-    voz: 'Dispositivos de entrada de micrófono y niveles de volumen.',
-    link: 'Sincronización segura con tu smartphone y red local.',
-    peligro: 'Acciones irreversibles sobre datos, dispositivos y agentes.'
+    agentes: 'Asigna roles, herramientas y prioridades de ejecución a cada agente.',
+    modelos: 'Elige qué proveedor responde en conversación, código, visión y voz.',
+    keys: 'Almacenadas localmente en tu llavero del sistema; nunca salen de tu equipo.',
+    mcp: 'Conecta herramientas externas: archivos, navegador, terminal y calendario.',
+    alertas: 'Controla qué eventos pueden interrumpirte y con qué prioridad.',
+    voz: 'Timbre de voz, velocidad de lectura, detección de activación y dispositivo de entrada.',
+    link: 'Notificaciones, mensajes, llamadas, fotos y archivos entre tu móvil y el escritorio.',
+    peligro: 'Acciones irreversibles: requieren mantener pulsado para confirmar.'
   };
+  const i18nFn = window.MikuI18n?.t;
+  const tag = i18nFn ? i18nFn(`sections.${catId}.tag`, t(`cat_${catId}`) || 'MIKU DESKTOP') : (t(`cat_${catId}`) || 'MIKU DESKTOP');
+  const title = i18nFn ? i18nFn(`sections.${catId}.title`, titles[catId] || 'Preferencias del sistema') : (titles[catId] || 'Preferencias del sistema');
+  const desc = i18nFn ? i18nFn(`sections.${catId}.desc`, subs[catId] || '') : (subs[catId] || '');
+  return { tag, title, desc };
+}
+
+function heroHtml() {
+  const meta = getSectionHeroMeta(CAT);
+  const hueFn = window.MikuTokens?.getSectionHue || (() => ({ h: 215, s: 75, l: 72 }));
+  const targetHue = hueFn(CAT);
   return `
   <div class="miku-hero-wrap">
-    <div class="hero miku-hero" style="margin:0">
+    <div class="hero miku-hero" style="margin:0;--h:${targetHue.h}">
       <canvas class="hero-galaxy-cv" id="heroGalaxyCv"></canvas>
       <div class="au"><i></i><i></i><i></i></div>
       <svg class="orb" viewBox="0 0 200 200" aria-hidden="true">
@@ -1960,9 +1971,9 @@ function heroHtml() {
         <circle class="k" cx="100" cy="100" r="9"/>
       </svg>
       <div class="miku-hero-body" id="ht">
-        <small class="miku-hero-tag">MIKU DESKTOP SUITE</small>
-        <h3 class="miku-hero-title" id="hh">${titles[CAT] || 'Centro de Control'}</h3>
-        <p class="miku-hero-desc" id="hp">${subs[CAT] || 'Parámetros del sistema, isla dinámica y comportamiento general.'}</p>
+        <small class="miku-hero-tag" id="hg">${esc(meta.tag)}</small>
+        <h3 class="miku-hero-title" id="hh">${esc(meta.title)}</h3>
+        <p class="miku-hero-desc" id="hp">${esc(meta.desc)}</p>
       </div>
     </div>
   </div>
@@ -1974,8 +1985,10 @@ let HERO_PARTICLES_STATE = null;
 function initHeroGalaxy() {
   const cv = document.getElementById('heroGalaxyCv');
   if (!cv) return;
-  const hueFn = window.MikuTokens?.getSectionHue || (() => ({ h: 212, s: 75, l: 72 }));
+  const hueFn = window.MikuTokens?.getSectionHue || (() => ({ h: 215, s: 75, l: 72 }));
   const targetHue = hueFn(CAT);
+  const heroEl = cv.closest('.hero');
+  if (heroEl) heroEl.style.setProperty('--h', String(targetHue.h));
   if (!HERO_PARTICLES_STATE) {
     HERO_PARTICLES_STATE = { c: { ...targetHue }, t: { ...targetHue } };
   } else {
@@ -1989,36 +2002,17 @@ function initHeroGalaxy() {
 let _lastRenderedCat = null;
 
 function updateHeroText() {
-  const titles = {
-    general: 'Centro de Control',
-    island: 'Isla Dinámica',
-    permisos: 'Nivel de Permisos',
-    agentes: 'Agentes Autónomos',
-    modelos: 'Modelos de Lenguaje & Visión',
-    keys: 'Claves de API (.env)',
-    mcp: 'Servidores Model Context Protocol',
-    alertas: 'Alertas Proactivas & Enfoque',
-    voz: 'Centro de Audio & Voz',
-    link: 'Miku-Link Gateway',
-    peligro: 'Zona de peligro'
-  };
-  const subs = {
-    general: 'Parámetros del sistema, isla dinámica y comportamiento general.',
-    island: 'Comportamiento del widget flotante de Windows, expansión y autocierre.',
-    permisos: 'Límites de acceso al sistema operativo, archivos y consola.',
-    agentes: 'Configura agentes especializados, personalidades y accesorios.',
-    modelos: 'Asigna el cerebro para chat, uso de PC y transcripción de voz.',
-    keys: 'Conexión directa con Google Gemini, Groq, OpenAI y más.',
-    mcp: 'Extiende las capacidades de Miku con SQLite, sistema de archivos y web.',
-    alertas: 'Monitoreo de tiempo en pantalla y descansos inteligentes.',
-    voz: 'Dispositivos de entrada de micrófono y niveles de volumen.',
-    link: 'Sincronización segura con tu smartphone y red local.',
-    peligro: 'Acciones irreversibles sobre datos, dispositivos y agentes.'
-  };
+  const meta = getSectionHeroMeta(CAT);
+  const hg = document.getElementById('hg');
   const hh = document.getElementById('hh');
   const hp = document.getElementById('hp');
-  if (hh) hh.textContent = titles[CAT] || 'Centro de Control';
-  if (hp) hp.textContent = subs[CAT] || 'Parámetros del sistema, isla dinámica y comportamiento general.';
+  const ht = document.getElementById('ht');
+  if (hg) hg.textContent = meta.tag;
+  if (hh) hh.textContent = meta.title;
+  if (hp) hp.textContent = meta.desc;
+  if (ht && window.MikuMotion?.enter) {
+    window.MikuMotion.enter(ht);
+  }
 }
 
 function render() {
@@ -3021,7 +3015,7 @@ function mount() {
         hold: 1600,
         variant: 'r',
         onHold: () => {
-          AG = structuredClone(DEF_AG);
+          AG = structuredClone(DEFAULT_AGENTS);
           SELID = 'miku';
           saveAgents();
           showToast('Agentes restaurados a los predeterminados');

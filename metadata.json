@@ -1,0 +1,8 @@
+{
+  "name": "Miku Desktop",
+  "description": "A lively, smart desktop companion living in a Dynamic Island on your screen — orchestrating AI agents, quick action tools, live system diagnostics, Spotify media controller, mobile pairing, and companion interactions.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

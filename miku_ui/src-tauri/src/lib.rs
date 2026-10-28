@@ -515,12 +515,6 @@ pub fn run() {
                     api.prevent_close();
                 }
             }
-            if window.label() == "link" {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    let _ = window.hide();
-                    api.prevent_close();
-                }
-            }
         })
         .invoke_handler(tauri::generate_handler![
             check_and_set_click_through,

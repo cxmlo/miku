@@ -244,7 +244,8 @@
   transition: opacity .22s var(--e), translate var(--d-spring-md) var(--spring), filter .22s var(--e);
 }
 .hb .t > .h,
-.hb .t > .dn {
+.hb .t > .dn,
+.hb .t > .d {
   opacity: 0;
   translate: 0 9px;
   filter: blur(3px);
@@ -265,10 +266,18 @@
   translate: 0 -9px;
   filter: blur(3px);
 }
-.hb[data-s="done"] .t > .dn {
+.hb[data-s="done"] .t > .dn,
+.hb[data-s="done"] .t > .d {
   opacity: 1;
   translate: 0;
   filter: none;
+}
+.hb.sm {
+  height: var(--h-btn-sm);
+  min-width: 132px;
+  padding: 0 14px;
+  font-size: 12px;
+  border-radius: var(--r-btn);
 }
 .hb.g {
   --bg: var(--okbg);

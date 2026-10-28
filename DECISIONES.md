@@ -35,6 +35,21 @@ El frontend de `miku_ui` se sirve directamente como ES Modules / HTML estático 
 
 ---
 
-## Registro de Decisiones Confirmadas
-*(Se actualizará con las respuestas del usuario antes de ejecutar las Fases 1 a 7).*
+## Registro de Decisiones Confirmadas y Estado de Ejecución (Fases 0–7 Completadas)
+
+1. **Secciones de Configuración (Confirmado — Opción A + 14 secciones completas)**:
+   - Se unificaron las secciones del catálogo base (`General`, `Sonido y voz`, `Apariencia`, `Notificaciones`, `Miku-Link`, `Privacidad`, `Almacenamiento`, `Atajos`, `Acerca de`, `Zona de peligro`) junto con los motores de IA de Miku Desktop (`Agentes`, `Modelos de IA`, `Claves de API`, `Servidores MCP`), todas organizadas bajo los 3 grupos de barra lateral (`APLICACIÓN`, `CONECTIVIDAD`, `SISTEMA`) y encabezados de partículas `Particles` con su matiz `SECTION_HUES`.
+   - Se corrigió el renderizado completo de la sección `Agentes` y el restablecimiento en `Zona de peligro` (`structuredClone(DEFAULT_AGENTS)`).
+2. **Sistema de Color y Tokens (`miku-design-system`)**:
+   - Eliminado el acento azul `#3B9EFF` de controles y botones. Todos los controles interactivos usan `--ac: #f5f5f7` (con `--ink: #0a0a0c`), reservando `--ok: #30d158` exclusivamente para confirmación/conectado y `--er: #ff453a` para peligro/error.
+   - Los colores distintivos de agentes (`PRESET`) se conservan únicamente en el halo/avatar del personaje (`MK`), nunca en botones o píldoras de la interfaz.
+3. **Integración de Miku-Link dentro de Configuración**:
+   - Retirada la ventana independiente `miku_link.html` y su entrada `"link"` en `tauri.conf.json`.
+   - Miku-Link vive al 100% dentro de la sección `Miku-Link` de `miku_settings.html` (`sections/mikuLinkSection.js` + `services/mikuLinkService.js`), implementando los 3 estados del catálogo (`Desconectado` QR/PIN con temporizador real de 120s, `Emparejando` con anillos concéntricos y `Conectado` con cabecera del dispositivo y las 6 pestañas `Inicio`, `Mensajes`, `Llamadas`, `Fotos`, `Avisos`, `Apps`).
+   - El comando Tauri `open_link_window` abre o enfoca la ventana `settings` directamente en la sección `#link`.
+4. **Arquitectura Modular ES + i18n en Español (`miku_ui/src/`)**:
+   - `styles/tokens.css`, `styles/base.css`, `styles/components.css`, `styles/miku-link.css`.
+   - `i18n/es.js` con diccionario completo en español (`sections.*`, `nav.*`, `mikuLink.*`, `common.*`, `empty.*`, `hold.*`, `app.*`) y función `window.MikuI18n.t(path, vars)`.
+   - `components/` (`primitives.js`, `feedback.js`, `overlays.js`, `interactive.js`, `particlesHeader.js`, `qrPhone.js`, `index.js`).
+   - Eliminadas todas las carpetas temporales `backup_*` y archivos obsoletos (`miku_link.html`, `miku_link.css`), y verificados cero colores hexadecimales hardcodeados fuera de `tokens.css`.
 

@@ -46,25 +46,19 @@ graph TD
   - `tool_use`: Monitor de visión y control de periféricos de la computadora.
   - `approve`: Diálogo modal de confirmación con teclado (<kbd>Y</kbd>/<kbd>N</kbd>) para ejecución de comandos sensibles.
 
-### 2. Panel de Configuración (`miku_settings.html`)
-- **Navegación por Pestañas**:
-  - `General`: Parámetros de la isla, idioma (ES/EN), personalidad y **Actualizador en 1 Clic**.
-  - `Voz`: Control de volumen de sintetizador y efectos de sonido con diales continuos, selector de dispositivo de entrada de micrófono y wake word.
-  - `Agentes`: Selector y creador de agentes con personalidades aisladas, prompts de sistema y ropa/accesorios personalizados.
-  - `Modelos`: Selector jerárquico por proveedor (Google Gemini, Groq, OpenAI, DeepSeek, Anthropic, Ollama) y categorías (Chat, Pro/Código, Computer Use, STT).
-  - `Claves de API`: Gestión protegida de variables de entorno `.env`.
-  - `MCP`: Catálogo con instalación en un clic y conexión en caliente de servidores Model Context Protocol (`filesystem`, `memory`, `sqlite`, `github`, etc.).
-  - `Alertas`: Monitor de tiempo de uso en juegos y aplicaciones estilo Discord con avisos proactivos en la Isla y notificaciones nativas de Windows Toast.
-### 3. Ventana Miku-Link (`miku_link.html`)
-- **Estilo Windows 11 Phone Link**: Ventana nativa e independiente con bordes curvos de 16px (`border-radius: 16px`), área de arrastre integrada y diseño oscuro acrílico.
-- **Fondo de Pantalla del Smartphone en Vivo**: Visualización del wallpaper sincronizado en la pantalla del smartphone con brillo ambiental.
-- **Indicadores Reales**: Nivel de batería real dinámico (barra de porcentaje y texto), conectividad Wi-Fi local y enlace Bluetooth.
-- **Controles Rápidos (Quick Actions)**: Alternadores para *No molestar*, *Silencio*, *Música* y *Bloquear PC*.
-- **Pestañas Segmentadas**:
-  - `Notificaciones`: Bandeja de notificaciones en tiempo real del smartphone Android con icono de aplicación, remitente, texto y botón para borrar todo.
-  - `Archivos`: Transferencia rápida y acceso directo a la carpeta de recibidos (`Downloads/miku-link`).
-  - `Portapapeles`: Envío instantáneo de texto e historial sincronizado entre PC y teléfono.
-- **Modo Sin Dispositivos**: Si no hay smartphones registrados, la tarjeta del teléfono se oculta automáticamente para mostrar únicamente el código QR nativo de emparejamiento.
+### 2. Panel de Configuración y Miku-Link (`miku_settings.html`)
+- **Arquitectura Visual (`miku-design-system`)**:
+  - Ventana libremente redimensionable (`1080×780` por defecto, mínimo `720×520`) con estética monocroma oscura (`#000000` / `--s1: #0e0f11` / `--s2: #17181b`), acento neutro (`--ac: #f5f5f7`), verde único (`--ok: #30d158`) para estados conectados/confirmación y rojo (`--er: #ff453a`) para peligro.
+  - Encabezado de sección con motor Canvas `Particles` (aurora multicapa, orbe radial y partículas con matiz `SECTION_HUES` por categoría).
+  - Componentes modulares en `miku_ui/src/components/`: `IndicatorNav`, `SmoothSlider` (`requestAnimationFrame`), `HoldButton` (`.hb`), `GlideSelect` y sistema centralizado de internacionalización en español (`miku_ui/src/i18n/es.js`).
+- **Secciones Disponibles**:
+  - `APLICACIÓN`: `General`, `Agentes`, `Modelos de IA`, `Claves de API`, `Servidores MCP`, `Notificaciones`, `Sonido y voz`, `Apariencia`.
+  - `CONECTIVIDAD`: `Miku-Link` (integrado directamente dentro de Configuración, sin ventana externa).
+  - `SISTEMA`: `Privacidad`, `Almacenamiento`, `Atajos`, `Acerca de`, `Zona de peligro`.
+- **Miku-Link Integrado (`sections/mikuLinkSection.js` + `services/mikuLinkService.js`)**:
+  - **Estado 1 — Desconectado (`unpaired`)**: Tarjeta de emparejamiento con ilustración del teléfono, selector segmentado `Código QR` / `Código PIN` de 6 dígitos, temporizador real de 120s sincronizado con `GET /api/link/qr_data` y guía de 3 pasos.
+  - **Estado 2 — Emparejando (`linking`)**: Animación de anillos concéntricos, resumen del dispositivo detectado y botón de cancelación (`POST /api/link/cancel_pair`).
+  - **Estado 3 — Conectado (`connected`)**: Cabecera del dispositivo con miniatura del teléfono (con soporte de fondo personalizado), telemetría en tiempo real (batería, señal, almacenamiento, estado DND), acciones rápidas (`Hacer sonar`, `Sincronizar`, `Desvincular` con `HoldButton`) y **6 pestañas segmentadas** (`Inicio`, `Mensajes`, `Llamadas`, `Fotos`, `Avisos`, `Apps`) conectadas a `/api/link/*` y WebSocket.
 
 ### 4. Rendimiento (0.0% CPU en Reposo) & Dynamic Island Ergonómica
 - **Dirty Rendering en Reposo (0.0% CPU en WebView2)**:

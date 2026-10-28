@@ -1,0 +1,331 @@
+/* ============================================================================
+   MIKU DESIGN SYSTEM — MIKU-LINK EN CONFIGURACIÓN (styles/miku-link.css)
+   Fuente de verdad: miku-catalogo.html (sección Miku-Link Phone Link)
+   ============================================================================ */
+
+#mlt {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#mlt::-webkit-scrollbar {
+  display: none;
+}
+#mlt .ind {
+  bottom: 0;
+}
+
+.mlh {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 14px;
+}
+.mlh > div {
+  flex: 1;
+  min-width: 0;
+}
+.mlh b {
+  display: block;
+}
+
+.batt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 12px;
+}
+.batt i {
+  width: 22px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1.5px solid var(--mu);
+  padding: 1px;
+  display: inline-block;
+}
+.batt i:before {
+  content: "";
+  display: block;
+  height: 100%;
+  width: var(--b, 80%);
+  background: var(--tx);
+  border-radius: 1px;
+}
+
+.msg {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  border: 1px solid var(--ln);
+  border-radius: var(--r-acc);
+  overflow: hidden;
+  min-height: 310px;
+}
+.ctl {
+  border-right: 1px solid var(--ln);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ct {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 8px;
+  border-radius: var(--r-nav);
+  cursor: pointer;
+  transition: background var(--d-opt) var(--e), scale var(--d-spring-sm) var(--spring);
+}
+.ct:hover {
+  background: rgba(255, 255, 255, .05);
+}
+.ct[aria-pressed="true"] {
+  background: var(--s3);
+}
+.ct:active {
+  scale: .97;
+}
+.ct:focus-visible {
+  outline: 2px solid var(--tx);
+  outline-offset: -2px;
+}
+.ct > div {
+  flex: 1;
+  min-width: 0;
+}
+.ct b {
+  display: block;
+}
+.ct small {
+  display: block;
+  color: var(--mu);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+}
+.ct small.er {
+  color: var(--er);
+}
+
+.thr {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.thh {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ln);
+  font-weight: 800;
+}
+.bbs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 250px;
+}
+.bb {
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: var(--r-toast);
+  background: var(--s3);
+  align-self: flex-start;
+  animation: bin var(--d-spring) var(--e) both;
+}
+.bb.o {
+  align-self: flex-end;
+  background: var(--tx);
+  color: var(--ink);
+}
+.bb small {
+  display: block;
+  font-size: 10px;
+  opacity: .6;
+  text-align: right;
+  margin-top: 2px;
+}
+
+.cmp {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--ln);
+}
+.cmp input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border-radius: 11px;
+  border: 1px solid var(--ln);
+  background: rgba(255, 255, 255, .05);
+  color: var(--tx);
+  padding: 0 12px;
+  font: 700 13px var(--font);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .msg {
+    grid-template-columns: 1fr;
+  }
+  .ctl {
+    border-right: 0;
+    border-bottom: 1px solid var(--ln);
+    flex-direction: row;
+    overflow-x: auto;
+  }
+}
+
+.dial {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 240px;
+}
+.key {
+  all: unset;
+  height: 46px;
+  border-radius: var(--r-acc);
+  background: rgba(255, 255, 255, .06);
+  display: grid;
+  place-items: center;
+  font: 800 17px var(--font);
+  cursor: pointer;
+  transition: background var(--d-exit) var(--e), scale var(--d-spring-sm) var(--spring);
+}
+.key:hover {
+  background: rgba(255, 255, 255, .1);
+}
+.key:active {
+  scale: .92;
+}
+.key:focus-visible {
+  outline: 2px solid var(--tx);
+}
+
+.num {
+  font: 800 24px/40px var(--font);
+  letter-spacing: .06em;
+  min-height: 40px;
+  max-width: 240px;
+  text-align: center;
+}
+
+.cll {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.cll .av {
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+}
+
+.apps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+}
+.app {
+  all: unset;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: var(--r-acc);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  transition: background var(--d-opt) var(--e), scale var(--d-spring-sm) var(--spring);
+}
+.app:hover {
+  background: rgba(255, 255, 255, .06);
+}
+.app:active {
+  scale: .92;
+}
+.app:focus-visible {
+  outline: 2px solid var(--tx);
+}
+.app .ai {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  font-size: 16px;
+}
+
+.phg {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+.pho {
+  all: unset;
+  aspect-ratio: 1;
+  border-radius: var(--r-btn-lg);
+  border: 1px solid var(--ln);
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .04) 0 8px, transparent 8px 16px);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--mu);
+  transition: scale var(--d-spring) var(--spring), border-color var(--d-med) var(--e);
+}
+.pho:hover {
+  scale: 1.04;
+  border-color: var(--ln2);
+}
+.pho:active {
+  scale: .96;
+}
+.pho:focus-visible {
+  outline: 2px solid var(--tx);
+}
+
+/* Modal preview en Miku-Link (.ov .md) */
+.ov .md {
+  width: min(100%, 520px);
+  background: var(--s1);
+  border: 1px solid var(--ln2);
+  border-radius: var(--r-win);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .7);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0;
+  scale: .92;
+  translate: 0 16px;
+  filter: blur(14px);
+  transition: opacity .18s var(--e), scale var(--d-opt) var(--e), translate var(--d-opt) var(--e), filter var(--d-exit) var(--e);
+}
+.ov[data-open="true"] .md {
+  opacity: 1;
+  scale: 1;
+  translate: 0;
+  filter: none;
+  transition: opacity var(--d-opt) var(--e), scale var(--d-enter) var(--spring), translate var(--d-enter) var(--spring), filter var(--d-spring-sm) var(--e);
+}
+.ov .mh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ov .mh h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+.ov .mf {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

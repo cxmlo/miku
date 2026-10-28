@@ -66,7 +66,7 @@ small { font-size: 12px; color: var(--mu); }
 
 /* ═══ SUPERFICIES DE VENTANA SÓLIDAS Y SEMÁFORO (§3) ═══ */
 .gl {
-  background: var(--s0, #000000);
+  background: var(--s0);
   border: 1px solid var(--ln);
   box-shadow: none;
 }
@@ -79,7 +79,7 @@ small { font-size: 12px; color: var(--mu); }
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: var(--s0, #000000);
+  background: var(--s0);
   border: 1px solid var(--ln);
   box-shadow: none;
   transition: border-color .3s;
@@ -193,10 +193,9 @@ small { font-size: 12px; color: var(--mu); }
 
 .chips .ind {
   border-radius: 50%;
-  background: #fff;
+  background: var(--tx);
   box-shadow: none;
   backdrop-filter: none;
-  filter: url(#goo);
 }
 .chips .ind.rdy { opacity: .3; }
 
@@ -208,7 +207,7 @@ small { font-size: 12px; color: var(--mu); }
 }
 .nav .ind {
   --ir: 12px;
-  background: #141414;
+  background: var(--s2);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -232,11 +231,11 @@ small { font-size: 12px; color: var(--mu); }
   cursor: pointer;
 }
 .nv:hover:not(.on), .rail .cat:hover:not(.on) {
-  color: #fff;
+  color: var(--tx);
   background: rgba(255, 255, 255, .06);
 }
 .nv.on, .rail .cat.on {
-  color: #fff;
+  color: var(--tx);
   font-weight: 700;
 }
 .nv .ic, .rail .cat svg {
@@ -266,7 +265,7 @@ small { font-size: 12px; color: var(--mu); }
   color: var(--mu);
   transition: color .2s;
 }
-.seg button.on { color: #fff; font-weight: 700; }
+.seg button.on { color: var(--tx); font-weight: 700; }
 
 .chips { display: inline-flex; gap: 14px; padding: 5px; }
 .chip {
@@ -325,8 +324,8 @@ small { font-size: 12px; color: var(--mu); }
 
 .bt.p, .ib.p, .sec-btn.pri {
   background: var(--ac);
-  color: var(--acx, #0a0a0b);
-  --bd: color-mix(in srgb, var(--ac) 55%, #fff);
+  color: var(--ink);
+  --bd: color-mix(in srgb, var(--ac) 55%, var(--tx));
 }
 .bt.t, .ib.t {
   background: color-mix(in srgb, var(--ac) 15%, transparent);
@@ -360,8 +359,8 @@ small { font-size: 12px; color: var(--mu); }
 }
 .bt.ds {
   background: var(--er);
-  color: #fff;
-  --bd: color-mix(in srgb, var(--er) 55%, #fff);
+  color: var(--tx);
+  --bd: color-mix(in srgb, var(--er) 55%, var(--tx));
 }
 .bt.ok {
   background: color-mix(in srgb, var(--ok) 13%, transparent);
@@ -437,7 +436,7 @@ small { font-size: 12px; color: var(--mu); }
   padding: 0 5px;
   border-radius: 99px;
   background: var(--er);
-  color: #fff;
+  color: var(--tx);
   font-size: 11px;
   font-weight: 700;
   display: inline-grid;
@@ -509,7 +508,7 @@ small { font-size: 12px; color: var(--mu); }
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--tx);
   box-shadow: 0 2px 6px rgba(0, 0, 0, .4);
   transition: translate .32s var(--sp), width .18s var(--e);
   transform: none;
@@ -567,7 +566,7 @@ small { font-size: 12px; color: var(--mu); }
   top: 3px;
   width: 6px;
   height: 11px;
-  border: solid #fff;
+  border: solid var(--tx);
   border-width: 0 2.3px 2.3px 0;
   transform: rotate(45deg) scale(0);
   transition: transform .3s var(--sp);
@@ -577,7 +576,7 @@ small { font-size: 12px; color: var(--mu); }
   position: absolute;
   inset: 6px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--tx);
   transform: scale(0);
   transition: transform .3s var(--sp);
 }
@@ -618,7 +617,7 @@ small { font-size: 12px; color: var(--mu); }
   height: 16px;
   margin: -8px 0 0 -8px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--tx);
   box-shadow: 0 1px 6px rgba(0, 0, 0, .6);
   transform: scale(0);
   transition: transform .2s var(--sp);
@@ -631,9 +630,9 @@ small { font-size: 12px; color: var(--mu); }
   bottom: 18px;
   padding: 2px 8px;
   border-radius: 8px;
-  background: #1c1e26;
+  background: var(--s3);
   border: 1px solid rgba(255, 255, 255, .12);
-  color: #fff;
+  color: var(--tx);
   font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -648,7 +647,7 @@ small { font-size: 12px; color: var(--mu); }
   text-align: right;
   font-size: 12.5px;
   font-weight: 700;
-  color: #fff;
+  color: var(--tx);
   font-variant-numeric: tabular-nums;
 }
 
@@ -666,7 +665,7 @@ small { font-size: 12px; color: var(--mu); }
   gap: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--tx);
   border: none;
   cursor: pointer;
   user-select: none;
@@ -690,7 +689,7 @@ small { font-size: 12px; color: var(--mu); }
 #mn, .gs-m {
   position: absolute;
   z-index: 99999;
-  background: #181920;
+  background: var(--s2);
   border: 1px solid rgba(255, 255, 255, .14);
   border-radius: var(--r-lg);
   padding: 6px;
@@ -719,26 +718,26 @@ small { font-size: 12px; color: var(--mu); }
   padding: 0 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #d6d8de;
+  color: var(--tx);
   cursor: pointer;
   transition: background .15s, translate .15s;
 }
 .mi:hover, .gs-o:hover, .gs-o.active {
   background: rgba(255, 255, 255, .14);
-  color: #fff;
+  color: var(--tx);
   translate: 2px 0;
   box-shadow: none;
 }
 .mi.on, .gs-o[aria-selected=true] {
   font-weight: 700;
-  color: #fff;
+  color: var(--tx);
   background: rgba(255, 255, 255, .08);
 }
 .mi .ic, .gs-o svg {
   width: 13px;
   height: 13px;
   opacity: 0;
-  color: #fff;
+  color: var(--tx);
   flex: none;
 }
 .mi.on .ic, .gs-o[aria-selected=true] svg {
@@ -753,7 +752,7 @@ select {
   border-radius: var(--r-md);
   background: rgba(120, 120, 128, .26) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(235,235,245,0.6)' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat calc(100% - 10px) center;
   border: 1px solid rgba(255, 255, 255, .12);
-  color: #fff;
+  color: var(--tx);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -768,8 +767,8 @@ select:hover, select:focus {
   background-color: rgba(120, 120, 128, .36);
 }
 select option {
-  background: var(--s2, #17181b);
-  color: #fff;
+  background: var(--s2);
+  color: var(--tx);
 }
 
 /* ═══ CAMPOS DE ENTRADA (§7) ═══ */
@@ -779,7 +778,7 @@ select option {
   border: 0;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
   background: rgba(120, 120, 128, .22);
-  color: #fff;
+  color: var(--tx);
   padding: 0 14px;
   font: inherit;
   font-size: 13px;
@@ -882,40 +881,7 @@ textarea.tx {
   flex: none;
 }
 
-/* ═══ TOASTS, BANNERS Y DIÁLOGOS (§8) ═══ */
-#toasts {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 99999;
-  pointer-events: none;
-}
-.toast {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 18px;
-  border-radius: 99px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #fff;
-  background: #1c1d24;
-  border: 1px solid rgba(255, 255, 255, .16);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .7);
-  animation: toast-in .5s var(--spring);
-  pointer-events: auto;
-}
-.toast.out { animation: toast-out .3s var(--e) forwards; }
-.toast i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
-.toast.er i { background: var(--er); }
-.toast.wa i { background: var(--wa); }
-@keyframes toast-in { from { opacity: 0; transform: translateY(16px); } }
-@keyframes toast-out { to { opacity: 0; transform: translateY(-10px); } }
-
+/* ═══ BANNERS Y DIÁLOGOS (§8) — Los toasts canónicos (.toasts/.toast) viven en styles/components.css ═══ */
 .banner {
   --c: var(--ac);
   position: fixed;
@@ -929,14 +895,14 @@ textarea.tx {
   gap: 12px;
   padding: 12px 16px;
   border-radius: var(--r-card);
-  background: #1c1d24;
+  background: var(--s2);
   border: 1px solid rgba(255, 255, 255, .14);
   box-shadow: 0 12px 32px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .1);
   animation: bin .6s var(--spring);
   transition: opacity .3s, transform .4s var(--e);
 }
 .banner > div { flex: 1; min-width: 0; }
-.banner b { display: block; font-size: 13px; color: #fff; }
+.banner b { display: block; font-size: 13px; color: var(--tx); }
 .banner small { font-size: 11.5px; color: var(--mu); }
 .banner.out { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(.96); }
 @keyframes bin { from { opacity: 0; transform: translateX(-50%) translateY(-30px) scale(.92); } }
@@ -957,7 +923,7 @@ textarea.tx {
   width: min(420px, calc(100vw - 32px));
   padding: 22px;
   border-radius: var(--r-card);
-  background: #1c1d24;
+  background: var(--s2);
   border: 1px solid rgba(255, 255, 255, .14);
   box-shadow: 0 16px 40px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .12);
   animation: sheet-in .5s var(--spring);
@@ -965,7 +931,7 @@ textarea.tx {
   flex-direction: column;
   gap: 12px;
 }
-.sheet h3 { font-size: 16px; font-weight: 800; color: #fff; }
+.sheet h3 { font-size: 16px; font-weight: 800; color: var(--tx); }
 .sheet p { font-size: 13px; color: var(--mu); line-height: 1.5; }
 .sheet .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 @keyframes fadeIn { from { opacity: 0; } }
