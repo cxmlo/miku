@@ -2,11 +2,6 @@ name: 'Build Miku Android APK'
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'miku_android/**'
-      - '.github/workflows/build-android.yml'
     tags:
       - 'v*'
   workflow_dispatch:

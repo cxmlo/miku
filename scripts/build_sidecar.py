@@ -68,6 +68,39 @@ def run():
             except Exception as e:
                 print(f"[AVISO] No se pudo limpiar {target}: {e}")
 
+    # Asegurar que wake.wav existe (silencio de respaldo si falta)
+    wake_path = os.path.join(WORKSPACE_DIR, 'wake.wav')
+    if not os.path.exists(wake_path):
+        print("[Miku Build] wake.wav no encontrado. Generando archivo WAV de respaldo...")
+        try:
+            import wave
+            with wave.open(wake_path, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(16000)
+                wf.writeframes(b'\x00\x00' * 8000)
+        except Exception as e:
+            print(f"[AVISO] No se pudo generar wake.wav: {e}")
+
+    sep = ";" if sys.platform == "win32" else ":"
+    candidate_data = [
+        'Miku_20260622_080146.onnx',
+        'Miku_20260622_080146.tflite',
+        'wake.wav',
+        'agents_config.json',
+        'models_config.json',
+        'settings_config.json',
+        'miku_personality.json'
+    ]
+    data_args = []
+    for fname in candidate_data:
+        fpath = os.path.join(WORKSPACE_DIR, fname)
+        if os.path.exists(fpath):
+            data_args.append(f"--add-data={fpath}{sep}.")
+            print(f"[Miku Build] + Incluyendo recurso: {fname}")
+        else:
+            print(f"[AVISO] Recurso opcional no encontrado en workspace: {fname}")
+
     cmd = [
         pyinstaller_bin,
         "--name=miku-core",
@@ -78,14 +111,7 @@ def run():
         "--distpath=" + BINARIES_DIR,
         "--workpath=" + work_dir,
         "--specpath=" + build_dir,
-
-        # Archivos de datos y configuraciones iniciales
-        f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.onnx')};.",
-        f"--add-data={os.path.join(WORKSPACE_DIR, 'Miku_20260622_080146.tflite')};.",
-        f"--add-data={os.path.join(WORKSPACE_DIR, 'wake.wav')};.",
-        f"--add-data={os.path.join(WORKSPACE_DIR, 'agents_config.json')};.",
-        f"--add-data={os.path.join(WORKSPACE_DIR, 'models_config.json')};.",
-        f"--add-data={os.path.join(WORKSPACE_DIR, 'settings_config.json')};.",
+    ] + data_args + [
         f"--paths={WORKSPACE_DIR}",
         # Módulos del proyecto
         "--hidden-import=computer_use",

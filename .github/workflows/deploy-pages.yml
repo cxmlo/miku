@@ -3,10 +3,13 @@ name: Deploy Miku Website to GitHub Pages
 on:
   push:
     branches: ["main"]
-    paths:
-      - "website/**"
-      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Motivo del despliegue manual'
+        required: false
+        default: 'Publicar actualización de la web Miku Desktop'
+        type: string
 
 permissions:
   contents: read
@@ -26,6 +29,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Preparar y empaquetar sitio web
+        run: |
+          mkdir -p website
+          # Copiar toda la interfaz web de Miku
+          cp -r miku_ui/src/* website/
+          # Copiar assets globales (iconos, imágenes)
+          if [ -d "assets" ]; then cp -r assets website/; fi
+          # Copiar catálogo oficial
+          if [ -f "miku-catalogo.html" ]; then cp miku-catalogo.html website/catalogo.html; fi
+          # Asegurar que index.html sea la ventana de configuración y showcase principal
+          cp miku_ui/src/miku_settings.html website/index.html
+          cp miku_ui/src/index.html website/island.html
+          echo "=== ARCHIVOS PREPARADOS EN WEBSITE/ ==="
+          ls -la website/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
