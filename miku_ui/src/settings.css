@@ -1393,3 +1393,32 @@ body.dnd,body.dnd *{cursor:grabbing;user-select:none}
   background: rgba(255, 255, 255, 0.05);
   color: var(--mu);
 }
+
+/* ── Armonización de botones principales y HoldButton (estilo oscuro/cristal coherente) ── */
+.btn.p, .sec-btn.p {
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: var(--tx) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35) !important;
+}
+.btn.p:hover, .sec-btn.p:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+.btn.p:active, .sec-btn.p:active {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.hb {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--tx) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+.hb .f {
+  opacity: 0;
+  pointer-events: none;
+}
+.hb[data-s="hold"] .f, .hb[data-s="done"] .f {
+  opacity: 1;
+}
+

@@ -1542,7 +1542,7 @@ V.agentes = () => {
 
 <section>
   <h2>Prioridad en la Isla Dinámica (Arrastra para reordenar · Los 3 primeros van a la isla)</h2>
-  <div id="ag-reorder-list" class="ro"></div>
+  <div id="ag-reorder-list" class="ro" style="margin-top:14px;position:relative;display:block"></div>
 </section>
 
 ${sel ? `
@@ -1662,19 +1662,24 @@ V.keys = () => {
       ? `••••${String(item.value_masked).replace(/^\*+/, '').slice(-4)}`
       : '';
     return `
-    <div class="row fx">
-      <div style="min-width:200px;flex:1 1 220px">
+    <div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0">
+      <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <b>${label}</b>
+          <b style="font-size:13px;color:var(--tx)">${label}</b>
           ${stat('st-' + id, item.is_set, item.is_set ? 'Configurada' : 'Sin clave')}
-          ${shortMask ? `<code style="font-size:11px;color:var(--mu);background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:6px">${esc(shortMask)}</code>` : ''}
+          ${shortMask ? `<code style="font-size:11px;color:var(--mu);background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:6px">${esc(shortMask)}</code>` : ''}
         </div>
-        <small style="margin-top:2px">${desc}</small>
+        <small style="margin-top:3px;display:block;color:var(--mu);font-size:11.5px">${desc}</small>
       </div>
-      <div class="ctl" style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;justify-content:flex-end">
-        ${inp('k-' + id, item.is_set ? 'Actualizar clave…' : 'Introduce tu clave…', isPassword ? 'password' : 'text', '190px')}
-        <span class="hb-savekey" data-savekey="${id}"></span>
-        ${item.is_set ? `<span class="hb-delkey" data-delkey="${id}"></span>` : ''}
+      <div style="display:flex;align-items:center;gap:8px;flex:none">
+        <input class="tx-in key-input-field" id="k-${id}" type="${isPassword ? 'password' : 'text'}" placeholder="${item.is_set ? '••••••••' : 'Introduce tu clave...'}" autocomplete="off" spellcheck="false" style="width:210px;height:36px;font-size:12.5px">
+        <button type="button" class="btn sm p btn-save-key-icon" data-savekey="${id}" title="Guardar clave" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;flex:none;cursor:pointer">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </button>
+        ${item.is_set ? `
+        <button type="button" class="btn sm r btn-del-key-icon" data-delkey="${id}" title="Eliminar clave de .env" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;flex:none;cursor:pointer">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>` : ''}
       </div>
     </div>`;
   };
@@ -1807,11 +1812,24 @@ V.mcp = () => {
 
   <section>
     <h2>${t('mcp_add')} (Personalizado)</h2>
-    <div class="row fx" style="gap:8px">
-      ${inp('mcp-name', 'Nombre (ej. memory)', 'text', '150px')}
-      ${inp('mcp-cmd', 'Comando (npx, uvx)', 'text', '130px')}
-      <input class="tx-in" id="mcp-args" type="text" placeholder="Argumentos (ej. -y @modelcontextprotocol/server-memory)" style="flex:1;min-width:180px">
-      <span id="hb-add-mcp"></span>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--mu);display:block;margin-bottom:4px">Nombre del servidor</label>
+          <input class="tx-in" id="mcp-name" type="text" placeholder="ej. memory" style="width:100%;height:38px">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--mu);display:block;margin-bottom:4px">Comando ejecutable</label>
+          <input class="tx-in" id="mcp-cmd" type="text" placeholder="ej. npx, uvx, node" style="width:100%;height:38px">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--mu);display:block;margin-bottom:4px">Argumentos del servidor</label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input class="tx-in" id="mcp-args" type="text" placeholder="ej. -y @modelcontextprotocol/server-memory" style="flex:1;height:38px">
+          <span id="hb-add-mcp" style="flex:none"></span>
+        </div>
+      </div>
     </div>
   </section>
   `;
@@ -1827,9 +1845,12 @@ V.alertas = () => {
   <section>
     <h2>Registrar Actividad de Juegos y Aplicaciones</h2>
     ${row('Juego o aplicación activa en tu PC', 'Selecciona una aplicación o juego activo para monitorear su tiempo de uso', `
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;width:100%">
-        <div id="gs-app-select" style="flex:1;min-width:220px;max-width:320px"></div>
-        <button type="button" class="btn p" id="btn-add-discord-app" style="white-space:nowrap">Añadir juego o app</button>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;width:100%">
+        <div id="gs-app-select" style="flex:1;min-width:200px;max-width:300px"></div>
+        <button type="button" class="btn p" id="btn-add-discord-app" style="height:36px;padding:0 14px;border-radius:10px;white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Añadir app</span>
+        </button>
       </div>
     `, 1)}
     <div id="discord-custom-wrap" class="row fx" style="display:${selApp?.id === 'custom' ? 'flex' : 'none'}">
@@ -2140,7 +2161,15 @@ function mount() {
         emit({ k: 'lang', lang: v });
       }
     });
-    HoldButton($('#hb-reset'), { label: t('reset_btn'), doneLabel: 'Restablecido', hold: 1800, small: 1, onHold: holdReset });
+    HoldButton($('#hb-reset'), {
+      label: t('reset_btn') || 'Restablecer',
+      holdLabel: 'Mantén pulsado...',
+      doneLabel: 'Restablecido',
+      hold: 1400,
+      small: 1,
+      icon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:4px"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>',
+      onHold: holdReset
+    });
 
     $$('.mode-card').forEach(card => {
       card.onclick = async () => {
@@ -2717,51 +2746,42 @@ function mount() {
   }
 
   if (CAT === 'keys') {
-    $$('.hb-savekey').forEach(host => {
-      const keyId = host.dataset.savekey;
-      HoldButton(host, {
-        label: 'Guardar',
-        doneLabel: 'Guardada',
-        hold: 700,
-        small: 1,
-        onHold: async () => {
-          const input = document.getElementById('k-' + keyId);
-          const val = input ? input.value.trim() : '';
-          if (!val) { showToast('Introduce un valor'); return; }
-          const ok = await window.Bridge?.saveConfigKeys?.({ [keyId]: val });
-          if (ok) {
-            showToast(`Clave ${keyId} guardada`);
-            input.value = '';
-            const res = await window.Bridge?.getConfigKeys?.();
-            STATE.keys = res.keys || {};
-            render();
-          } else {
-            showToast('Error al guardar clave');
-          }
+    $$('.btn-save-key-icon').forEach(btn => {
+      const keyId = btn.dataset.savekey;
+      btn.onclick = async () => {
+        const input = document.getElementById('k-' + keyId);
+        const val = input ? input.value.trim() : '';
+        if (!val) { showToast('Introduce un valor para la clave'); input?.focus(); return; }
+        btn.disabled = true;
+        const ok = await window.Bridge?.saveConfigKeys?.({ [keyId]: val });
+        btn.disabled = false;
+        if (ok) {
+          showToast(`Clave ${keyId} guardada correctamente`);
+          if (input) input.value = '';
+          const res = await window.Bridge?.getConfigKeys?.();
+          STATE.keys = res?.keys || {};
+          render();
+        } else {
+          showToast('Error al guardar clave');
         }
-      });
+      };
     });
 
-    $$('.hb-delkey').forEach(host => {
-      const keyId = host.dataset.delkey;
-      HoldButton(host, {
-        label: 'Eliminar',
-        doneLabel: 'Eliminada',
-        hold: 1100,
-        small: 1,
-        variant: 'r',
-        onHold: async () => {
-          const res = await window.Bridge?.deleteConfigKey?.(keyId);
-          if (!res?.error) {
-            showToast(`Clave ${keyId} eliminada`);
-            const keysRes = await window.Bridge?.getConfigKeys?.();
-            STATE.keys = keysRes.keys || {};
-            render();
-          } else {
-            showToast('Error al eliminar clave: ' + (res?.error || ''));
-          }
+    $$('.btn-del-key-icon').forEach(btn => {
+      const keyId = btn.dataset.delkey;
+      btn.onclick = async () => {
+        btn.disabled = true;
+        const res = await window.Bridge?.deleteConfigKey?.(keyId);
+        btn.disabled = false;
+        if (!res?.error) {
+          showToast(`Clave ${keyId} eliminada`);
+          const keysRes = await window.Bridge?.getConfigKeys?.();
+          STATE.keys = keysRes?.keys || {};
+          render();
+        } else {
+          showToast('Error al eliminar clave: ' + (res?.error || ''));
         }
-      });
+      };
     });
   }
 

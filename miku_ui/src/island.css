@@ -7,6 +7,10 @@ html,body{height:100%;background:transparent;overflow:hidden;font:14px/1.45 -app
  border:1px solid rgba(255,255,255,0.08);border-top:none !important;
  box-shadow:0 2px 8px rgba(0,0,0,0.42);
  overflow:visible;
+ will-change:width,height,translate;
+ transform:translateZ(0);
+ -webkit-backface-visibility:hidden;
+ backface-visibility:hidden;
  transition:width .42s cubic-bezier(.32,.72,0,1),height .42s cubic-bezier(.32,.72,0,1),border-radius .35s,border-color .3s ease,box-shadow .3s ease,filter .3s ease}
 .island.resting, .island.resting * { animation-play-state: paused !important; }
 .island::before, .island::after{content:"";position:absolute;top:0;width:15px;height:14px;pointer-events:none;z-index:10;transition:all .25s ease}

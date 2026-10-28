@@ -247,35 +247,40 @@ function renderTabHome() {
     `<div class="nts" id="pnts">${ML_STATE.notifications.slice(-2).map(renderPhoneNotifCard).join('')}</div>`;
 
   return (
-    `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:20px;align-items:start">` +
-      `<div style="display:flex;justify-content:center">` +
+    `<div style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start">` +
+      `<div style="display:flex;justify-content:center;flex:none">` +
         renderPhoneMockup({
           id: 'ph',
           wallpaperUrl: ML_STATE.wallpaperUrl,
           innerHtml: innerPhone
         }) +
       `</div>` +
-      `<div class="col" style="grid-column:span 2;min-width:260px">` +
-        `<div class="row" style="gap:8px">` +
-          `<button type="button" class="btn sm" data-a="wp">${escapeHtml(t('mikuLink.home.changeWallpaper'))}</button>` +
-          `<button type="button" class="btn sm q" data-a="wpx">${escapeHtml(t('mikuLink.home.removeWallpaper'))}</button>` +
-          `<button type="button" class="btn sm" data-a="ring">${escapeHtml(t('mikuLink.home.ringPhone'))}</button>` +
-          `<button type="button" class="btn sm q" data-a="open-folder">Recibidos</button>` +
-          `<input type="file" id="wpf" accept="image/*" hidden>` +
+      `<div class="col" style="min-width:0;flex:1">` +
+        `<!-- Barra de acciones rápidas estilo Windows Phone Link (Captura 6) -->` +
+        `<div class="pl-actions-bar">` +
+          `<button type="button" class="pl-action-btn ${ML_STATE.dnd ? 'active' : ''}" data-a="dnd" title="No molestar (Silenciar avisos)">` +
+            `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="7" y1="12" x2="17" y2="12"/></svg>` +
+            `<span>No molestar</span>` +
+          `</button>` +
+          `<button type="button" class="pl-action-btn ${ML_STATE.vibrate ? 'active' : ''}" data-a="vibrate" title="Modo Sonido / Vibración">` +
+            `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="6" y="3" width="12" height="18" rx="2.5"/><path d="M2 8v8M22 8v8"/></svg>` +
+            `<span>Vibración</span>` +
+          `</button>` +
+          `<button type="button" class="pl-action-btn ${ML_STATE.media_active ? 'active' : ''}" data-a="media-toggle" title="Reproductor de audio">` +
+            `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>` +
+            `<span>Música</span>` +
+          `</button>` +
+          `<button type="button" class="pl-action-btn" data-a="ring" title="Hacer sonar teléfono">` +
+            `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="4" width="10" height="16" rx="2"/><path d="M18 8a5 5 0 0 1 0 8M21 5a9 9 0 0 1 0 14"/></svg>` +
+            `<span>Hacer sonar</span>` +
+          `</button>` +
         `</div>` +
-        `<div class="line" style="padding:10px 0;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)">` +
-          `<div>` +
-            `<b style="display:block;font-size:13.5px;color:var(--tx)">${escapeHtml(t('mikuLink.home.dndTitle'))}</b>` +
-            `<span class="d" style="display:block;font-size:12px;color:var(--mu);margin-top:2px">${escapeHtml(t('mikuLink.home.dndDesc'))}</span>` +
-          `</div>` +
-          `<button type="button" class="tg" id="dnd" role="switch" data-a="dnd" aria-checked="${ML_STATE.dnd ? 'true' : 'false'}" aria-label="${escapeHtml(t('mikuLink.home.dndTitle'))}"></button>` +
-        `</div>` +
-        `<div class="dz" id="ml-dropzone" tabindex="0">` +
+        `<div class="dz" id="ml-dropzone" tabindex="0" style="margin-top:12px">` +
           `<input type="file" id="ml-file-input" multiple hidden>` +
           `<div>${escapeHtml(t('mikuLink.home.dropzoneText'))}</div>` +
           `<div class="fl" id="ml-file-list"></div>` +
         `</div>` +
-        `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px;flex-wrap:wrap">` +
+        `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:10px;flex-wrap:wrap">` +
           `<button type="button" class="hb r sm" id="unl" data-r="${escapeHtml(t('mikuLink.home.unpairIdle'))}" data-h="${escapeHtml(t('mikuLink.home.unpairHold'))}" data-d="${escapeHtml(t('mikuLink.home.unpairDone'))}"></button>` +
           `<button type="button" class="btn q sm" data-a="lock-pc">Bloquear PC ahora</button>` +
         `</div>` +
@@ -550,18 +555,20 @@ export function renderMikuLinkSectionHtml() {
     `<section class="card" style="padding:20px">` +
       `<div id="ml"></div>` +
     `</section>` +
-    `<div class="ov" id="ml-photo-ov" data-open="false" role="dialog" aria-modal="true" aria-label="Vista previa de foto">` +
-      `<div class="md" style="max-width:520px">` +
-        `<div class="mh">` +
-          `<h3 id="ml-photo-title">Foto</h3>` +
-          `<button type="button" class="btn i q sm" data-a="close-photo-modal" aria-label="Cerrar">${icon('x')}</button>` +
+    `<div class="ov" id="ml-photo-ov" data-open="false" role="dialog" aria-modal="true" aria-label="Vista previa de foto" style="position:fixed;inset:0;z-index:99999;display:none;place-items:center;background:rgba(0,0,0,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:20px">` +
+      `<div class="md" style="margin:auto;max-width:480px;width:92%;background:#0e1017;border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:16px 20px 20px;box-shadow:0 24px 60px rgba(0,0,0,0.85);display:flex;flex-direction:column;gap:14px">` +
+        `<div class="mh" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px">` +
+          `<h3 id="ml-photo-title" style="font-size:14px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0">Foto</h3>` +
+          `<button type="button" class="btn i q sm" data-a="close-photo-modal" aria-label="Cerrar" style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;cursor:pointer">${icon('x')}</button>` +
         `</div>` +
-        `<div style="border-radius:14px;overflow:hidden;background:var(--s2);border:1px solid var(--ln);max-height:360px;display:grid;place-items:center">` +
-          `<img id="ml-photo-img" src="" alt="" style="max-width:100%;max-height:360px;object-fit:contain">` +
+        `<div style="border-radius:14px;overflow:hidden;background:#06070a;border:1px solid rgba(255,255,255,0.07);max-height:360px;display:grid;place-items:center">` +
+          `<img id="ml-photo-img" src="" alt="" style="max-width:100%;max-height:360px;object-fit:contain;display:block">` +
         `</div>` +
-        `<div class="mf">` +
-          `<button type="button" class="btn q" data-a="open-folder">Abrir carpeta</button>` +
-          `<button type="button" class="btn p" data-a="save-photo">Guardar en Imágenes</button>` +
+        `<div class="mf" style="display:flex;justify-content:center;padding-top:4px">` +
+          `<button type="button" class="btn p" data-a="open-folder" style="height:38px;padding:0 20px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700">` +
+            `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"/></svg>` +
+            `<span>Abrir carpeta</span>` +
+          `</button>` +
         `</div>` +
       `</div>` +
     `</div>`
@@ -1142,24 +1149,30 @@ export async function mountMikuLinkSection() {
         const ttl = document.getElementById('ml-photo-title');
         if (ttl) ttl.textContent = photo.filename;
         if (img) img.src = photo.fullUrl;
-        if (ov) ov.dataset.open = 'true';
+        if (ov) {
+          ov.dataset.open = 'true';
+          ov.style.display = 'grid';
+        }
         break;
       }
       case 'close-photo-modal': {
         const ov = document.getElementById('ml-photo-ov');
-        if (ov) ov.dataset.open = 'false';
+        if (ov) {
+          ov.dataset.open = 'false';
+          ov.style.display = 'none';
+        }
         break;
       }
-      case 'save-photo': {
-        if (!ML_STATE.selectedPhoto) return;
-        try {
-          const res = await mikuLinkTransport.savePhotoToPc(ML_STATE.selectedPhoto.filename);
-          notifyToast('Foto guardada en Imágenes/Miku-Link', 'ok', res.saved_path || '');
-          const ov = document.getElementById('ml-photo-ov');
-          if (ov) ov.dataset.open = 'false';
-        } catch (err) {
-          notifyToast('No se pudo guardar la foto', 'er', err.message);
-        }
+      case 'vibrate': {
+        ML_STATE.vibrate = !ML_STATE.vibrate;
+        btn.classList.toggle('active', ML_STATE.vibrate);
+        notifyToast(ML_STATE.vibrate ? 'Modo vibración activado en teléfono' : 'Sonido normal restablecido', 'n');
+        break;
+      }
+      case 'media-toggle': {
+        ML_STATE.media_active = !ML_STATE.media_active;
+        btn.classList.toggle('active', ML_STATE.media_active);
+        notifyToast(ML_STATE.media_active ? 'Sincronización multimedia activa' : 'Reproductor pausado', 'n');
         break;
       }
       case 'refresh-photos': {
@@ -1240,6 +1253,30 @@ export async function mountMikuLinkSection() {
         notifyToast('Error al guardar el fondo de pantalla', 'er', err.message);
       }
       e.target.value = '';
+    }
+  });
+
+  // Listener para cerrar modal de foto al hacer clic en el fondo o pulsar Escape
+  const photoModal = document.getElementById('ml-photo-ov');
+  if (photoModal) {
+    photoModal.onclick = (e) => {
+      if (e.target === photoModal || e.target.closest('[data-a="close-photo-modal"]')) {
+        photoModal.dataset.open = 'false';
+        photoModal.style.display = 'none';
+      } else if (e.target.closest('[data-a="open-folder"]')) {
+        mikuLinkTransport.openReceivedFolder().catch(() => {});
+        notifyToast('Abriendo carpeta Recibidos…', 'n');
+      }
+    };
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const pm = document.getElementById('ml-photo-ov');
+      if (pm && pm.style.display === 'grid') {
+        pm.dataset.open = 'false';
+        pm.style.display = 'none';
+      }
     }
   });
 }

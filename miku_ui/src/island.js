@@ -1179,26 +1179,51 @@ function notify(){
   clearTimeout(wt);
   shrinkTimer=setTimeout(()=>{
    if(scene==='compact'){
-    const compW=Math.max(480,Math.ceil(inn.offsetWidth)+80);
-    const compH=Math.max(110,Math.ceil(inn.offsetHeight)+40);
+    const compW=Math.max(340,Math.ceil(inn.offsetWidth||340)+6);
+    const compH=Math.max(44,Math.ceil(inn.offsetHeight||44)+4);
     cw=compW;ch=compH;
     applyWinSize(compW,compH);
    }
-  },520);
+  },280);
   return;
  }
  clearTimeout(shrinkTimer);
  clearTimeout(wt);
- const contentW = Math.max(inn.scrollWidth||0, inn.offsetWidth||0, 620);
- const contentH = Math.max(inn.scrollHeight||0, inn.offsetHeight||0, scene==='overview'?280:360);
- const targetW = Math.ceil(contentW + 64);
- const targetH = Math.ceil(contentH + 40);
- cw = Math.max(targetW, cw);
- ch = Math.max(targetH, ch);
+ const contentW = Math.max(inn.scrollWidth||0, inn.offsetWidth||0, 580);
+ const contentH = Math.max(inn.scrollHeight||0, inn.offsetHeight||0, scene==='overview'?240:320);
+ const targetW = Math.ceil(contentW + 12);
+ const targetH = Math.ceil(contentH + 8);
+ cw = targetW;
+ ch = targetH;
  applyWinSize(cw, ch);
 }
 new ResizeObserver(notify).observe(isl);addEventListener('pywebviewready',notify);
-addEventListener('DOMContentLoaded',()=>{setTimeout(notify,150)});
+addEventListener('DOMContentLoaded',()=>{
+  setTimeout(notify,150);
+  // Click-through inteligente: si el ratón sale de la isla compacta, permitir clics en ventanas detrás
+  try {
+    const win = window.__TAURI__?.window?.getCurrentWindow?.();
+    if (win?.setIgnoreCursorEvents) {
+      let isPassThrough = false;
+      document.addEventListener('pointermove', (e) => {
+        const inside = !!e.target.closest('#isl');
+        if (inside && isPassThrough) {
+          isPassThrough = false;
+          win.setIgnoreCursorEvents(false).catch(()=>{});
+        } else if (!inside && !isPassThrough && scene === 'compact') {
+          isPassThrough = true;
+          win.setIgnoreCursorEvents(true).catch(()=>{});
+        }
+      });
+      document.addEventListener('pointerleave', () => {
+        if (scene === 'compact' && !isPassThrough) {
+          isPassThrough = true;
+          win.setIgnoreCursorEvents(true).catch(()=>{});
+        }
+      });
+    }
+  } catch (_) {}
+});
 
 let taps=0,tt;
 function tap(){if(LOCKI)return;clearTimeout(tt);taps++;tt=setTimeout(()=>taps=0,900);

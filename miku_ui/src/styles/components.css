@@ -171,19 +171,21 @@
 
 /* 3. BOTÓN DE MANTENER (.hb) */
 .hb {
-  --hold: var(--d-hold);
-  --bg: var(--fill);
+  all: unset;
+  box-sizing: border-box;
+  --hold: var(--d-hold, 1800ms);
+  --bg: rgba(255, 255, 255, .05);
   --fg: var(--tx);
-  --hb-fill: var(--tx);
-  --ink2: var(--ink);
+  --hb-fill: rgba(255, 255, 255, .16);
+  --ink2: var(--tx);
   position: relative;
   display: inline-grid;
   place-items: center;
-  height: var(--h-hb);
-  min-width: 196px;
-  padding: 0 20px;
+  height: var(--h-hb, 36px);
+  min-width: 140px;
+  padding: 0 18px;
   border: 1px solid var(--ln);
-  border-radius: var(--r-btn-lg);
+  border-radius: var(--r-btn, 11px);
   background: var(--bg);
   color: var(--fg);
   font: 700 var(--fs-md)/1 var(--font);
@@ -193,7 +195,11 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
-  transition: scale var(--d-spring) var(--spring);
+  transition: scale var(--d-spring) var(--spring), background 0.18s ease, border-color 0.18s ease;
+}
+.hb:hover {
+  background: rgba(255, 255, 255, .08);
+  border-color: var(--ln2);
 }
 .hb:focus-visible {
   outline: 2px solid var(--tx);
@@ -224,15 +230,22 @@
   background: var(--hb-fill);
   color: var(--ink2);
   clip-path: inset(0 100% 0 0);
+  -webkit-clip-path: inset(0 100% 0 0);
   z-index: 1;
-  transition: clip-path .55s var(--spring);
+  transition: clip-path .55s var(--spring), -webkit-clip-path .55s var(--spring);
+  pointer-events: none;
+  opacity: 0;
 }
 .hb[data-s="hold"] .f {
+  opacity: 1;
   clip-path: inset(0);
-  transition: clip-path var(--hold) linear;
+  -webkit-clip-path: inset(0);
+  transition: clip-path var(--hold) linear, -webkit-clip-path var(--hold) linear;
 }
 .hb[data-s="done"] .f {
+  opacity: 1;
   clip-path: inset(0);
+  -webkit-clip-path: inset(0);
   transition: none;
 }
 .hb .t > span {
@@ -287,18 +300,18 @@
   border-color: rgba(48, 209, 88, .28);
 }
 .hb.p {
-  --bg: var(--tx);
-  --fg: var(--ink);
-  --hb-fill: var(--s3);
-  --ink2: var(--tx);
-  border-color: transparent;
+  --bg: rgba(255, 255, 255, .1);
+  --fg: var(--tx);
+  --hb-fill: rgba(255, 255, 255, .24);
+  --ink2: #fff;
+  border-color: rgba(255, 255, 255, .2);
 }
 .hb.r,
 .hb.d {
   --bg: var(--erbg);
   --fg: var(--er);
   --hb-fill: var(--er);
-  --ink2: var(--tx);
+  --ink2: #fff;
   border-color: rgba(255, 69, 58, .3);
 }
 
@@ -1578,15 +1591,16 @@ kbd {
 }
 .ph {
   position: relative;
-  width: min(100%, 184px);
-  aspect-ratio: 9 / 19;
+  width: min(100%, 136px);
+  aspect-ratio: 9 / 18.2;
   margin: 0 auto;
-  border-radius: var(--r-phone, 30px);
-  border: 5px solid var(--s3);
-  box-shadow: 0 0 0 1px var(--ln2), 0 22px 44px rgba(0, 0, 0, .55);
+  border-radius: 24px;
+  border: 4px solid var(--s3);
+  box-shadow: 0 0 0 1px var(--ln2), 0 16px 36px rgba(0, 0, 0, .55);
   background: var(--s0);
   overflow: hidden;
   isolation: isolate;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .ph:before {
   content: "";
@@ -1749,4 +1763,83 @@ kbd {
   filter: none;
   translate: 0;
 }
+
+/* ── Phone Link Quick Action Bar & Ring Animation (Captura 6) ── */
+.pl-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 8px;
+  flex-wrap: wrap;
+}
+.pl-action-btn {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-width: 80px;
+  height: 48px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--tx);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pl-action-btn span {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--mu);
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+.pl-action-btn svg {
+  stroke: var(--mu);
+  transition: stroke 0.15s ease, transform 0.2s ease;
+}
+.pl-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.pl-action-btn:hover svg {
+  stroke: var(--tx);
+  transform: translateY(-1px);
+}
+.pl-action-btn:hover span {
+  color: var(--tx);
+}
+.pl-action-btn:active {
+  transform: scale(0.96);
+}
+.pl-action-btn.active {
+  background: rgba(168, 140, 255, 0.18);
+  border-color: rgba(168, 140, 255, 0.45);
+}
+.pl-action-btn.active svg {
+  stroke: #c8b6ff;
+}
+.pl-action-btn.active span {
+  color: #fff;
+}
+
+@keyframes phone-ring-vibe {
+  0% { transform: rotate(0deg) scale(1); }
+  15% { transform: rotate(-5deg) scale(1.03); }
+  30% { transform: rotate(5deg) scale(1.03); }
+  45% { transform: rotate(-4deg) scale(1.02); }
+  60% { transform: rotate(4deg) scale(1.02); }
+  75% { transform: rotate(-2deg) scale(1.01); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.ph.rng {
+  animation: phone-ring-vibe 0.38s ease-in-out infinite;
+  box-shadow: 0 0 24px rgba(59, 158, 255, 0.6), 0 0 0 2px var(--ac);
+}
+
 
