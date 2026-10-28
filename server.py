@@ -849,6 +849,14 @@ async def pair_confirm(req: PairConfirmRequest):
     PAIRING_SESSION = None  # Consumir token de un solo uso
     PAIRING_STATE["status"] = "confirmed"
     PAIRING_STATE["device_name"] = req.name
+    MIKU_LINK_RUNTIME["device_name"] = req.name
+    MIKU_LINK_RUNTIME["last_seen"] = time.time()
+
+    await manager.broadcast_message({
+        "type": "miku_link_connected",
+        "device": req.device_id,
+        "name": req.name
+    })
 
     server_pub = miku_db.get_server_public_key_b64()
     return {"status": "ok", "server_public_key": server_pub}
@@ -1090,30 +1098,48 @@ async def link_status_endpoint():
     }
 
 @app.get("/api/link/qr_data")
-async def get_link_qr_data():
+async def get_link_qr_data(force: bool = False):
     global PAIRING_SESSION, PAIRING_STATE
     import secrets, socket, io, base64
+
+    now_ts = int(time.time())
+    local_ip = _resolve_local_ip()
+    hostname = socket.gethostname()
+
+    # Reutilizar la sesión activa si no ha expirado y no se pidió forzar renovación,
+    # evitando que la Isla y Configuración se invaliden mutuamente el QR al abrirse.
+    if (
+        not force
+        and PAIRING_SESSION
+        and PAIRING_STATE.get("status") == "waiting"
+        and PAIRING_STATE.get("expires_at", 0) > now_ts + 15
+        and PAIRING_STATE.get("url")
+        and PAIRING_STATE.get("ip") == local_ip
+    ):
+        raw_pin = PAIRING_STATE.get("pin", "000000")
+        formatted_pin = f"{raw_pin[:3]} {raw_pin[3:]}" if len(raw_pin) == 6 else raw_pin
+        return {
+            "status": "ok",
+            "url": PAIRING_STATE["url"],
+            "qr_base64": PAIRING_STATE.get("qr_base64", ""),
+            "ip": local_ip,
+            "hostname": hostname,
+            "session_id": PAIRING_SESSION,
+            "pin": formatted_pin,
+            "issued_at": PAIRING_STATE.get("issued_at", now_ts),
+            "expires_at": PAIRING_STATE.get("expires_at", now_ts + 120),
+            "ttl_seconds": 120,
+        }
 
     session_id = secrets.token_urlsafe(15)
     raw_pin = f"{secrets.randbelow(900000) + 100000:06d}"
     formatted_pin = f"{raw_pin[:3]} {raw_pin[3:]}"
-    issued_at = int(time.time())
+    issued_at = now_ts
     ttl_seconds = 120
     expires_at = issued_at + ttl_seconds
 
-    PAIRING_SESSION = session_id
-    PAIRING_STATE = {
-        "session_id": session_id,
-        "pin": raw_pin,
-        "issued_at": issued_at,
-        "expires_at": expires_at,
-        "status": "waiting",
-        "device_name": "",
-    }
-
-    local_ip = _resolve_local_ip()
-    hostname = socket.gethostname()
-    pair_url = f"miku://pair?s={session_id}&ip={local_ip}&pin={raw_pin}&host={hostname}"
+    # Formato estricto compatible con PairingLink.kt en Android (miku://pair?s=<session>&ip=<ip>)
+    pair_url = f"miku://pair?s={session_id}&ip={local_ip}"
 
     qr_b64 = ""
     try:
@@ -1125,7 +1151,20 @@ async def get_link_qr_data():
     except Exception as e:
         logger.warning(f"Error generando código QR en backend: {e}")
 
-    return {
+    PAIRING_SESSION = session_id
+    PAIRING_STATE = {
+        "session_id": session_id,
+        "pin": raw_pin,
+        "issued_at": issued_at,
+        "expires_at": expires_at,
+        "status": "waiting",
+        "device_name": "",
+        "url": pair_url,
+        "qr_base64": qr_b64,
+        "ip": local_ip,
+    }
+
+    payload = {
         "status": "ok",
         "url": pair_url,
         "qr_base64": qr_b64,
@@ -1137,6 +1176,11 @@ async def get_link_qr_data():
         "expires_at": expires_at,
         "ttl_seconds": ttl_seconds,
     }
+    await manager.broadcast_message({
+        "type": "miku_link_qr_updated",
+        **payload
+    })
+    return payload
 
 @app.post("/api/link/cancel_pair")
 async def cancel_link_pair():

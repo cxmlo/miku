@@ -61,9 +61,15 @@ export class LinkTransport {
     return this._json('/api/link/status');
   }
 
-  /** Obtiene un nuevo token efímero de un solo uso (120 s) y PIN de 6 dígitos del backend */
-  async requestPairingToken() {
-    return this._json('/api/link/qr_data');
+  /** Obtiene un token efímero de un solo uso (120 s) y PIN de 6 dígitos del backend */
+  async requestPairingToken(force = false) {
+    const res = await this._json(force ? '/api/link/qr_data?force=1' : '/api/link/qr_data');
+    if (res?.url) {
+      try {
+        this._bc?.postMessage({ k: 'pair', ...res });
+      } catch (_) {}
+    }
+    return res;
   }
 
   /** Cancela la sesión de vinculación activa en el backend */

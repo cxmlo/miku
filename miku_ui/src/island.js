@@ -45,8 +45,8 @@ const QR=(()=>{
    let dk=0;M.forEach(r=>r.forEach(v=>dk+=v?1:0));return p+Math.floor(Math.abs(dk*20-n*n*10)/(n*n))*10};
   let best=0,bp=1e9;for(let m=0;m<8;m++){apply(m);fmt(m);const p=pen();apply(m);if(p<bp){bp=p;best=m}}
   apply(best);fmt(best);return M}
- function draw(cv,text,px=120,fg='#111',bg='#fff'){const M=make(text),n=M.length,q=4,s=Math.max(1,Math.floor(px/(n+2*q))),d=s*(n+2*q);cv.width=cv.height=d;cv.style.width=cv.style.height=px+'px';
-  const x=cv.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,d,d);x.fillStyle=fg;for(let y=0;y<n;y++)for(let i=0;i<n;i++)if(M[y][i])x.fillRect((i+q)*s,(y+q)*s,s,s)}
+ function draw(cv,text,px=288,fg='#111',bg='#fff'){const M=make(text),n=M.length,q=3,s=Math.max(1,Math.floor(px/(n+2*q))),d=s*(n+2*q),off=Math.floor((px-s*n)/2);cv.width=cv.height=px;
+  const x=cv.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle=bg;x.fillRect(0,0,px,px);x.fillStyle=fg;for(let y=0;y<n;y++)for(let i=0;i<n;i++)if(M[y][i])x.fillRect(off+i*s,off+y*s,s,s)}
  return{make,draw}})();
 
 /* ───────── 1 · MIKU (Canvas 2D procedural) ───────── */
@@ -1101,7 +1101,7 @@ const SC={
   return `${HD()}<div class="card mk wdr" style="--g:var(--gl)"><i class="cs" data-k=".8" style="width:92px;height:70px"></i><div class="cp"><div class="wh"><b>Guardarropa${a===PRIN?'':` <em>${esc(a.name)}</em>`}</b><span class="wn" id="wn">${OL[cu]||cu}</span></div>${a===PRIN?'':`<div class="crow"><span class="wn">Color</span>${PRESET.map(h=>`<button class="sw8 ${h.toLowerCase()==a.c.toLowerCase()?'on':''}" style="--c:${h}" data-a="color:${h}" aria-label="Color ${h}" ${usedBy(h,a)?'disabled title="En uso por otro agente"':''}></button>`).join('')}<label class="colorin" title="Otro color"><input type="color" id="colin" value="${a.c.toLowerCase()}"></label></div>`}<div class="wrow">${WARDROBE.map(([k,l],n)=>`<button class="wb ${cu==k?'on':''}" data-a="wear:${k}" title="${l}" aria-label="${l}">${k=='none'?ic('none'):avt(bc,k,n,0,'head','lite')}</button>`).join('')}</div></div></div>`}},
  settings:{hc:1,st:'idle',after:()=>$$('.so-host').forEach(h=>SmoothSlider(h,{value:CFG[h.dataset.k]||80,unit:'%',onChange:v=>{CFG[h.dataset.k]=v;window.Bridge?.setVolume?.(v);window.Bridge?.setSetting?.(h.dataset.k,v);}})),x:()=>{const DT=(l,on)=>`<span class="dd"><i class="sd ${on?'on':''}"></i>${l}</span>`;
   return `${HD()}<div class="card mk" style="--g:var(--gl)"><i class="cs" data-k=".7" style="width:80px;height:60px"></i><div class="cp qs"><div class="sr" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><label class="sw"><input type="checkbox" data-k="voice" ${CFG.voice?'checked':''}><i></i></label><span style="font-weight:600;font-size:13px">Sonido y voz</span></div></div><div class="so-host" data-k="voice_volume" style="width:100%"></div></div><div class="sr" style="margin-top:4px"><label class="sw"><input type="checkbox" data-k="hover_open" ${CFG.hover_open?'checked':''}><i></i></label><span>Abrir al pasar el cursor</span></div><div class="sr st2">${DT('Core 8000',ST.ws)}${DT('API',ST.api)}<button class="lk2" data-a="go:link">${DT('Miku-Link',ST.link)}</button><button class="lnk" data-a="cfgwin">Ajustes…</button></div></div></div>`}},
- link:{hc:1,st:'idle',after:()=>{drawQR(PAIR||'miku://pair?s=init&ip=127.0.0.1');window.Bridge?.syncLinkStatus?.();if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl();},x:()=>`${HD()}<div class="lkg"><div class="card lkd"><i class="cs" data-k=".8" style="width:104px;height:78px"></i></div><div class="card lkr"><div class="lkt"><b>Vincular con el celular</b><div class="sub2">Escanea el código con la app móvil de Miku para sincronizar portapapeles, archivos y notificaciones.</div><small class="sub2" id="qu" style="margin:0"></small><span class="st ${ST.link?'on':''}">${ST.link?'Conectado: '+esc(ST.name):'Desconectado'}</span></div><canvas id="qr" width="120" height="120"></canvas></div></div><div class="card lopt"><div class="sr"><label class="sw"><input type="checkbox" data-k="local_net" ${CFG.local_net?'checked':''}><i></i></label><span class="mut">Permitir conexiones en la red local</span></div><div class="sr"><label class="sw"><input type="checkbox" data-k="biometric" ${CFG.biometric?'checked':''}><i></i></label><span class="mut">Pedir huella o bloqueo para «Permitir»</span></div></div><div class="chips">${B('Nuevo código','newcode','','retry')}${ST.link?B('Desvincular','unpair','','x'):''}</div>`},
+ link:{hc:1,st:'idle',after:()=>{drawQR(PAIR||'miku://pair?s=init&ip=127.0.0.1');window.Bridge?.syncLinkStatus?.();if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl(false);},x:()=>`${HD()}<div class="lkg"><div class="card lkd"><i class="cs" data-k=".8" style="width:104px;height:78px"></i></div><div class="card lkr"><div class="lkt"><b>Vincular con el celular</b><div class="sub2">Escanea el código con la app móvil de Miku para sincronizar portapapeles, archivos y notificaciones.</div><small class="sub2" id="qu" style="margin:0"></small><span class="st ${ST.link?'on':''}">${ST.link?'Conectado: '+esc(ST.name):'Desconectado'}</span></div><canvas id="qr" width="288" height="288"></canvas></div></div><div class="card lopt"><div class="sr"><label class="sw"><input type="checkbox" data-k="local_net" ${CFG.local_net?'checked':''}><i></i></label><span class="mut">Permitir conexiones en la red local</span></div><div class="sr"><label class="sw"><input type="checkbox" data-k="biometric" ${CFG.biometric?'checked':''}><i></i></label><span class="mut">Pedir huella o bloqueo para «Permitir»</span></div></div><div class="chips">${B('Nuevo código','newcode','','retry')}${B('Abrir Miku-Link','linkcfg','p','phone')}${ST.link?B('Desvincular','unpair','','x'):''}</div>`},
  gallery:{w:520,hc:1,st:'idle',x:()=>`${HD('Animaciones',B('Reproducir todas','playall','p','spark'))}<div class="card hubc"><i class="cs" data-k=".95" style="width:107px;height:80px"></i><div class="gal">${GAL.map(k=>`<button data-a="emo:${k}">${k=='ask'?'pregunta':k=='approve'?'permiso':k.replace('_',' ')}</button>`).join('')}</div></div>`},
  tool_use:{w:440,st:'searching',
   x:a=>`${HD(esc(a.label||'Analizando pantalla'))}<div class="card"><div class="tu"><span class="badge">${esc(a.badge||'Visión')}</span><div class="scan"></div></div><div class="sub2">${esc(a.sub||'Computer Use')}</div></div><div class="chips">${B('Cancelar','cancel','','x')}</div>`},
@@ -1465,7 +1465,7 @@ const ACT={
  },
  emo:x=>{if(x=='approve'){approve({title:'¿Permitir a Claude Code ejecutar un comando?',text:'npm run build'});return}if(x=='ask'){ask({title:'¿Cómo te sientes hoy?',text:'Puedo ajustar mi tono contigo.',options:['Con energía','Tranquilo','Enfocado']});return}$$('.gal button').forEach(b=>b.classList.toggle('on',b.dataset.a=='emo:'+x));x.startsWith('look_')?buddy.look(x.slice(5),2200):buddy.emote(x,2200)},
  playall:()=>{clearInterval(gi);let i=0;const t=()=>{if(scene!='gallery'||i>=GAL.length){clearInterval(gi);return}ACT.emo(GAL[i++])};t();gi=setInterval(t,2300)},
- go:x=>{if(scene===x&&x==='overview'){if(typeof PG!=='undefined'&&PG!==0){PG=0;renderOv()}return}go(x,x=='tool_use'?{label:'Analizando pantalla'}:{})},tab:x=>tabs(x),send,
+ go:x=>{if(scene===x&&x==='overview'){if(typeof PG!=='undefined'&&PG!==0){PG=0;renderOv()}return}go(x,x=='tool_use'?{label:'Analizando pantalla'}:{});if(x==='link'){openSettings('link',true);}},tab:x=>tabs(x),send,
  q:x=>{const q=$('#q');q.value=x;q.focus()},
  dictate:()=>{ST.mic=!ST.mic;window.Bridge?.dictate?.(ST.mic);buddy.setState(ST.mic?'listening':'idle')},
  copy:(x,b)=>copy(RES,b),qcopy:(x,b)=>copy(QL.text,b),
@@ -1487,7 +1487,8 @@ const ACT={
  m:x=>{if(window.Bridge?.media)window.Bridge.media(x);else if(x=='toggle')music({playing:!MUS.playing})},
  vision:()=>go('tool_use',{label:'Analizando pantalla'}),cancel:()=>{window.Bridge?.cancel?.();go('compact')},
  unpair:(x,b)=>{window.Bridge?.unpairDevices?.();link(false);flash(b,'Listo')},
- cfgwin:()=>{window.Bridge?.openSettings?.()},
+ cfgwin:()=>openSettings(),
+ linkcfg:()=>openSettings('link',true),
  island_update:()=>{openSettings();try{window.Bridge?.checkUpdate?.()}catch(_){}},
  island_hide:()=>{
   if(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;
@@ -1504,7 +1505,7 @@ const ACT={
    fetch('http://127.0.0.1:8000/api/settings/low_cost_toggle',{method:'POST'}).catch(()=>{});
   }catch(_){}
  },
- newcode:()=>{window.Bridge?.initLocalIp?.()}
+ newcode:()=>{if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl(true);else drawQR(PAIR)}
 };
 isl.addEventListener('click',e=>{
  if(e.target.closest('.dz')){
@@ -1590,8 +1591,8 @@ function eatFile(f,x,y){
 function upload(){let p=0;const i=setInterval(()=>{p=Math.min(100,p+4+Math.random()*7);const f=$('#fl');if(!f||scene!='uploading'){clearInterval(i);return}
  f.style.width=p+'%';$('#pc').textContent=(p|0)+' %';if(p>=100){clearInterval(i);go('choose')}},110)}
 
-function drawQR(url){const cv=$('#qr');if(!cv)return;const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);if(url){try{QR.draw(cv,url,288)}catch{}}const qu=$('#qu');if(qu)qu.textContent=PAIR_ERROR||url}
-window.setPairQR=d=>{const i=new Image();i.onload=()=>$('#qr')?.getContext('2d').drawImage(i,0,0,288,288);i.src=d};
+function drawQR(url){const cv=$('#qr');if(!cv)return;const ctx=cv.getContext('2d');cv.width=cv.height=288;ctx.fillStyle='#fff';ctx.fillRect(0,0,288,288);if(url){try{QR.draw(cv,url,288)}catch{}}const qu=$('#qu');if(qu)qu.textContent=PAIR_ERROR||url}
+window.setPairQR=d=>{const i=new Image();i.onload=()=>{const cv=$('#qr');if(!cv)return;cv.width=cv.height=288;const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.fillStyle='#fff';ctx.fillRect(0,0,288,288);ctx.drawImage(i,0,0,288,288)};i.src=d};
 window.setPairUrl=u=>{PAIR=u;PAIR_ERROR='';if($('#qr'))drawQR(u)};
 window.setPairError=message=>{PAIR_ERROR=message;if($('#qu'))$('#qu').textContent=message};
 window.setLinkStatus=(ok,name)=>{
@@ -1864,32 +1865,37 @@ ACT.pers=k=>{CFG.personality=k;window.Bridge?.setSetting?.('personality',k);$$('
 ACT.ac=v=>{CFG.autoclose=+v;window.Bridge?.setSetting?.('autoclose',+v);armAC();if(scene=='settings')go('settings')};
 ACT.tails=()=>{TAILS=!TAILS;try{localStorage.setItem('miku_tails',TAILS?'1':'0')}catch{}$$('[data-a="tails:1"]').forEach(b=>b.classList.toggle('on',TAILS))};
 ACT.wear=k=>{OUT=k;try{localStorage.setItem('miku_outfit',k)}catch{}$$('.wd button').forEach(b=>b.classList.toggle('on',b.dataset.a=='wear:'+k));buddy.emote('happy',1100)};
-function openSettings(){
+function openSettings(section = null, keepIslandOpen = false){
+  if (section) {
+    try { localStorage.setItem('miku_cat', JSON.stringify(section)); } catch (_) {}
+    emit({ k: 'go_cat', cat: section });
+  }
   try {
     if (window.parent && window.parent !== window && window.parent.document && window.parent.document.getElementById('ajustes')) {
       window.parent.document.getElementById('ajustes').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      go('compact');
+      if (!keepIslandOpen) go('compact');
       return;
     }
   } catch (_) {}
 
   if(window.Bridge?.openSettings){
-    window.Bridge.openSettings();
+    window.Bridge.openSettings(section);
   } else if(window.__TAURI__?.core?.invoke){
-    window.__TAURI__.core.invoke('open_settings_window').catch(()=>{
-      window.__TAURI__.core.invoke('open_settings').catch(()=>{
-        openSettingsFallback();
+    const cmd = section === 'link' ? 'open_link_window' : 'open_settings_window';
+    window.__TAURI__.core.invoke(cmd).catch(()=>{
+      window.__TAURI__.core.invoke('open_settings_window').catch(()=>{
+        openSettingsFallback(section);
       });
     });
   } else if(window.pywebview?.api?.open_settings){
     window.pywebview.api.open_settings();
   } else {
-    openSettingsFallback();
+    openSettingsFallback(section);
   }
-  go('compact');
+  if (!keepIslandOpen) go('compact');
 }
 
-function openSettingsFallback() {
+function openSettingsFallback(section = null) {
   try {
     if (window.parent && window.parent !== window && window.parent.document && window.parent.document.getElementById('ajustes')) {
       window.parent.document.getElementById('ajustes').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1913,7 +1919,8 @@ function openSettingsFallback() {
     base += '/';
   }
   const isIsland = location.pathname.includes('/island');
-  const target = isIsland ? 'island/miku_settings.html' : 'miku_settings.html';
+  const hash = section ? `#${section}` : '';
+  const target = (isIsland ? 'island/miku_settings.html' : 'miku_settings.html') + hash;
   const finalUrl = new URL(target, base).href;
   window.open(finalUrl, 'miku_settings', 'width=1080,height=780');
 }
@@ -1922,7 +1929,8 @@ const saveCfg=()=>{try{localStorage.setItem('miku_cfg',JSON.stringify(CFG))}catc
 function syncSpk(){$$('.spk').forEach(b=>b.innerHTML=ic(CFG.voice?'speaker':'speaker-off'));$$('input[data-k="voice"]').forEach(i=>i.checked=!!CFG.voice)}
 ACT.mute=()=>{CFG.voice=CFG.voice?0:1;window.Bridge?.setSetting?.('voice',!!CFG.voice);syncSpk();saveCfg()};
 ACT.cfgwin=()=>openSettings();
-ACT.newcode=()=>{if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl();else drawQR(PAIR)};
+ACT.linkcfg=()=>openSettings('link',true);
+ACT.newcode=()=>{if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl(true);else drawQR(PAIR)};
 const PRESET=['#F2A765','#F06CF0','#6C63FF','#FF5C66','#4FD3B1','#3B9EFF','#FFD84D','#9BE15D'];
 const OL={none:'Ninguno',beanie:'Gorro',crown:'Corona',party:'Fiesta',santa:'Santa',witch:'Bruja',shades:'Gafas de sol',round:'Gafas',bow:'Moño',scarf:'Bufanda',pumpkin:'Calabaza',bunny:'Orejas',halo:'Aureola',propeller:'Hélice',phones:'Audífonos'};
 const ls_save=()=>{try{localStorage.setItem('miku_agents',JSON.stringify(ST.agents))}catch{}emit({k:'agents',list:ST.agents});pushImgs();window.Bridge?.saveAgentsBackend?.(ST.agents)};

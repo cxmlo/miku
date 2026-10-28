@@ -33,6 +33,7 @@ const Bridge = (() => {
   let ws = null;
   let reconnectTimer = null;
   let reconnectAttempts = 0;
+  let hasConnectedOnce = false;
   const MAX_RECONNECT_DELAY = 8000;
 
   // BroadcastChannel for cross-window sync (Island <-> Settings)
@@ -93,13 +94,13 @@ const Bridge = (() => {
     try {
       ws = new WebSocket(`${WS_URL}?token=${API_KEY}`);
     } catch (e) {
-      console.warn("[Bridge] WebSocket init error:", e);
       scheduleReconnect();
       return;
     }
 
     ws.onopen = () => {
       console.log("[Bridge] ✅ WebSocket connected to Miku Core");
+      hasConnectedOnce = true;
       reconnectAttempts = 0;
       window.feed?.({ type: "ws", ok: true });
       window.feed?.({ type: "api", ok: true });
@@ -131,13 +132,14 @@ const Bridge = (() => {
     };
 
     ws.onclose = () => {
-      console.log("[Bridge] WebSocket disconnected");
+      if (hasConnectedOnce) {
+        console.log("[Bridge] WebSocket disconnected");
+      }
       window.feed?.({ type: "ws", ok: false });
       scheduleReconnect();
     };
 
-    ws.onerror = (err) => {
-      console.warn("[Bridge] WebSocket error:", err);
+    ws.onerror = () => {
       try { ws.close(); } catch (_) {}
     };
   }
@@ -218,7 +220,20 @@ const Bridge = (() => {
       if (data.type === "ui_command" && data.action === "status_update") {
         handleStatusUpdate(data.text);
       }
+      if (data.type === "miku_link_qr_updated" && data.url) {
+        window.setPairUrl?.(data.url);
+        if (data.qr_base64 && window.setPairQR) {
+          window.setPairQR(data.qr_base64);
+        }
+        try { channel?.postMessage({ k: "pair", ...data }); } catch (_) {}
+        return;
+      }
       if (data.type === "miku_link_connected" || data.type === "miku_link_disconnected" || data.type === "miku_link_unpaired") {
+        if (data.type === "miku_link_connected") {
+          window.setLinkStatus?.(true, data.name || data.device || "Teléfono");
+        } else if (data.type === "miku_link_unpaired") {
+          window.setLinkStatus?.(false, "");
+        }
         try { channel?.postMessage(data); } catch (_) {}
       }
       window.feed?.(data);
@@ -331,15 +346,15 @@ const Bridge = (() => {
     } catch (_) {}
   }
 
-  async function generatePairingUrl() {
+  async function generatePairingUrl(force = false) {
     if (isShowcase) {
       const demoUrl = "miku://pair?s=demo_showcase_2026&ip=192.168.1.50";
       window.setPairUrl?.(demoUrl);
       return demoUrl;
     }
     try {
-      // 1. Try unified qr_data endpoint first (same one that miku_link.html uses)
-      const qrRes = await apiFetch("/api/link/qr_data");
+      // 1. Unified qr_data endpoint shared between Island and Settings
+      const qrRes = await apiFetch(force ? "/api/link/qr_data?force=1" : "/api/link/qr_data");
       if (qrRes.ok) {
         const d = await qrRes.json();
         if (d.url) {
@@ -347,6 +362,9 @@ const Bridge = (() => {
           if (d.qr_base64 && window.setPairQR) {
             window.setPairQR(d.qr_base64);
           }
+          try {
+            channel?.postMessage({ k: "pair", ...d });
+          } catch (_) {}
           syncLinkStatus();
           return d.url;
         }
@@ -861,8 +879,12 @@ const Bridge = (() => {
     return result;
   }
 
-  // 10. Open Settings Window
-  function openSettings() {
+  // 10. Open Settings Window (optionally directly on a specific category like 'link')
+  function openSettings(section = null) {
+    if (section) {
+      try { localStorage.setItem("miku_cat", JSON.stringify(section)); } catch (_) {}
+      try { channel?.postMessage({ k: "go_cat", cat: section }); } catch (_) {}
+    }
     try {
       if (window.parent && window.parent !== window && window.parent.document && window.parent.document.getElementById('ajustes')) {
         window.parent.document.getElementById('ajustes').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -894,15 +916,19 @@ const Bridge = (() => {
         base += '/';
       }
       const isIsland = location.pathname.includes('/island');
-      const target = isIsland ? 'island/miku_settings.html' : 'miku_settings.html';
+      const hash = section ? `#${section}` : '';
+      const target = (isIsland ? 'island/miku_settings.html' : 'miku_settings.html') + hash;
       const settingsUrl = new URL(target, base).href;
       window.open(settingsUrl, "miku_settings", "width=1080,height=780");
     }
 
     if (window.__TAURI__?.core?.invoke) {
-      window.__TAURI__.core.invoke('open_settings_window').catch(() => {
-        window.__TAURI__.core.invoke('open_settings').catch(() => {
-          openWebSettings();
+      const cmd = section === 'link' ? 'open_link_window' : 'open_settings_window';
+      window.__TAURI__.core.invoke(cmd).catch(() => {
+        window.__TAURI__.core.invoke('open_settings_window').catch(() => {
+          window.__TAURI__.core.invoke('open_settings').catch(() => {
+            openWebSettings();
+          });
         });
       });
       return;
@@ -980,8 +1006,14 @@ const Bridge = (() => {
     if (channel) {
       channel.onmessage = (e) => {
         const msg = e.data;
-        if (msg && msg.k === "cfg_item") {
+        if (!msg) return;
+        if (msg.k === "cfg_item") {
           window.feed?.({ type: "cfg_updated", key: msg.key, value: msg.value });
+        } else if (msg.k === "pair" && msg.url) {
+          window.setPairUrl?.(msg.url);
+          if (msg.qr_base64 && window.setPairQR) {
+            window.setPairQR(msg.qr_base64);
+          }
         }
       };
     }

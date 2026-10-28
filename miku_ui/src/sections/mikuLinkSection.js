@@ -538,7 +538,7 @@ function renderTabApps() {
 /** Devuelve el HTML contenedor de la sección Miku-Link para V.link() */
 export function renderMikuLinkSectionHtml() {
   return (
-    `<section class="cd" style="padding:20px">` +
+    `<section class="card" style="padding:20px">` +
       `<div id="ml"></div>` +
     `</section>` +
     `<div class="ov" id="ml-photo-ov" data-open="false" role="dialog" aria-modal="true" aria-label="Vista previa de foto">` +
@@ -581,34 +581,39 @@ function startQrExpirationLoop() {
       qbEl.style.width = `${Math.min(100, Math.max(0, (rem / ttl) * 100))}%`;
     }
     if (rem <= 0) {
-      await fetchNewQrToken(true);
+      await fetchNewQrToken(true, true);
     }
   };
   tick();
   ML_STATE._qrTimer = setInterval(tick, 1000);
 }
 
-async function fetchNewQrToken(announce = false) {
-  try {
-    const d = await mikuLinkTransport.requestPairingToken();
-    const clientNowSec = Date.now() / 1000;
-    ML_STATE.qr.url = d.url || '';
-    ML_STATE.qr.pin = d.pin || '--- ---';
-    ML_STATE.qr.issuedAt = d.issued_at || Math.floor(clientNowSec);
-    ML_STATE.qr.expiresAt = d.expires_at || Math.floor(clientNowSec) + 120;
-    ML_STATE.qr.ttlSeconds = d.ttl_seconds || 120;
-    ML_STATE.qr.serverOffsetSec = (d.issued_at || clientNowSec) - clientNowSec;
-    if (d.ip) ML_STATE.ip = d.ip;
+function applyQrDataToDom(d, announce = false) {
+  if (!d || !d.url) return;
+  const clientNowSec = Date.now() / 1000;
+  ML_STATE.qr.url = d.url || '';
+  if (d.pin) ML_STATE.qr.pin = d.pin;
+  ML_STATE.qr.issuedAt = d.issued_at || Math.floor(clientNowSec);
+  ML_STATE.qr.expiresAt = d.expires_at || Math.floor(clientNowSec) + 120;
+  ML_STATE.qr.ttlSeconds = d.ttl_seconds || 120;
+  ML_STATE.qr.serverOffsetSec = (d.issued_at || clientNowSec) - clientNowSec;
+  if (d.ip) ML_STATE.ip = d.ip;
 
-    const qrEl = document.getElementById('qr');
-    const pinEl = document.getElementById('qcode');
-    if (qrEl) {
-      qrEl.innerHTML = renderQrSvg(ML_STATE.qr.url);
-      enter(qrEl);
-    }
-    if (pinEl) pinEl.textContent = ML_STATE.qr.pin;
-    if (announce) notifyToast(t('mikuLink.unpaired.codeRenewed'), 'n');
-    startQrExpirationLoop();
+  const qrEl = document.getElementById('qr');
+  const pinEl = document.getElementById('qcode');
+  if (qrEl) {
+    qrEl.innerHTML = renderQrSvg(ML_STATE.qr.url);
+    enter(qrEl);
+  }
+  if (pinEl && ML_STATE.qr.pin) pinEl.textContent = ML_STATE.qr.pin;
+  if (announce) notifyToast(t('mikuLink.unpaired.codeRenewed'), 'n');
+  startQrExpirationLoop();
+}
+
+async function fetchNewQrToken(announce = false, force = false) {
+  try {
+    const d = await mikuLinkTransport.requestPairingToken(force);
+    applyQrDataToDom(d, announce);
   } catch (err) {
     notifyToast('Error al obtener código QR del servidor', 'er', err.message);
   }
@@ -917,6 +922,28 @@ export async function mountMikuLinkSection() {
     }
   }, 4000);
 
+  if (ML_STATE._unsubEvents) {
+    try { ML_STATE._unsubEvents(); } catch (_) {}
+  }
+  ML_STATE._unsubEvents = mikuLinkTransport.onEvent(async (ev) => {
+    if (!ev || !document.getElementById('ml')) return;
+    if ((ev.k === 'pair' || ev.type === 'miku_link_qr_updated') && ev.url) {
+      if (ev.url !== ML_STATE.qr.url || (ev.pin && ev.pin !== ML_STATE.qr.pin)) {
+        applyQrDataToDom(ev, false);
+      }
+    } else if (ev.type === 'miku_link_connected' || (ev.k === 'link' && ev.ok)) {
+      await refreshStatusFromBackend();
+      if (ML_STATE.view !== 'on') {
+        transitionMikuLinkView('on');
+        await syncAllConnectedData();
+      }
+    } else if (ev.type === 'miku_link_unpaired' || ev.k === 'unpair') {
+      ML_STATE.connected = false;
+      ML_STATE.hasPairedDevice = false;
+      transitionMikuLinkView('off');
+    }
+  });
+
   const sectionEl = root.closest('section') || root;
 
   sectionEl.addEventListener('click', async (e) => {
@@ -937,7 +964,7 @@ export async function mountMikuLinkSection() {
         break;
       }
       case 'refresh-qr':
-        await fetchNewQrToken(true);
+        await fetchNewQrToken(true, true);
         break;
       case 'check-pair': {
         const cur = await refreshStatusFromBackend();

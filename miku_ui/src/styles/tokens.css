@@ -67,6 +67,8 @@
   --okbg: rgba(48, 209, 88, .12);
   --er: #ff453a;
   --erbg: rgba(255, 69, 58, .10);
+  --mac-min: #febc2e;
+  --mac-cls: #ff5f57;
 
   /* Superficies translúcidas neutras derivadas del catálogo */
   --card: rgba(255, 255, 255, .035);

@@ -60,7 +60,7 @@
   overflow: hidden;
   min-height: 310px;
 }
-.ctl {
+.msg .ctl {
   border-right: 1px solid var(--ln);
   padding: 6px;
   display: flex;
@@ -173,7 +173,7 @@
   .msg {
     grid-template-columns: 1fr;
   }
-  .ctl {
+  .msg .ctl {
     border-right: 0;
     border-bottom: 1px solid var(--ln);
     flex-direction: row;

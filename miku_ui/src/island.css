@@ -345,10 +345,10 @@ canvas.star{display:block;flex:none;width:34px;height:34px;cursor:pointer;margin
 .lkg{grid-template-columns:132px 1fr}
 .card.lkd{width:132px;height:132px;padding:0;display:grid;place-items:center;box-sizing:border-box;background:radial-gradient(60% 70% at 50% 45%,var(--gl),transparent 75%),var(--card)}
 #in.hc .lkd .cs{margin:0}
-.card.lkr{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;padding:12px 14px;min-height:168px;box-sizing:border-box}
+.card.lkr{display:grid;grid-template-columns:minmax(0,1fr) 136px;align-items:center;gap:12px;padding:12px 14px;min-height:164px;box-sizing:border-box;overflow:hidden}
 .lkt:before{content:none}
 .lkt{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}.lkt b{margin:0}
-#qr{width:144px!important;height:144px!important;border-radius:10px;align-self:center;image-rendering:pixelated}
+#qr{width:136px!important;height:136px!important;border-radius:12px;align-self:center;justify-self:end;flex:none;background:#fff;padding:6px;box-sizing:border-box;display:block;image-rendering:pixelated}
 
 /* ── v6.7 ── */
 .lkg{align-items:stretch}.card.lkd{height:auto;min-height:132px}

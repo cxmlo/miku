@@ -376,10 +376,11 @@ section>h2{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:up
 .row:last-child{border:0}
 .row>div:first-child{flex:1 1 0;min-width:0}
 .row b{display:block;font-weight:500}.row small{display:block;color:var(--mut);font-size:12px;overflow-wrap:anywhere}
-.ctl{display:flex;align-items:center;gap:10px;flex:none;max-width:100%}
+.ctl{display:flex;flex-direction:row;align-items:center;gap:10px;flex:none;max-width:100%;border:0;padding:0}
 .row.fx{flex-wrap:wrap}.row.fx>div:first-child{flex:1 1 190px}
-.row.fx .ctl{flex:1 1 280px;justify-content:flex-end;flex-wrap:wrap;min-width:0}
-.row.fx .tx-in{flex:1 1 150px;width:auto;min-width:0}
+.row.fx .ctl{flex:1 1 280px;flex-direction:row;justify-content:flex-end;flex-wrap:wrap;min-width:0;border:0;padding:0}
+.row.fx .tx-in:not(textarea){flex:1 1 150px;width:auto;height:36px;min-width:0}
+.row.fx textarea.tx-in{flex:1 1 100%;width:100%;min-width:0}
 .row.fx input[type=range]{flex:1 1 120px;width:auto;min-width:90px;max-width:260px}
 output{width:34px;text-align:right;color:var(--mut);font-size:12.5px;font-variant-numeric:tabular-nums}
 .st{font-size:12px;color:var(--er)}.st.on{color:var(--ok)}

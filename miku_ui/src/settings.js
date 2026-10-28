@@ -1537,7 +1537,7 @@ V.agentes = () => {
 
 <section>
   <h2>Prioridad en la Isla Dinámica (Arrastra para reordenar · Los 3 primeros van a la isla)</h2>
-  <div id="ag-reorder-list"></div>
+  <div id="ag-reorder-list" class="ro"></div>
 </section>
 
 ${sel ? `
@@ -1900,7 +1900,7 @@ V.link = () => {
   if (window.MikuLinkSection?.renderMikuLinkSectionHtml) {
     return window.MikuLinkSection.renderMikuLinkSectionHtml();
   }
-  return `<section class="cd" style="padding:20px"><div id="ml"></div></section>`;
+  return `<section class="card" style="padding:20px"><div id="ml"></div></section>`;
 };
 
 const renderRail = () => {
@@ -2695,6 +2695,7 @@ function mount() {
         doneLabel: 'Eliminada',
         hold: 1100,
         small: 1,
+        variant: 'r',
         onHold: async () => {
           const res = await window.Bridge?.deleteConfigKey?.(keyId);
           if (!res?.error) {
@@ -3117,8 +3118,16 @@ function onMsg(m) {
     if (CAT == 'agentes' && !typing()) render();
   }
   else if (m.k == 'select') { selAgent(m.who || 'miku', 1); if (CAT == 'agentes' && !typing()) render(); }
-  else if (m.k == 'pair') { STATE.pairUrl = m.url; if (CAT == 'link') render(); }
-  else if (m.k == 'link') { STATE.linkConnected = !!m.ok; STATE.linkName = m.name || ''; if (CAT == 'link') render(); }
+  else if (m.k == 'go_cat' && m.cat) { window.__goCat?.(m.cat); }
+  else if (m.k == 'pair') {
+    STATE.pairUrl = m.url;
+    if (CAT == 'link' && !window.MikuLinkSection) render();
+  }
+  else if (m.k == 'link') {
+    STATE.linkConnected = !!m.ok;
+    STATE.linkName = m.name || '';
+    if (CAT == 'link' && !window.MikuLinkSection) render();
+  }
   else if (m.k == 'outfit') {
     if (m.who == 'miku' || !m.who) {
       PROUT = m.v || 'none';

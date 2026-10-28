@@ -224,6 +224,8 @@ export function mountStepper(stpEl, textEl, steps = [], initialStep = 0) {
  */
 export function mountReorderList(boxEl, items = [], { maxActive = 3, onReorder = null, onSelect = null } = {}) {
   if (!boxEl) return;
+  boxEl.classList.add('ro');
+  boxEl.style.position = 'relative';
   boxEl.innerHTML = '';
   const ROW_H = 58;
   const order = [];

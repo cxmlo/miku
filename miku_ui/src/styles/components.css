@@ -174,7 +174,7 @@
   --hold: var(--d-hold);
   --bg: var(--fill);
   --fg: var(--tx);
-  --fill: var(--tx);
+  --hb-fill: var(--tx);
   --ink2: var(--ink);
   position: relative;
   display: inline-grid;
@@ -221,7 +221,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: var(--fill);
+  background: var(--hb-fill);
   color: var(--ink2);
   clip-path: inset(0 100% 0 0);
   z-index: 1;
@@ -282,14 +282,14 @@
 .hb.g {
   --bg: var(--okbg);
   --fg: var(--ok);
-  --fill: var(--ok);
+  --hb-fill: var(--ok);
   --ink2: var(--ink);
   border-color: rgba(48, 209, 88, .28);
 }
 .hb.p {
   --bg: var(--tx);
   --fg: var(--ink);
-  --fill: var(--s3);
+  --hb-fill: var(--s3);
   --ink2: var(--tx);
   border-color: transparent;
 }
@@ -297,7 +297,7 @@
 .hb.d {
   --bg: var(--erbg);
   --fg: var(--er);
-  --fill: var(--er);
+  --hb-fill: var(--er);
   --ink2: var(--tx);
   border-color: rgba(255, 69, 58, .3);
 }
@@ -673,8 +673,17 @@ kbd {
   font-size: 12px;
   color: var(--mu);
   cursor: pointer;
+  white-space: nowrap;
   transition: background var(--d-opt) var(--e), color var(--d-opt) var(--e), scale var(--d-spring-sm) var(--spring);
   user-select: none;
+}
+.chip .dt {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  display: inline-block;
+  flex: none;
 }
 .chip:active {
   scale: .93;

@@ -104,14 +104,14 @@ small { font-size: 12px; color: var(--mu); }
 .tb:active, .top-chrome:active { cursor: grabbing; }
 .tb > div, .top-chrome > div { display: flex; align-items: center; gap: 8px; }
 
-/* Semáforo CSS centrado */
+/* Semáforo CSS estilo macOS (mostaza minimizar, rojo cerrar) */
 .wc, .wc-btn {
   width: 13px;
   height: 13px;
   border-radius: 50%;
   background: rgba(255, 255, 255, .16);
-  border: 1px solid rgba(255, 255, 255, .22);
-  transition: background-color .18s, border-color .18s, scale .18s var(--e), color .18s;
+  border: 1px solid rgba(0, 0, 0, .2);
+  transition: background-color .18s, border-color .18s, scale .18s var(--e), color .18s, filter .18s;
   cursor: pointer;
   position: relative;
   display: inline-grid;
@@ -120,8 +120,16 @@ small { font-size: 12px; color: var(--mu); }
   outline: none;
   color: transparent;
 }
-.wc:hover, .wc-btn:hover { scale: 1.15; }
-.wc:active, .wc-btn:active { scale: .92; }
+.wc.m, .wc-btn.min {
+  background: var(--mac-min);
+  border-color: rgba(0, 0, 0, .18);
+}
+.wc.c, .wc-btn.cls {
+  background: var(--mac-cls);
+  border-color: rgba(0, 0, 0, .18);
+}
+.wc:hover, .wc-btn:hover { scale: 1.12; filter: brightness(1.06); }
+.wc:active, .wc-btn:active { scale: .92; filter: brightness(.92); }
 
 .wc:before, .wc:after, .wc-btn:before, .wc-btn:after {
   content: "";
@@ -139,15 +147,17 @@ small { font-size: 12px; color: var(--mu); }
 .wc.c:before, .wc-btn.cls:before { transform: translate(-50%, -50%) rotate(45deg); }
 .wc.c:after, .wc-btn.cls:after { transform: translate(-50%, -50%) rotate(-45deg); }
 
-.tb:hover .wc.m, .top-chrome:hover .wc-btn.min {
-  background: rgba(255, 255, 255, .16);
-  border-color: transparent;
-  color: rgba(0, 0, 0, .6);
+.tb:hover .wc.m, .top-chrome:hover .wc-btn.min,
+.wc.m:hover, .wc-btn.min:hover {
+  background: var(--mac-min);
+  border-color: rgba(0, 0, 0, .22);
+  color: rgba(0, 0, 0, .68);
 }
-.tb:hover .wc.c, .top-chrome:hover .wc-btn.cls {
-  background: rgba(255, 255, 255, .16);
-  border-color: transparent;
-  color: rgba(0, 0, 0, .6);
+.tb:hover .wc.c, .top-chrome:hover .wc-btn.cls,
+.wc.c:hover, .wc-btn.cls:hover {
+  background: var(--mac-cls);
+  border-color: rgba(0, 0, 0, .22);
+  color: rgba(0, 0, 0, .68);
 }
 
 .card {
@@ -268,18 +278,19 @@ small { font-size: 12px; color: var(--mu); }
 .seg button.on { color: var(--tx); font-weight: 700; }
 
 .chips { display: inline-flex; gap: 14px; padding: 5px; }
-.chip {
+.chips > .chip[style*="--c"] {
   position: relative;
   z-index: 1;
   width: 28px;
   height: 28px;
+  padding: 0;
   border-radius: 50%;
   background: var(--c);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 2px 6px rgba(0, 0, 0, .4);
   transition: transform .3s var(--sp);
 }
-.chip:hover { transform: scale(1.1); }
-.chip:active { transform: scale(.86); }
+.chips > .chip[style*="--c"]:hover { transform: scale(1.1); }
+.chips > .chip[style*="--c"]:active { transform: scale(.86); }
 
 /* ═══ BOTONES Y ACCIONES (§5 & §12) ═══ */
 .bt, .ib, .sec-btn {
