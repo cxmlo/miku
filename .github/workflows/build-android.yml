@@ -53,6 +53,21 @@ jobs:
         working-directory: ./miku_android
         run: chmod +x gradlew
 
+      - name: Preparar Keystore de Firma Release
+        id: setup_keystore
+        run: |
+          if [ -n "$KEYSTORE_DATA" ]; then
+            echo "Decodificando Keystore oficial desde secretos protegidos..."
+            echo "$KEYSTORE_DATA" | base64 -d > "${{ runner.temp }}/miku-release.jks"
+            echo "has_keystore=true" >> $GITHUB_OUTPUT
+            echo "keystore_path=${{ runner.temp }}/miku-release.jks" >> $GITHUB_OUTPUT
+          else
+            echo "Aviso: KEYSTORE_BASE64 no configurado en GitHub Secrets. Se compilara con firma debug por defecto."
+            echo "has_keystore=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          KEYSTORE_DATA: ${{ secrets.KEYSTORE_BASE64 }}
+
       - name: Compilar APK (${{ github.event.inputs.buildType || 'release' }})
         working-directory: ./miku_android
         run: |
@@ -62,6 +77,16 @@ jobs:
           else
             ./gradlew assembleRelease --no-daemon --stacktrace
           fi
+        env:
+          KEYSTORE_PATH: ${{ steps.setup_keystore.outputs.keystore_path }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Limpiar archivo de firma temporal
+        if: always()
+        run: |
+          rm -f "${{ runner.temp }}/miku-release.jks"
 
       - name: Localizar y renombrar APK generado
         id: locate_apk
@@ -74,6 +99,9 @@ jobs:
           echo "APK generado encontrado en: $APK_PATH"
           cp "$APK_PATH" miku-mobile.apk
           echo "apk_path=miku-mobile.apk" >> $GITHUB_OUTPUT
+          
+          echo "=== HUELLA DIGITAL DE LA FIRMA (SHA-256) ==="
+          keytool -printcert -jarfile miku-mobile.apk 2>/dev/null | grep -E "SHA256:|Owner:" || true
 
       - name: Subir artefacto APK para descarga directa en GitHub Actions
         uses: actions/upload-artifact@v4

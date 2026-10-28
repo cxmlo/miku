@@ -129,13 +129,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestNotificationPermission() {
-        val perms = mutableListOf(
-            Manifest.permission.READ_SMS,
-            Manifest.permission.SEND_SMS,
-            Manifest.permission.READ_CALL_LOG,
-            Manifest.permission.CALL_PHONE,
-            Manifest.permission.READ_CONTACTS,
-        )
+        val perms = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= 33) {
             perms.add(Manifest.permission.POST_NOTIFICATIONS)
             perms.add(Manifest.permission.READ_MEDIA_IMAGES)

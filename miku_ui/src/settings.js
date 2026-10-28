@@ -1845,8 +1845,8 @@ V.alertas = () => {
   <section>
     <h2>Registrar Actividad de Juegos y Aplicaciones</h2>
     ${row('Juego o aplicación activa en tu PC', 'Selecciona una aplicación o juego activo para monitorear su tiempo de uso', `
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;width:100%">
-        <div id="gs-app-select" style="flex:1;min-width:200px;max-width:300px"></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:nowrap;justify-content:flex-end;width:100%;max-width:440px">
+        <div id="gs-app-select" style="flex:1 1 0;min-width:0;width:100%"></div>
         <button type="button" class="btn p" id="btn-add-discord-app" style="height:36px;padding:0 14px;border-radius:10px;white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:6px">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           <span>Añadir app</span>
