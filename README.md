@@ -12,7 +12,7 @@ Watch your agents work, approve actions, listen to Spotify, drop files, and chat
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Release](https://img.shields.io/badge/Release-v0.1.7--Beta-cyan)](https://github.com/cxmlo/miku/releases)
+[![Release](https://img.shields.io/badge/Release-0.2.0--beta-cyan)](https://github.com/cxmlo/miku/releases)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=flat&logo=kofi&logoColor=white)](https://ko-fi.com/cxmlo)
 
 **[English](README.md)** · **[Español](README.es.md)**
@@ -20,9 +20,13 @@ Watch your agents work, approve actions, listen to Spotify, drop files, and chat
 </div>
 
 > [!NOTE]
-> **Beta Phase**: Miku is in active public Beta until version 1.0.0. Both Desktop (Windows) and Mobile (Android APK) companion apps are available for testing.
+> **Current Version: 0.2.0-beta**
+> Miku is currently in active public beta (**0.2.0-beta**). Both the Windows Desktop application and the Android mobile companion APK are available for testing.
 >
-> **New in v0.1.7 Beta**: Token Optimization Engine slashing LLM token consumption by >95%, zero-token casual routing, strict dynamic tool clustering, loop runaway protection, compressed visual captures (JPEG quality 45), Low-Cost Mode toggle in tray, and Miku-Link file transfer stability fixes.
+> **What's New in 0.2.0-beta**:
+> - **Miku-Link**: Centered full-res photo viewer with local folder access, Windows Phone Link action bar (Do Not Disturb, Vibrate, Media playback, and Ring Phone), and zero-scroll mobile layout.
+> - **Cryptographic CI/CD Signing & Play Protect Compliance**: Automated APK build and SHA-256 release signing via GitHub Secrets with zero credential leakage, and full Google Play Protect compliance using Android's native `NotificationListenerService`.
+> - **UI & Performance Refinements**: Redesigned API Keys and MCP Servers panels with compact icon actions, overflow protection for long process names, and GPU hardware acceleration.
 
 ---
 
@@ -66,6 +70,36 @@ Meet **Miku**: a soft, glossy cloud character that peeks out from the top of you
 | **Play music on Spotify** | Displays live album art, track title, and media controls |
 | **Drag a file onto the Island** | Swallows the file and displays an instant analysis card |
 | **Run Claude Code in terminal** | Notifies you on tool use and permission requests |
+
+## System Requirements
+
+### Desktop (Windows)
+- **Operating System**: Windows 10 (64-bit, Version 2004 / Build 19041 or higher) or Windows 11.
+- **Memory (RAM)**: 4 GB minimum (8 GB recommended).
+- **Runtime**: Microsoft Edge WebView2 (included by default on Windows 10 and 11).
+- **Network**: Local Area Network (Wi-Fi or LAN) for pairing Miku-Link with your phone.
+- **For Building from Source**: Python 3.12+, Node.js 18+, Rust & Cargo 1.75+.
+
+### Mobile (Miku-Link for Android)
+- **Operating System**: Android 8.0 (API level 26) or higher (tested up to Android 15 & HyperOS).
+- **Permissions**: Camera (for instant QR code pairing) and Notification Access (`NotificationListenerService`).
+- **Network**: Must be on the same local Wi-Fi subnet as your PC (or reachable via tunnel).
+
+---
+
+## Security & Android Signing Architecture
+
+Miku adheres to strict local-first privacy and cryptographic security principles across both Desktop and Mobile:
+
+1. **Zero Secret Exposure in CI/CD (GitHub Actions)**:
+   - Mobile APKs are signed in GitHub Actions using encrypted repository secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`).
+   - Signing keys are decoded only into the runner's ephemeral memory directory (`$RUNNER_TEMP`) and permanently wiped upon completion (`if: always()`). Keystore credentials are never committed to Git (`.gitignore` protected) and are automatically masked in build logs.
+2. **Google Play Protect Compliance**:
+   - The Android companion intentionally omits high-risk direct SMS and call log permissions (`READ_SMS`, `SEND_SMS`, `READ_CALL_LOG`, `CALL_PHONE`).
+   - Message and call synchronizations are routed through Android's official, user-authorized `NotificationListenerService` (Notification Access), preventing financial fraud false alarms.
+3. **Local-First Desktop Privacy**:
+   - AI provider keys (Gemini, Groq, DeepSeek, OpenAI, Claude) and custom MCP configurations remain strictly on your local disk in `.env` and `settings_config.json`.
+   - Desktop and Mobile communicate directly over an authenticated local WebSocket pairing handshake.
 
 ---
 

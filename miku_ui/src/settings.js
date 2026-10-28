@@ -1457,7 +1457,7 @@ V.general = () => `
 </section>
 <section>
   <h2>Actualizaciones de Software</h2>
-  ${row('Miku Desktop v0.1.7 (Beta)', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="btn sm" id="btn-check-update">Buscar actualización</button>`)}
+  ${row('Miku Desktop v0.2.0 (Beta)', 'Comprueba si hay nuevas versiones publicadas en GitHub.', `<button class="btn sm" id="btn-check-update">Buscar actualización</button>`)}
   <div id="update-status" style="margin-top:6px;font-size:12.5px;color:var(--mut)"></div>
 </section>
 <section>
@@ -2305,7 +2305,7 @@ function mount() {
           } else {
             btnUpdate.disabled = false;
             btnUpdate.textContent = 'Buscar actualización';
-            if (stUpdate) stUpdate.textContent = 'Miku está en la versión más reciente (Beta v0.1.7).';
+            if (stUpdate) stUpdate.textContent = 'Miku está en la versión más reciente (Beta v0.2.0).';
             showToast('Miku está al día');
           }
         } catch (e) {

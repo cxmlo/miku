@@ -12,7 +12,7 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=black)](https://tauri.app)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-v0.1.7--Beta-cyan)](https://github.com/cxmlo/miku/releases)
+[![Versión](https://img.shields.io/badge/Versi%C3%B3n-0.2.0--beta-cyan)](https://github.com/cxmlo/miku/releases)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Apoyar-ff5e5b?style=flat&logo=kofi&logoColor=white)](https://ko-fi.com/cxmlo)
 
 **[English](README.md)** · **[Español](README.es.md)**
@@ -20,9 +20,13 @@ Supervisa las sesiones de tus agentes, aprueba permisos con un clic, escucha mú
 </div>
 
 > [!NOTE]
-> **Fase Beta**: Miku se encuentra en fase Beta pública activa hasta la versión 1.0.0. Tanto la aplicación de escritorio (Windows) como la aplicación compañera móvil (Android APK) están disponibles para pruebas.
+> **Versión Actual: 0.2.0-beta**
+> Miku se encuentra actualmente en fase **Beta pública (0.2.0-beta)**. Tanto la aplicación de escritorio para Windows como la aplicación móvil compañera para Android están disponibles para pruebas.
 >
-> **Novedades en v0.1.7 Beta**: Motor de optimización radical de tokens (>95% de ahorro), cero herramientas inyectadas en saludos/charla casual, agrupamiento dinámico y tope de 2-5 herramientas por petición, protección de bucles de error, capturas visuales comprimidas a JPEG 45%, conmutador de Modo Bajo Costo en el System Tray y resolución de errores 409 en transferencias de Miku-Link.
+> **Novedades en 0.2.0-beta**:
+> - **Miku-Link**: Visor de fotos centrado a resolución completa con acceso directo a la carpeta local en el explorador, barra de acciones rápidas estilo Windows Phone Link (No molestar, Vibración, Control multimedia y Hacer sonar con animación reactiva), y diseño móvil sin desplazamiento vertical.
+> - **Firma Oficial en CI/CD y Compatibilidad con Play Protect**: Compilación y firma criptográfica SHA-256 automatizada en GitHub Actions mediante secretos cifrados sin exposición de credenciales, y cumplimiento total con Google Play Protect utilizando el servicio oficial `NotificationListenerService`.
+> - **Refinamientos Visuales y de Rendimiento**: Rediseño de *Claves de API* y *Servidores MCP* con botones compactos de iconos, protección contra desbordamiento en nombres largos de procesos y aceleración por GPU sin micro-parpadeos.
 
 ---
 
@@ -69,6 +73,38 @@ Conoce a **Miku**: una suave nube brillante que asoma en la parte superior de tu
 | **Pon música en Spotify** | Muestra la portada, título, artista y controles de reproducción |
 | **Arrastra un archivo sobre la Isla** | Se transforma en caja, absorbe el archivo y muestra su análisis |
 | **Ejecuta Claude Code en la consola** | Notifica el uso de herramientas y solicita permisos en pantalla |
+
+## Requisitos del Sistema
+
+### Escritorio (Windows)
+- **Sistema Operativo**: Windows 10 (64 bits, Versión 2004 / Build 19041 o superior) o Windows 11.
+- **Memoria RAM**: 4 GB mínimo (8 GB recomendados para flujos de trabajo multi-LLM fluidos).
+- **Entorno de Ejecución**: Microsoft Edge WebView2 (incluido de fábrica en Windows 10 y 11).
+- **Red**: Conexión de red local (Wi-Fi o Ethernet) para sincronización con Miku-Link.
+- **Para Compilar desde el Código Fuente**: Python 3.12+, Node.js 18+, Rust & Cargo 1.75+.
+
+### Móvil (Miku-Link para Android)
+- **Sistema Operativo**: Android 8.0 (API nivel 26) o superior (probado en Android 14 y 15 / HyperOS).
+- **Permisos requeridos**:
+  - **Cámara**: Para escanear el código QR de vinculación desde la Isla.
+  - **Acceso a notificaciones** (`NotificationListenerService`): Para sincronizar avisos, WhatsApp, llamadas y SMS con la PC sin necesidad de permisos de SMS invasivos.
+- **Red**: Mismo segmento de red local Wi-Fi que la PC (o mediante túnel seguro Cloudflare).
+
+---
+
+## Arquitectura de Seguridad y Firma de Android
+
+Miku se rige por principios estrictos de privacidad local y seguridad criptográfica:
+
+1. **Cero Exposición de Secretos en CI/CD (GitHub Actions)**:
+   - El APK móvil se firma en GitHub Actions mediante secretos de repositorio cifrados (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`).
+   - El certificado se decodifica únicamente en el directorio temporal volátil del runner (`$RUNNER_TEMP`) y se destruye inmediatamente al finalizar (`if: always()`). Los keystores nunca se versionan en Git (`.gitignore`) y los registros ocultan automáticamente los valores con `***`.
+2. **Cumplimiento con Google Play Protect**:
+   - La aplicación móvil prescinde deliberadamente de permisos de SMS directos y registro de llamadas (`READ_SMS`, `SEND_SMS`, `READ_CALL_LOG`, `CALL_PHONE`).
+   - La sincronización se realiza mediante el servicio oficial del sistema Android `NotificationListenerService` (Acceso a notificaciones), eliminando las alertas de riesgo de fraude financiero.
+3. **Privacidad de Escritorio Local-First**:
+   - Las claves de proveedores de IA (Gemini, Groq, DeepSeek, OpenAI, Claude) se conservan exclusivamente en tu almacenamiento local (`.env` y `settings_config.json`).
+   - La comunicación entre la PC y el teléfono se produce mediante WebSocket local autenticado.
 
 ---
 

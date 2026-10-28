@@ -1,3 +1,59 @@
+## Novedades Principales en v0.2.0 (Beta)
+
+### 1. Firma Criptográfica Oficial de Android en CI/CD (GitHub Actions)
+- **Automatización de Keystore Release (SHA-256)**:
+  - Configurado en Gradle (`miku_android/app/build.gradle.kts`) el bloque `signingConfigs.create("release")` que detecta y aplica variables de entorno (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) con fallback transparente a debug para pruebas locales.
+  - Workflow de GitHub Actions (`.github/workflows/build-android.yml`) actualizado con el paso `Preparar Keystore de Firma Release` que decodifica de forma segura el certificado desde `secrets.KEYSTORE_BASE64` directamente a `$RUNNER_TEMP/miku-release.jks`.
+  - Aislamiento de seguridad y destrucción automática: paso `Limpiar archivo de firma temporal` ejecutado con `if: always()` para asegurar que ningún archivo de firma permanezca en disco tras la compilación.
+  - Inspección de integridad: paso automatizado con `keytool -printcert` que imprime la huella digital SHA-256 en los registros de GitHub Actions para verificación pública.
+  - Scripts de generación en 1 clic:
+    - **`scripts/generate_keystore.bat`**: Script interactivo para Windows que crea el almacén de claves RSA de 2048 bits con validez de 25 años y copia automáticamente la cadena Base64 al portapapeles del sistema.
+    - **`scripts/generate_keystore.sh`**: Script homólogo para entornos Linux y macOS.
+  - Guía oficial ilustrada paso a paso: **`docs/FIRMA_ANDROID_GITHUB.md`**.
+  - Protección de secretos en Git: `.gitignore` blindado con exclusión obligatoria para `*.jks`, `*.keystore` y `*.p12`.
+
+### 2. Cumplimiento Estricto con Google Play Protect
+- **Eliminación de Heurísticas de Fraude Financiero**:
+  - Removidos los permisos invasivos de lectura/envío directo de SMS (`READ_SMS`, `SEND_SMS`), registro de llamadas (`READ_CALL_LOG`), marcado directo (`CALL_PHONE`) y consulta global de paquetes (`QUERY_ALL_PACKAGES`) en `miku_android/app/src/main/AndroidManifest.xml` y `MainActivity.kt`.
+  - Estos permisos activaban el bloqueo estricto sin botón de instalación en Android 13/14/15 (HyperOS / MIUI) para APKs instalados fuera de Google Play Store.
+- **Canal Seguro de Notificaciones y Mensajes**:
+  - Migración al servicio estándar del sistema Android **`MikuNotificationListenerService`** (`BIND_NOTIFICATION_LISTENER_SERVICE`).
+  - Sincronización en tiempo real hacia Miku Desktop de mensajes entrantes (WhatsApp, Telegram, SMS), alertas de llamadas y notificaciones de aplicaciones mediante el permiso nativo y seguro de *Acceso a notificaciones*.
+
+### 3. Miku-Link: Visor Centrado y Barra Rápida Phone Link
+- **Visor Modal de Fotos Centrado y Funcional**:
+  - Visor de fotos (`#ml-photo-ov`) con centrado absoluto en pantalla (`display: grid; place-items: center`).
+  - Corregido el bloqueo de cierre: ahora cierra fluidamente al pulsar `Escape`, hacer clic en el botón `×` o hacer clic en el fondo exterior.
+  - Eliminado el botón superfluo "Guardar en Imágenes", dejando como acción primaria y funcional el botón **"Abrir carpeta"** conectado al endpoint `/api/link/open-folder` para abrir el explorador de archivos de Windows.
+- **Barra de Acciones Rápidas (Estilo Windows Phone Link)**:
+  - 4 botones de acción rápida con iconos interactivos:
+    - **No molestar**: Alterna el modo silencio/prioridad del móvil (`ACCESS_NOTIFICATION_POLICY`).
+    - **Vibración**: Conmuta el perfil de vibración háptica.
+    - **Audio / Música**: Control de reproducción multimedia y volumen.
+    - **Hacer sonar**: Hace sonar el teléfono con vibración continua reactiva y animación pulsante sincronizada en la maqueta.
+- **Maqueta Móvil Optimizada**:
+  - Altura del contenedor adaptada a 136px para eliminar por completo el desplazamiento vertical (scroll) dentro de la pestaña Miku-Link.
+
+### 4. Refinamientos de UI/UX y Corrección de Errores Visuales
+- **Ajustes de Claves de API**:
+  - Sustituidos los botones anchos de texto por botones compactos de iconos (`✓` guardar, `🗑` eliminar) y campos de entrada expandidos a 210px para evitar que el texto de las claves quede comprimido o recortado.
+- **Añadir Servidor MCP**:
+  - Distribución reorganizada en cuadrícula flexible que elimina el desbordamiento de botones y cortes de texto.
+- **Selector de Juegos y Aplicaciones Activas**:
+  - Corregido el solapamiento visual entre el selector desplegable `#gs-app-select` y el botón `+ Añadir app`.
+  - Configurado con `flex: 1 1 0; min-width: 0; width: 100%;` para garantizar que nombres largos de ejecutables (ej. `Wallpaper Engine (wallpaper64.exe)`) se trunquen con puntos suspensivos o marquesina sin invadir botones adyacentes.
+- **Botón de Confirmación Sostenida (Restablecer)**:
+  - Corregido el bug donde el botón `.hb` renderizaba una cápsula blanca sólida sin texto legible.
+  - Rediseñado con estilo dark glass translúcido (`rgba(255, 255, 255, 0.05)`), borde sutil, icono circular de recarga `↺` y barra de llenado progresivo al mantener presionado.
+- **Isla Dinámica (Rendimiento y Clics Fantasma)**:
+  - Eliminado el área transparente residual que bloqueaba clics en ventanas o pestañas inferiores cuando la isla estaba en estado compacto.
+  - Aceleración por GPU activada (`translateZ(0)` y `will-change`) para eliminar micro-parpadeos y caídas de fotogramas en animaciones de apertura y cierre.
+
+### 5. Actualización Global de Versión a v0.2.0
+- Sincronización completa de la versión `0.2.0` (código de versión Android 5) en `package.json`, `tauri.conf.json`, `Cargo.toml`, `build.gradle.kts`, `miku_settings.html`, `settings.js`, `island.js` y `dev_server.js`.
+
+---
+
 ## Novedades Principales en v0.1.7
 - **Aislamiento Seguro en Demostración Web (Sandbox Mode)**:
   - Desconexión completa de WebSockets y peticiones REST hacia `127.0.0.1:8000` en la web pública para evitar que las pruebas de visitantes afecten al PC local.

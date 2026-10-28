@@ -31,7 +31,7 @@ const MIME_TYPES = {
 
 const MOCK_STATE = {
   status: 'ok',
-  version: '0.1.7-beta',
+  version: '0.2.0-beta',
   execMode: 'sandbox',
   tunnel_url: 'https://miku-gateway.trycloudflare.com',
   local_ip: '192.168.1.100',
@@ -88,7 +88,7 @@ function handleUpgrade(req, socket, head) {
   const welcomePayload = JSON.stringify({
     type: 'init_state',
     status: 'online',
-    version: '0.1.7',
+    version: '0.2.0',
     device: MOCK_STATE.device,
     tunnel_url: MOCK_STATE.tunnel_url
   });
@@ -137,7 +137,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ok',
-      version: '0.1.7',
+      version: '0.2.0',
       mode: MOCK_STATE.execMode,
       local_ip: MOCK_STATE.local_ip,
       cloudflared_tunnel: MOCK_STATE.tunnel_url,
