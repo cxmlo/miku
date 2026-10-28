@@ -528,6 +528,18 @@ REGLAS DE OPERACIÓN:
 3. Eres silencioso (no reproduces audio por altavoces). Tu salida es puramente texto y herramientas.
 4. Si se te solicita una acción técnica, utiliza las herramientas disponibles a tu alcance y devuelve un resumen concreto y útil."""
 
+    agent_model_override = None
+    if not is_miku:
+        try:
+            from agents import agent_manager
+            ag_info = agent_manager.get_agent_info(req.agent_id)
+            if ag_info and ag_info.get("model"):
+                agent_model_override = ag_info.get("model")
+                if not req.agent_mcp and ag_info.get("mcp") and ag_info.get("mcp") != "none":
+                    agent_mcp = ag_info.get("mcp")
+        except Exception:
+            pass
+
     response_text = await asyncio.to_thread(
         get_llm_response,
         user_input,
@@ -535,7 +547,8 @@ REGLAS DE OPERACIÓN:
         status_callback,
         None,
         req.agent_id,
-        agent_mcp
+        agent_mcp,
+        agent_model_override
     )
     
     # Separar voz corta del texto completo (si usa <voz>)
@@ -1079,6 +1092,7 @@ async def link_status_endpoint():
         pairing_status = "expired"
         PAIRING_STATE["status"] = "expired"
 
+    tunnel_url = (MIKU_LINK_RUNTIME.get("tunnel_url") or os.getenv("MIKU_TUNNEL_URL", "")).strip().rstrip("/")
     return {
         "status": "ok",
         "connected": is_connected,
@@ -1087,6 +1101,7 @@ async def link_status_endpoint():
         "device_name": dev_name,
         "devices": devices,
         "ip": local_ip,
+        "tunnel_url": tunnel_url,
         "hostname": socket.gethostname(),
         "battery": MIKU_LINK_RUNTIME.get("battery"),
         "charging": MIKU_LINK_RUNTIME.get("charging", False),
@@ -1100,11 +1115,12 @@ async def link_status_endpoint():
 @app.get("/api/link/qr_data")
 async def get_link_qr_data(force: bool = False):
     global PAIRING_SESSION, PAIRING_STATE
-    import secrets, socket, io, base64
+    import secrets, socket, io, base64, urllib.parse
 
     now_ts = int(time.time())
     local_ip = _resolve_local_ip()
     hostname = socket.gethostname()
+    tunnel_url = (MIKU_LINK_RUNTIME.get("tunnel_url") or os.getenv("MIKU_TUNNEL_URL", "")).strip().rstrip("/")
 
     # Reutilizar la sesión activa si no ha expirado y no se pidió forzar renovación,
     # evitando que la Isla y Configuración se invaliden mutuamente el QR al abrirse.
@@ -1115,6 +1131,7 @@ async def get_link_qr_data(force: bool = False):
         and PAIRING_STATE.get("expires_at", 0) > now_ts + 15
         and PAIRING_STATE.get("url")
         and PAIRING_STATE.get("ip") == local_ip
+        and PAIRING_STATE.get("tunnel_url", "") == tunnel_url
     ):
         raw_pin = PAIRING_STATE.get("pin", "000000")
         formatted_pin = f"{raw_pin[:3]} {raw_pin[3:]}" if len(raw_pin) == 6 else raw_pin
@@ -1123,6 +1140,7 @@ async def get_link_qr_data(force: bool = False):
             "url": PAIRING_STATE["url"],
             "qr_base64": PAIRING_STATE.get("qr_base64", ""),
             "ip": local_ip,
+            "tunnel_url": tunnel_url,
             "hostname": hostname,
             "session_id": PAIRING_SESSION,
             "pin": formatted_pin,
@@ -1138,8 +1156,10 @@ async def get_link_qr_data(force: bool = False):
     ttl_seconds = 120
     expires_at = issued_at + ttl_seconds
 
-    # Formato estricto compatible con PairingLink.kt en Android (miku://pair?s=<session>&ip=<ip>)
+    # Formato compatible con PairingLink.kt en Android (miku://pair?s=<session>&ip=<ip>&t=<tunnel>)
     pair_url = f"miku://pair?s={session_id}&ip={local_ip}"
+    if tunnel_url:
+        pair_url += f"&t={urllib.parse.quote(tunnel_url, safe='')}"
 
     qr_b64 = ""
     try:
@@ -1162,6 +1182,7 @@ async def get_link_qr_data(force: bool = False):
         "url": pair_url,
         "qr_base64": qr_b64,
         "ip": local_ip,
+        "tunnel_url": tunnel_url,
     }
 
     payload = {
@@ -1169,6 +1190,7 @@ async def get_link_qr_data(force: bool = False):
         "url": pair_url,
         "qr_base64": qr_b64,
         "ip": local_ip,
+        "tunnel_url": tunnel_url,
         "hostname": hostname,
         "session_id": session_id,
         "pin": formatted_pin,
@@ -1212,6 +1234,11 @@ async def set_phone_wallpaper(file: UploadFile = File(...)):
     _PERSISTED_LINK["wallpaper_path"] = dest
     _save_miku_link_persisted(_PERSISTED_LINK)
     url = f"/api/link/phone_wallpaper?t={int(time.time())}"
+    await manager.broadcast_message({
+        "type": "ui_command",
+        "action": "sync_phone_wallpaper",
+        "url": url,
+    })
     return {"status": "ok", "has_wallpaper": True, "wallpaper_url": url}
 
 @app.delete("/api/link/phone_wallpaper")
@@ -1705,10 +1732,10 @@ MANAGED_KEYS = [
 ]
 
 def mask_key(value: str) -> str:
-    """Enmascara una API key para mostrar solo los últimos 4 caracteres."""
+    """Enmascara una API key de forma compacta mostrando solo los últimos 4 caracteres."""
     if not value or len(value) <= 4:
-        return "****"
-    return "*" * (len(value) - 4) + value[-4:]
+        return "••••"
+    return "••••" + value[-4:]
 
 @app.get("/api/config/keys")
 async def get_config_keys(api_key: str = Security(get_api_key)):
@@ -2568,7 +2595,28 @@ async def test_proactive_alert():
     def _show_windows_toast(title, msg):
         try:
             import subprocess
-            ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
+            icon_candidates = [
+                os.path.join(BASE_DIR, "assets", "app_icon.png"),
+                os.path.join(BASE_DIR, "miku_app", "src-tauri", "icons", "128x128.png"),
+                os.path.join(BASE_DIR, "miku_app", "src-tauri", "icons", "icon.ico"),
+            ]
+            icon_path = next((p for p in icon_candidates if os.path.exists(p)), "")
+            icon_uri = "file:///" + icon_path.replace("\\", "/") if icon_path else ""
+            if icon_uri:
+                ps_cmd = (
+                    f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; '
+                    f'$template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastImageAndText02); '
+                    f'$textNodes = $template.GetElementsByTagName("text"); '
+                    f'$textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; '
+                    f'$textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; '
+                    f'$imgNodes = $template.GetElementsByTagName("image"); '
+                    f'if ($imgNodes.Count -gt 0) {{ $imgNodes.Item(0).SetAttribute("src", "{icon_uri}") > $null; }} '
+                    f'$notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); '
+                    f'$toast = [Windows.UI.Notifications.ToastNotification]::new($template); '
+                    f'$notifier.Show($toast);'
+                )
+            else:
+                ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
             kwargs = {}
             if sys.platform == "win32":
                 kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
@@ -3375,12 +3423,20 @@ async def activity_alert_watcher_loop():
                             "minutes": matched_mins
                         })
 
-                        # 2. Notificación nativa de Windows (Toast)
+                        # 2. Notificación nativa de Windows (Toast) con foto/icono de la app
                         def _show_windows_toast(title, msg):
+                            icon_candidates = [
+                                os.path.join(BASE_DIR, "assets", "app_icon.png"),
+                                os.path.join(BASE_DIR, "miku_app", "src-tauri", "icons", "128x128.png"),
+                                os.path.join(BASE_DIR, "miku_app", "src-tauri", "icons", "icon.ico"),
+                            ]
+                            icon_path = next((p for p in icon_candidates if os.path.exists(p)), "")
+                            icon_uri = "file:///" + icon_path.replace("\\", "/") if icon_path else ""
                             try:
                                 import winsdk.windows.ui.notifications as win_notif
                                 import winsdk.windows.data.xml.dom as win_xml
-                                xml_content = f"<toast><visual><binding template='ToastGeneric'><text>{title}</text><text>{msg}</text></binding></visual></toast>"
+                                img_tag = f"<image placement='appLogoOverride' hint-crop='circle' src='{icon_uri}'/>" if icon_uri else ""
+                                xml_content = f"<toast><visual><binding template='ToastGeneric'>{img_tag}<text>{title}</text><text>{msg}</text></binding></visual></toast>"
                                 doc = win_xml.XmlDocument()
                                 doc.load_xml(xml_content)
                                 notification = win_notif.ToastNotification(doc)
@@ -3389,7 +3445,21 @@ async def activity_alert_watcher_loop():
                             except Exception:
                                 try:
                                     import subprocess
-                                    ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
+                                    if icon_uri:
+                                        ps_cmd = (
+                                            f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; '
+                                            f'$template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastImageAndText02); '
+                                            f'$textNodes = $template.GetElementsByTagName("text"); '
+                                            f'$textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; '
+                                            f'$textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; '
+                                            f'$imgNodes = $template.GetElementsByTagName("image"); '
+                                            f'if ($imgNodes.Count -gt 0) {{ $imgNodes.Item(0).SetAttribute("src", "{icon_uri}") > $null; }} '
+                                            f'$notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); '
+                                            f'$toast = [Windows.UI.Notifications.ToastNotification]::new($template); '
+                                            f'$notifier.Show($toast);'
+                                        )
+                                    else:
+                                        ps_cmd = f'[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName("text"); $textNodes.Item(0).AppendChild($template.CreateTextNode("{title}")) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode("{msg}")) > $null; $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Miku Desktop"); $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier.Show($toast);'
                                     kwargs = {}
                                     if sys.platform == "win32":
                                         kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
@@ -3450,27 +3520,61 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Activity monitor no disponible: {e}")
 
-    # Iniciar túnel de Cloudflare automáticamente si existe el ejecutable
+    # Iniciar túnel de Cloudflare automáticamente (Quick Tunnel o MIKU_TUNNEL_URL) para Datos Móviles (4G/5G)
     try:
+        env_tunnel = os.getenv("MIKU_TUNNEL_URL", "").strip().rstrip("/")
+        if env_tunnel:
+            MIKU_LINK_RUNTIME["tunnel_url"] = env_tunnel
+            logger.info(f"Túnel remoto configurado vía MIKU_TUNNEL_URL: {env_tunnel}")
+
+        import shutil as _shutil
         cf_local = os.path.join(WORKSPACE_DIR, "cloudflared.exe")
+        cf_base = os.path.join(BASE_DIR, "cloudflared.exe")
         cf_system = r"C:\Program Files (x86)\cloudflared\cloudflared.exe"
-        cf_path = cf_local if os.path.exists(cf_local) else (cf_system if os.path.exists(cf_system) else None)
-        
+        cf_system64 = r"C:\Program Files\cloudflared\cloudflared.exe"
+        cf_which = _shutil.which("cloudflared")
+        cf_path = next(
+            (p for p in [cf_local, cf_base, cf_system, cf_system64, cf_which] if p and os.path.exists(p)),
+            None
+        )
+
         if cf_path:
-            kwargs = {}
-            if sys.platform == "win32":
-                kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
-                si = subprocess.STARTUPINFO()
-                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                si.wShowWindow = subprocess.SW_HIDE
-                kwargs["startupinfo"] = si
-            subprocess.Popen(
-                [cf_path, "tunnel", "run", "miku"],
-                **kwargs
-            )
-            logger.info("Túnel de Cloudflare iniciado en segundo plano.")
+            def _start_cf_tunnel():
+                import re
+                kwargs = {
+                    "stdout": subprocess.PIPE,
+                    "stderr": subprocess.STDOUT,
+                    "text": True,
+                    "bufsize": 1,
+                }
+                if sys.platform == "win32":
+                    kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                    si = subprocess.STARTUPINFO()
+                    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    si.wShowWindow = subprocess.SW_HIDE
+                    kwargs["startupinfo"] = si
+
+                # Si no hay MIKU_TUNNEL_URL fija, levantamos Quick Tunnel directo a 127.0.0.1:8000
+                # que genera automáticamente un dominio https://*.trycloudflare.com funcional por 4G/5G
+                cmd = [cf_path, "tunnel", "--url", "http://127.0.0.1:8000"] if not env_tunnel else [cf_path, "tunnel", "run", "miku"]
+                try:
+                    proc = subprocess.Popen(cmd, **kwargs)
+                    url_pattern = re.compile(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")
+                    if proc.stdout:
+                        for line in proc.stdout:
+                            m = url_pattern.search(line)
+                            if m:
+                                t_url = m.group(0).rstrip("/")
+                                MIKU_LINK_RUNTIME["tunnel_url"] = t_url
+                                logger.info(f"[Cloudflare Tunnel] URL remota lista para Datos Móviles (4G/5G): {t_url}")
+                                break
+                except Exception as cf_err:
+                    logger.warning(f"Error ejecutando cloudflared: {cf_err}")
+
+            threading.Thread(target=_start_cf_tunnel, daemon=True).start()
+            logger.info("Túnel de Cloudflare iniciado en segundo plano (soporte Datos Móviles 4G/5G).")
         else:
-            logger.info("cloudflared.exe no encontrado (operando en red local).")
+            logger.info("cloudflared no encontrado (operando en red local Wi-Fi; instala cloudflared para 4G/5G).")
     except Exception as e:
         logger.warning(f"Aviso túnel Cloudflare: {e}")
     

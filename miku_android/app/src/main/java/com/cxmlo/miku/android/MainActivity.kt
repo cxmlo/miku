@@ -129,11 +129,24 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-            android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4102)
+        val perms = mutableListOf(
+            Manifest.permission.READ_SMS,
+            Manifest.permission.SEND_SMS,
+            Manifest.permission.READ_CALL_LOG,
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.READ_CONTACTS,
+        )
+        if (Build.VERSION.SDK_INT >= 33) {
+            perms.add(Manifest.permission.POST_NOTIFICATIONS)
+            perms.add(Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            perms.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        val missing = perms.filter {
+            checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            requestPermissions(missing.toTypedArray(), 4102)
         }
     }
 }
@@ -337,6 +350,23 @@ private fun MikuApp(
                             }
                         }
                     },
+                    onSyncTelemetry = {
+                        busy = true
+                        scope.launch {
+                            runCatching { MikuClient.pushDeviceTelemetry(context) }
+                                .onSuccess { feedback = "SMS, llamadas, batería y apps sincronizados con Miku Desktop." }
+                                .onFailure { feedback = it.message }
+                            busy = false
+                        }
+                    },
+                    onOpenNotifAccess = {
+                        runCatching {
+                            val i = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(i)
+                        }
+                    },
                     onRunCommand = { command ->
                         runCatching { runPhoneCommand(context, command.action, command.extras) }
                             .onSuccess { feedback = "Se abrió la acción solicitada en Android." }
@@ -348,6 +378,8 @@ private fun MikuApp(
                 2 -> EventsPanel(state.notices)
                 else -> SettingsPanel(
                     serverIp = state.serverIp,
+                    tunnelUrl = state.tunnelUrl,
+                    usingTunnel = state.usingTunnel,
                     status = state.status,
                     onReconnect = onStartConnection,
                     onUnpair = {
@@ -443,17 +475,21 @@ private fun ControlPanel(
     onPickFile: () -> Unit,
     onSaveDownload: () -> Unit,
     onSyncClipboard: () -> Unit,
+    onSyncTelemetry: () -> Unit,
+    onOpenNotifAccess: () -> Unit,
     onRunCommand: (com.cxmlo.miku.android.data.PhoneCommand) -> Unit,
     onDismissCommand: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("CONTROL DEL ESCRITORIO", color = MikuPalette.Accent, style = MaterialTheme.typography.titleMedium)
-        ActionCard("Bloquear PC", "Bloquea la sesión de Windows vinculada.", connected && !busy, onLock)
-        ActionCard("Enviar archivo a la PC", "Elige un archivo y Miku lo abrirá en el escritorio.", connected && !busy, onPickFile)
+        Text("CONTROL Y SINCRONIZACIÓN", color = MikuPalette.Accent, style = MaterialTheme.typography.titleMedium)
+        ActionCard("Sincronizar SMS, llamadas y apps", "Envía el estado actual del teléfono a Miku Desktop.", connected && !busy, onSyncTelemetry)
+        ActionCard("Enviar foto o archivo a la PC", "Aparecerá en la pestaña Fotos de Miku-Link.", connected && !busy, onPickFile)
         ActionCard("Sincronizar portapapeles", "Copia el texto actual del teléfono al PC.", connected && !busy, onSyncClipboard)
+        ActionCard("Bloquear PC", "Bloquea la sesión de Windows vinculada.", connected && !busy, onLock)
+        ActionCard("Permiso de notificaciones", "Activa Miku-Link en Acceso a notificaciones de Android.", true, onOpenNotifAccess)
         pendingDownload?.let { name ->
             ActionCard("Guardar archivo del PC", "Archivo recibido: $name", !busy, onSaveDownload)
         }
@@ -476,11 +512,6 @@ private fun ControlPanel(
                 }
             }
         }
-        Text(
-            "Las acciones recibidas desde el Island requieren confirmación en el teléfono.",
-            color = Color.LightGray,
-            style = MaterialTheme.typography.bodySmall,
-        )
     }
 }
 
@@ -511,6 +542,8 @@ private fun EventsPanel(notices: List<com.cxmlo.miku.android.data.AgentNotice>) 
 @Composable
 private fun SettingsPanel(
     serverIp: String,
+    tunnelUrl: String,
+    usingTunnel: Boolean,
     status: String,
     onReconnect: () -> Unit,
     onUnpair: () -> Unit,
@@ -521,7 +554,14 @@ private fun SettingsPanel(
 ) {
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("VINCULACIÓN Y CONEXIÓN", color = MikuPalette.Accent, style = MaterialTheme.typography.titleMedium)
-        Text(if (serverIp.isBlank()) "Aún no hay un PC vinculado." else "PC: $serverIp", color = Color.White)
+        Text(if (serverIp.isBlank()) "Aún no hay un PC vinculado." else "PC (Wi-Fi Local): $serverIp", color = Color.White)
+        if (tunnelUrl.isNotBlank()) {
+            Text(
+                "Túnel Datos Móviles (4G/5G): $tunnelUrl" + if (usingTunnel) " [ACTIVO]" else "",
+                color = if (usingTunnel) MikuPalette.Accent else Color.LightGray,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         Text(status, color = Color.LightGray)
         OutlinedTextField(
             value = pairUrl,
@@ -534,8 +574,8 @@ private fun SettingsPanel(
             Button(onClick = onScan) { Text("Escanear QR") }
             Button(onClick = onPair, enabled = pairUrl.isNotBlank()) { Text("Vincular") }
         }
-        Button(onClick = onReconnect, enabled = serverIp.isNotBlank()) { Text("Reconectar") }
-        if (serverIp.isNotBlank()) {
+        Button(onClick = onReconnect, enabled = serverIp.isNotBlank() || tunnelUrl.isNotBlank()) { Text("Reconectar") }
+        if (serverIp.isNotBlank() || tunnelUrl.isNotBlank()) {
             TextButton(onClick = onUnpair) { Text("Desvincular este teléfono", color = MikuPalette.Error) }
         }
     }

@@ -14,6 +14,7 @@ data class DeviceCredentials(
     val serverIp: String,
     val deviceId: String,
     val pcName: String,
+    val tunnelUrl: String = "",
 )
 
 class DeviceStore(context: Context) {
@@ -26,14 +27,16 @@ class DeviceStore(context: Context) {
         val serverIp = preferences.getString(KEY_SERVER_IP, null) ?: return null
         val deviceId = preferences.getString(KEY_DEVICE_ID, null)?.let(::decrypt) ?: return null
         val pcName = preferences.getString(KEY_PC_NAME, null)?.let(::decrypt).orEmpty()
-        return DeviceCredentials(serverIp, deviceId, pcName)
+        val tunnelUrl = preferences.getString(KEY_TUNNEL_URL, null).orEmpty()
+        return DeviceCredentials(serverIp, deviceId, pcName, tunnelUrl)
     }
 
-    fun save(serverIp: String, deviceId: String, pcName: String) {
+    fun save(serverIp: String, deviceId: String, pcName: String, tunnelUrl: String = "") {
         preferences.edit()
             .putString(KEY_SERVER_IP, serverIp)
             .putString(KEY_DEVICE_ID, encrypt(deviceId))
             .putString(KEY_PC_NAME, encrypt(pcName))
+            .putString(KEY_TUNNEL_URL, tunnelUrl)
             .apply()
     }
 
@@ -84,6 +87,7 @@ class DeviceStore(context: Context) {
         const val KEY_SERVER_IP = "server_ip"
         const val KEY_DEVICE_ID = "device_id"
         const val KEY_PC_NAME = "pc_name"
+        const val KEY_TUNNEL_URL = "tunnel_url"
         const val GCM_IV_LENGTH = 12
         const val GCM_TAG_BITS = 128
     }

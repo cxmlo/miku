@@ -246,7 +246,7 @@ def _norm_txt(s: str) -> str:
     """Normaliza texto eliminando acentos y diacríticos para búsqueda robusta de palabras clave."""
     return "".join(c for c in unicodedata.normalize("NFD", (s or "").lower()) if unicodedata.category(c) != "Mn")
 
-def get_llm_response(user_input: str, system_prompt: str = "", status_callback=None, interrupt_event=None, agent_id: str = "miku", agent_mcp: str = None) -> str:
+def get_llm_response(user_input: str, system_prompt: str = "", status_callback=None, interrupt_event=None, agent_id: str = "miku", agent_mcp: str = None, agent_model: str = None) -> str:
     global conversation_history, agent_conversation_histories
     
     # Determinar si el modo bajo costo está activo
@@ -297,13 +297,16 @@ def get_llm_response(user_input: str, system_prompt: str = "", status_callback=N
     provider_name = "unknown"
     use_fallback = False
 
-    # 1. Obtener cliente y modelo según la configuración activa (models_config.json)
+    # 1. Obtener cliente y modelo según la configuración activa (models_config.json) o modelo asignado al agente
     try:
         from models_provider import get_client_and_model
         req_cat = "pro" if (agent_id and agent_id.lower() in ("github", "antigravity")) else "chat"
-        active_client, active_model, provider_name = get_client_and_model(category=req_cat)
+        pref_mod = None
+        if agent_model and str(agent_model).strip().lower() not in ("", "auto", "none"):
+            pref_mod = str(agent_model).strip().replace("google/", "")
+        active_client, active_model, provider_name = get_client_and_model(preferred_model=pref_mod, category=req_cat)
         if not active_client and req_cat == "pro":
-            active_client, active_model, provider_name = get_client_and_model(category="chat")
+            active_client, active_model, provider_name = get_client_and_model(preferred_model=pref_mod, category="chat")
         if active_client:
             logger.info(f"Cerebro activo para '{agent_id or 'miku'}': {provider_name.upper()} ({active_model})")
     except Exception as e:

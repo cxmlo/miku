@@ -648,15 +648,14 @@ function GlideSelect(host,{options,value,label='Seleccionar',onChange}){
    const need=Math.min(240,items.length*36+16);
    if(spaceBelow<need&&spaceAbove>spaceBelow){
      menu.classList.add('up');
-     menu.style.setProperty('--o','bottom right');
+     menu.style.setProperty('--o','center bottom');
    }else{
      menu.classList.remove('up');
-     menu.style.setProperty('--o','top right');
+     menu.style.setProperty('--o','center top');
    }
    if(r.right-menu.offsetWidth<8){
      menu.style.left='0';
      menu.style.right='auto';
-     menu.style.setProperty('--o',(menu.classList.contains('up')?'bottom':'top')+' left');
    }
    void menu.offsetHeight;
    menu.classList.remove('closed');
@@ -1310,17 +1309,19 @@ V.island = () => (V.general ? V.general() : '');
 V.permisos = () => (V.general ? V.general() : '');
 
 
-/* ── Componente de Slider Suave (Click normal + sostenido/arrastre continuo) ── */
+/* ── Componente de Slider Suave con perilla circular acordada (miku-catalogo.html) ── */
 function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '%', onChange }) {
   let cur = Math.max(min, Math.min(max, value));
   let dragging = false;
   let activePointerId = null;
+  const initPct = ((cur - min) / (max - min) * 100).toFixed(1);
 
   host.innerHTML = `
     <div class="so-slider" tabindex="0" role="slider" aria-valuenow="${cur}" aria-valuemin="${min}" aria-valuemax="${max}">
       <svg class="so-spk so-spk-mute" viewBox="0 0 24 24" title="Silenciar"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
       <div class="so-slider-track">
-        <div class="so-slider-fill" style="width: ${((cur - min) / (max - min) * 100).toFixed(1)}%"></div>
+        <div class="so-slider-fill" style="width: ${initPct}%"></div>
+        <div class="so-slider-thumb" style="left: ${initPct}%"></div>
       </div>
       <svg class="so-spk so-spk-high" viewBox="0 0 24 24" title="100%"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
       <span class="so-slider-val">${Math.round(cur)}${unit}</span>
@@ -1330,9 +1331,17 @@ function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '
   const slider = host.querySelector('.so-slider');
   const track = host.querySelector('.so-slider-track');
   const fill = host.querySelector('.so-slider-fill');
+  const thumb = host.querySelector('.so-slider-thumb');
   const valText = host.querySelector('.so-slider-val');
   const spkMute = host.querySelector('.so-spk-mute');
   const spkHigh = host.querySelector('.so-spk-high');
+
+  const syncDom = (pct) => {
+    fill.style.width = pct + '%';
+    if (thumb) thumb.style.left = pct + '%';
+    valText.textContent = Math.round(cur) + unit;
+    slider.setAttribute('aria-valuenow', Math.round(cur));
+  };
 
   const update = (clientX) => {
     const rect = track.getBoundingClientRect();
@@ -1342,9 +1351,7 @@ function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '
     if (step > 0) raw = Math.round(raw / step) * step;
     cur = Math.max(min, Math.min(max, raw));
     const pct = ((cur - min) / (max - min) * 100).toFixed(1);
-    fill.style.width = pct + '%';
-    valText.textContent = Math.round(cur) + unit;
-    slider.setAttribute('aria-valuenow', Math.round(cur));
+    syncDom(pct);
     onChange?.(cur);
   };
 
@@ -1353,14 +1360,15 @@ function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '
     update(e.clientX);
   };
 
-  const onPointerUp = (e) => {
+  const onPointerUp = () => {
     if (dragging) {
       dragging = false;
+      slider.classList.remove('dragging');
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
       if (activePointerId !== null) {
-        try { track.releasePointerCapture(activePointerId); } catch (_) {}
+        try { slider.releasePointerCapture(activePointerId); } catch (_) {}
         activePointerId = null;
       }
     }
@@ -1370,6 +1378,7 @@ function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '
     if (e.button !== 0) return;
     if (e.target.closest('.so-spk') || e.target.closest('.so-slider-val')) return;
     dragging = true;
+    slider.classList.add('dragging');
     activePointerId = e.pointerId;
     try { slider.setPointerCapture(e.pointerId); } catch (_) {}
     window.addEventListener('pointermove', onPointerMove, { passive: true });
@@ -1383,16 +1392,14 @@ function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '
 
   spkMute?.addEventListener('click', () => {
     cur = min;
-    fill.style.width = '0%';
-    valText.textContent = Math.round(cur) + unit;
+    syncDom('0');
     window.SoundFX?.pop?.();
     onChange?.(cur);
   });
 
   spkHigh?.addEventListener('click', () => {
     cur = max;
-    fill.style.width = '100%';
-    valText.textContent = Math.round(cur) + unit;
+    syncDom('100');
     window.SoundFX?.pop?.();
     onChange?.(cur);
   });
@@ -1401,9 +1408,7 @@ function SmoothSlider(host, { value = 80, min = 0, max = 100, step = 1, unit = '
     set(v) {
       cur = Math.max(min, Math.min(max, v));
       const pct = ((cur - min) / (max - min) * 100).toFixed(1);
-      fill.style.width = pct + '%';
-      valText.textContent = Math.round(cur) + unit;
-      slider.setAttribute('aria-valuenow', Math.round(cur));
+      syncDom(pct);
     }
   };
 }
@@ -1543,7 +1548,7 @@ V.agentes = () => {
 ${sel ? `
 <section>
   <h2>Configuración de ${esc(sel.name)}</h2>
-  ${row('Nombre', '', inp('ag-edit-name', sel.name, 'text', '240px'), 1)}
+  ${row('Nombre', 'Identificador visible en la Isla Dinámica', `<input class="tx-in" id="ag-edit-name" type="text" value="${esc(sel.name)}" placeholder="Nombre del agente" autocomplete="off" spellcheck="false" style="width:220px">`, 1)}
   ${row('Color distintivo', 'Color del halo y ojos del agente', `
     <div class="chips" style="align-items:center">
       ${PRESET.map(hex => `<button class="sw8 ${sel.c.toLowerCase() === hex.toLowerCase() ? 'on' : ''}" data-color="${hex}" style="--c:${hex}" title="${hex}"></button>`).join('')}
@@ -1552,22 +1557,18 @@ ${sel ? `
       </label>
     </div>
   `)}
+  ${row('Modelo / API de IA', 'Asigna un proveedor o modelo específico para este agente (opcional)', `<span id="gs-ag-model"></span>`)}
   ${row('Servidor MCP Asignado', 'Conecta un servidor de herramientas exclusivo para este agente', `<span id="gs-ag-mcp"></span>`)}
-  <div class="ai-prompt-box" style="background:var(--s2);border:1px solid var(--ln);border-radius:14px;padding:14px 16px;margin:12px 0">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
-      <b style="font-size:12.5px;color:var(--tx);font-weight:700">Generador de Prompt con IA</b>
-      <span style="font-size:11px;color:var(--mut);margin-left:auto">Redacta el rol del agente con IA</span>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <input class="tx-in" id="ag-ai-desc" placeholder="Describe brevemente su función (ej: Revisar código y hacer pull requests)..." style="flex:1;min-width:200px;height:36px;font-size:12.5px">
-      <button type="button" class="btn p" id="btn-gen-prompt">
+  ${row('Generador de Prompt con IA', 'Describe su función y redacta automáticamente el rol del agente', `
+    <div style="display:flex;gap:8px;align-items:center;width:100%;justify-content:flex-end;flex-wrap:wrap">
+      <input class="tx-in" id="ag-ai-desc" placeholder="Ej: Revisar código y hacer pull requests..." style="flex:1;min-width:210px;height:36px">
+      <button type="button" class="btn p sm" id="btn-gen-prompt" style="height:36px;padding:0 14px">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
         <span>Generar Prompt</span>
       </button>
     </div>
-  </div>
-  ${row('Instrucciones / Rol', 'Prompt del sistema específico para este agente', `<textarea class="tx-in" id="ag-edit-prompt" placeholder="Instrucciones del sistema para este agente..." style="width:100%;height:84px;resize:vertical;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.45;margin-top:4px">${esc(sel.prompt || sel.role || '')}</textarea>`, 1)}
+  `, 1)}
+  ${row('Instrucciones / Rol', 'Prompt del sistema específico para este agente', `<textarea class="tx-in" id="ag-edit-prompt" placeholder="Instrucciones del sistema para este agente..." style="width:100%;height:78px;resize:vertical">${esc(sel.prompt || sel.role || '')}</textarea>`, 1)}
   ${row('Quitar agente', 'Elimina este agente de tu lista', `<span id="hb-del-curr"></span>`)}
 </section>
 ` : ''}
@@ -1576,20 +1577,17 @@ ${sel ? `
   <h2>${t('ag_create')}</h2>
   ${row('Rol inicial', 'Plantilla o especialidad', `<span id="gs-tool"></span>`)}
   ${row('Nombre', '', inp('ag-name', 'Mi agente', 'text', '220px'), 1)}
-  <div class="ai-prompt-box" style="background:var(--s2);border:1px solid var(--ln);border-radius:14px;padding:14px 16px;margin:12px 0">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
-      <b style="font-size:12.5px;color:var(--tx);font-weight:700">Generar Instrucciones con IA</b>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <input class="tx-in" id="ag-new-ai-desc" placeholder="Describe la tarea que realizará este nuevo agente..." style="flex:1;min-width:200px;height:36px;font-size:12.5px">
-      <button type="button" class="btn p" id="btn-new-gen-prompt">
+  ${row('Modelo / API de IA', 'Asigna un modelo específico o deja el automático', `<span id="gs-new-ag-model"></span>`)}
+  ${row('Generar Instrucciones con IA', 'Redacta automáticamente las instrucciones del nuevo agente', `
+    <div style="display:flex;gap:8px;align-items:center;width:100%;justify-content:flex-end;flex-wrap:wrap">
+      <input class="tx-in" id="ag-new-ai-desc" placeholder="Describe la tarea que realizará este nuevo agente..." style="flex:1;min-width:210px;height:36px">
+      <button type="button" class="btn p sm" id="btn-new-gen-prompt" style="height:36px;padding:0 14px">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
         <span>Generar con IA</span>
       </button>
     </div>
-  </div>
-  ${row('Instrucciones / Contexto', 'Prompt del sistema o personalidad específica para este agente', `<textarea class="tx-in" id="ag-prompt" placeholder="Ej: Eres un asistente especializado en análisis de código..." style="width:100%;height:80px;resize:vertical;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.45;margin-top:4px"></textarea>`, 1)}
+  `, 1)}
+  ${row('Instrucciones / Contexto', 'Prompt del sistema o personalidad específica para este agente', `<textarea class="tx-in" id="ag-prompt" placeholder="Ej: Eres un asistente especializado en análisis de código..." style="width:100%;height:76px;resize:vertical"></textarea>`, 1)}
   ${row('Crear agente', 'Mantén pulsado para confirmar y añadir agente', `<span id="hb-ag-add"></span>`)}
 </section>
 `;
@@ -1656,16 +1654,25 @@ V.modelos = () => {
 V.keys = () => {
   const K = STATE.keys || {};
   const kRow = (id, label, desc, isPassword = true) => {
-    const item = K[id] || { is_set: false, value_masked: '' };
+    const raw = K[id];
+    const item = typeof raw === 'string'
+      ? { is_set: !!raw, value_masked: raw }
+      : (raw || { is_set: false, value_masked: '' });
+    const shortMask = item.is_set && item.value_masked
+      ? `••••${String(item.value_masked).replace(/^\*+/, '').slice(-4)}`
+      : '';
     return `
     <div class="row fx">
-      <div>
-        <b>${label}</b>
-        <small>${desc}${item.is_set ? ` · Actual: <code>${item.value_masked}</code>` : ''}</small>
+      <div style="min-width:200px;flex:1 1 220px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <b>${label}</b>
+          ${stat('st-' + id, item.is_set, item.is_set ? 'Configurada' : 'Sin clave')}
+          ${shortMask ? `<code style="font-size:11px;color:var(--mu);background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:6px">${esc(shortMask)}</code>` : ''}
+        </div>
+        <small style="margin-top:2px">${desc}</small>
       </div>
-      <div class="ctl" style="display:flex;align-items:center;gap:10px">
-        ${stat('st-' + id, item.is_set, item.is_set ? 'Configurada' : 'Sin clave')}
-        ${inp('k-' + id, item.is_set ? '••••••••••••••••' : 'Introduce tu clave...', isPassword ? 'password' : 'text', '180px')}
+      <div class="ctl" style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;justify-content:flex-end">
+        ${inp('k-' + id, item.is_set ? 'Actualizar clave…' : 'Introduce tu clave…', isPassword ? 'password' : 'text', '190px')}
         <span class="hb-savekey" data-savekey="${id}"></span>
         ${item.is_set ? `<span class="hb-delkey" data-delkey="${id}"></span>` : ''}
       </div>
@@ -1744,22 +1751,22 @@ V.mcp = () => {
 
   return `
   <section>
-    <h2>Servidores MCP Recomendados (Instalación con 1 Clic)</h2>
-    ${note('Servidores esenciales listos para instalar. Permiten a Miku gestionar archivos en tu PC, recordar proyectos y consultar bases de datos:')}
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px;">
+    <h2>Servidores MCP Recomendados (1 Clic)</h2>
+    <div class="mcp-grid-compact">
       ${RECOMMENDED_MCPS.map(r => {
         const isInst = installedNames.has(r.id.toLowerCase());
         return `
-        <div class="mcp-card" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px;background:var(--s1);">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span class="app-badge-icon">${r.icon}</span>
-            <b style="font-size:13px;color:var(--tx);">${esc(r.name)}</b>
+        <div class="mcp-card rec">
+          <div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1">
+            <span class="app-badge-icon" style="width:20px;height:20px">${r.icon}</span>
+            <div style="min-width:0;flex:1">
+              <b style="font-size:12.5px;color:var(--tx);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</b>
+              <small style="font-size:11px;color:var(--mu);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(r.desc)}">${esc(r.desc)}</small>
+            </div>
           </div>
-          <p style="font-size:11.5px;color:var(--mu);line-height:1.4;margin:0;">${esc(r.desc)}</p>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;border-top:1px solid var(--ln);padding-top:8px;">
-            <code style="font-size:10.5px;color:var(--mu);background:var(--s2);padding:2px 6px;border-radius:4px;">${esc(r.id)}</code>
+          <div style="flex:none">
             ${isInst 
-              ? `<span class="pill on" style="font-size:11px">Instalado</span>` 
+              ? `<span class="pill on" style="font-size:10.5px;padding:2px 8px">Instalado</span>` 
               : `<span class="hb-mcp-inst" data-mcpid="${esc(r.id)}"></span>`
             }
           </div>
@@ -1771,25 +1778,21 @@ V.mcp = () => {
 
   <section>
     <h2>${t('mcp_title')} (${list.length})</h2>
-    ${note('Gestión de servidores MCP y optimización de tokens. Desactiva los que no uses para liberar memoria y ahorrar miles de tokens por turno:')}
-    <div id="mcp-list" style="margin-top:10px;">
+    <div id="mcp-list" style="margin-top:6px;">
       ${list.length ? list.map(s => {
         const isEnabled = s.enabled !== false;
         return `
         <div class="mcp-card ${isEnabled ? 'active' : 'paused'}">
           <div class="mcp-info" style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <b><i class="sd ${s.connected && isEnabled ? 'on' : ''}"></i>${esc(s.name)}</b>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <b style="font-size:12.5px"><i class="sd ${s.connected && isEnabled ? 'on' : ''}"></i>${esc(s.name)}</b>
               <span class="mcp-token-badge ${isEnabled ? 'active' : 'paused'}">
-                ${isEnabled ? (s.tools_count ? `${s.tools_count} herramientas activas` : 'Conectando...') : 'Pausado (0 tokens)'}
+                ${isEnabled ? (s.tools_count ? `${s.tools_count} tools` : 'Activo') : 'Pausado'}
               </span>
+              <code style="font-size:10.5px;color:var(--mut);background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:5px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.command)} ${(s.args || []).join(' ')}</code>
             </div>
-            <code>${esc(s.command)} ${(s.args || []).join(' ')}</code>
-            <small style="color:var(--mut);margin-top:3px;display:block;">
-              ${isEnabled ? (s.connected ? 'Activo: herramientas cargadas en el agente' : 'Iniciando conexión...') : 'Pausado: herramientas descargadas para no consumir tokens'}
-            </small>
           </div>
-          <div style="display:flex;align-items:center;gap:12px;flex:none;">
+          <div style="display:flex;align-items:center;gap:10px;flex:none;">
             <label class="sq" title="${isEnabled ? 'Desactivar para ahorrar tokens' : 'Activar servidor MCP'}">
               <input type="checkbox" class="mcp-toggle-sw" data-mcp="${esc(s.name)}" ${isEnabled ? 'checked' : ''}>
               <i></i>
@@ -1798,16 +1801,18 @@ V.mcp = () => {
           </div>
         </div>
         `;
-      }).join('') : '<p class="nt">No hay servidores MCP configurados.</p>'}
+      }).join('') : '<p class="nt" style="padding:4px 0">No hay servidores MCP configurados.</p>'}
     </div>
   </section>
 
   <section>
     <h2>${t('mcp_add')} (Personalizado)</h2>
-    ${row('Nombre', 'Identificador del servidor (ej. memory, sqlite, custom-mcp)', inp('mcp-name', 'mi-servidor', 'text', '200px'), 1)}
-    ${row('Comando', 'Ejecutable base (npx, uvx, python)', inp('mcp-cmd', 'npx', 'text', '200px'), 1)}
-    ${row('Argumentos', 'Separados por espacio (ej. -y @modelcontextprotocol/server-memory)', inp('mcp-args', '-y @modelcontextprotocol/server-memory', 'text', '320px'), 1)}
-    ${row('Añadir Servidor', 'Mantén pulsado para registrar el servidor MCP', `<span id="hb-add-mcp"></span>`)}
+    <div class="row fx" style="gap:8px">
+      ${inp('mcp-name', 'Nombre (ej. memory)', 'text', '150px')}
+      ${inp('mcp-cmd', 'Comando (npx, uvx)', 'text', '130px')}
+      <input class="tx-in" id="mcp-args" type="text" placeholder="Argumentos (ej. -y @modelcontextprotocol/server-memory)" style="flex:1;min-width:180px">
+      <span id="hb-add-mcp"></span>
+    </div>
   </section>
   `;
 };
@@ -1821,62 +1826,57 @@ V.alertas = () => {
   return `
   <section>
     <h2>Registrar Actividad de Juegos y Aplicaciones</h2>
-    ${note('Selecciona una aplicación o juego activo en tu PC para que Miku monitoree tu tiempo y te avise cuando excedas el límite:')}
-    <div style="background:var(--s1);border:1px solid var(--ln);border-radius:var(--r-card);padding:16px;margin-top:12px">
-      <label style="display:block;font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Juego o aplicación activa en tu PC</label>
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-        <div id="gs-app-select" class="gs-full" style="flex:1;min-width:260px"></div>
+    ${row('Juego o aplicación activa en tu PC', 'Selecciona una aplicación o juego activo para monitorear su tiempo de uso', `
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;width:100%">
+        <div id="gs-app-select" style="flex:1;min-width:220px;max-width:320px"></div>
         <button type="button" class="btn p" id="btn-add-discord-app" style="white-space:nowrap">Añadir juego o app</button>
       </div>
-      
-      <div id="discord-custom-wrap" style="display:${selApp?.id === 'custom' ? 'block' : 'none'};margin-top:12px;padding-top:12px;border-top:1px solid var(--ln)">
-        <div style="display:flex;gap:10px;align-items:center">
-          <input class="tx-in" id="custom-app-path" type="text" placeholder="Ej: C:\\Juegos\\Juego.exe o nombre de proceso..." style="flex:1;height:38px">
-          <button type="button" class="btn" id="btn-browse-app" style="white-space:nowrap">Examinar...</button>
-        </div>
+    `, 1)}
+    <div id="discord-custom-wrap" class="row fx" style="display:${selApp?.id === 'custom' ? 'flex' : 'none'}">
+      <div>
+        <b>Ruta del ejecutable (.exe)</b>
+        <small>Selecciona o escribe la ruta del proceso que deseas monitorear</small>
+      </div>
+      <div class="ctl" style="display:flex;gap:8px;align-items:center;flex:1;max-width:380px">
+        <input class="tx-in" id="custom-app-path" type="text" placeholder="Ej: C:\\Juegos\\Juego.exe..." style="flex:1">
+        <button type="button" class="btn" id="btn-browse-app" style="white-space:nowrap">Examinar...</button>
       </div>
     </div>
   </section>
 
   <section>
     <h2>Juegos y Aplicaciones Registradas</h2>
-    ${note('Miku vigilará el tiempo continuo de uso. Cuadra los minutos de límite y activa/desactiva según prefieras:')}
-    <div id="active-alerts-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+    <div id="active-alerts-list" style="margin-top:4px;display:flex;flex-direction:column;gap:8px">
       ${alertKeys.length ? alertKeys.map(k => {
         const item = A[k] || { enabled: true, threshold: 120, label: k };
         const iconHtml = (item.icon && item.icon.startsWith('data:image')) 
-          ? `<img src="${item.icon}" width="28" height="28" style="border-radius:6px;object-fit:contain">`
+          ? `<img src="${item.icon}" width="26" height="26" style="border-radius:6px;object-fit:contain">`
           : ((item.icon && item.icon.includes('<svg') && !item.icon.includes('<rect width="18"'))
               ? item.icon
               : getKnownAppIcon(k, item.label));
         return `
-        <div class="alert-item-card" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;background:rgba(255,255,255,0.035);border:1px solid var(--ln);border-radius:14px">
+        <div class="row" style="padding:10px 0">
           <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
-            <span style="flex:none;display:grid;place-items:center;width:32px;height:32px;background:rgba(255,255,255,0.04);border-radius:8px">${iconHtml}</span>
+            <span style="flex:none;display:grid;place-items:center;width:32px;height:32px;background:rgba(255,255,255,0.04);border:1px solid var(--ln);border-radius:9px">${iconHtml}</span>
             <div style="min-width:0;flex:1">
-              <span class="marquee-wrap" style="color:var(--tx);font-size:14px;font-weight:600;display:block">
+              <span class="marquee-wrap" style="color:var(--tx);font-size:13.5px;font-weight:700;display:block">
                 <span class="marquee-text">${esc(item.label || k)}</span>
               </span>
               <small style="color:var(--mut);font-size:11.5px;display:block">Alerta tras ${item.threshold || 120} minutos</small>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:14px;flex:none">
+          <div class="ctl" style="display:flex;align-items:center;gap:12px;flex:none">
             <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:11px;color:var(--mut)">Tiempo:</span>
+              <span style="font-size:11.5px;color:var(--mut)">Tiempo:</span>
               <div id="gs-alert-${esc(k)}" style="min-width:115px"></div>
             </div>
             <label class="sq" title="Activar/Desactivar"><input type="checkbox" data-alert-en="${esc(k)}" ${item.enabled ? 'checked' : ''}><i></i></label>
             <button type="button" class="btn-del-alert" data-del-alert="${esc(k)}" title="Eliminar registro"><svg class="ic" width="14" height="14"><use href="#ic-trash"/></svg></button>
           </div>
         </div>`;
-      }).join('') : '<p class="nt" style="padding:16px;background:rgba(255,255,255,0.035);border:1px solid var(--ln);border-radius:12px;text-align:center">No tienes juegos o aplicaciones registradas. Selecciona una en el menú de arriba para empezar.</p>'}
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--s1);border:1px solid var(--ln);border-radius:14px;padding:14px 18px;margin-top:14px">
-    <div>
-      <h3 style="margin:0 0 4px 0;font-size:13px;color:var(--tx)">Probar Sistema de Alertas</h3>
-      <p style="margin:0;font-size:11.5px;color:var(--mu)">Emite una notificación de prueba instantánea para verificar la Isla Dinámica y Windows Notifications.</p>
+      }).join('') : '<p class="nt" style="padding:8px 0">No tienes juegos o aplicaciones registradas. Selecciona una arriba para empezar.</p>'}
     </div>
-    <button type="button" class="btn p" id="btn-test-alert" style="white-space:nowrap">Probar Alerta en Vivo</button>
-  </div>
+    ${row('Probar Sistema de Alertas', 'Emite una notificación de prueba con el icono de Miku en la Isla Dinámica y Windows.', `<button type="button" class="btn p" id="btn-test-alert" style="white-space:nowrap">Probar Alerta en Vivo</button>`)}
   </section>
   `;
 };
@@ -2001,7 +2001,7 @@ function initHeroGalaxy() {
 
 let _lastRenderedCat = null;
 
-function updateHeroText() {
+function updateHeroText(animate = false) {
   const meta = getSectionHeroMeta(CAT);
   const hg = document.getElementById('hg');
   const hh = document.getElementById('hh');
@@ -2010,7 +2010,7 @@ function updateHeroText() {
   if (hg) hg.textContent = meta.tag;
   if (hh) hh.textContent = meta.title;
   if (hp) hp.textContent = meta.desc;
-  if (ht && window.MikuMotion?.enter) {
+  if (animate && ht && window.MikuMotion?.enter) {
     window.MikuMotion.enter(ht);
   }
 }
@@ -2037,7 +2037,7 @@ function render() {
     return;
   }
 
-  updateHeroText();
+  updateHeroText(catChanged);
   initHeroGalaxy();
 
   if (catChanged && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
@@ -2052,10 +2052,13 @@ function render() {
       void cbody.offsetWidth;
       cbody.classList.add('bi');
       mount();
-    }, 180);
+    }, 150);
   } else {
+    const prevScroll = pane.scrollTop;
+    cbody.classList.remove('bi', 'bo');
     cbody.innerHTML = (V[CAT] || V.general)();
     if (catChanged) pane.scrollTop = 0;
+    else pane.scrollTop = prevScroll;
     mount();
   }
 }
@@ -2363,6 +2366,41 @@ function mount() {
       });
     }
 
+    let newAgModel = '';
+    const buildAgentModelOptions = () => {
+      const availChat = STATE.models?.available?.chat || [];
+      const availPro = STATE.models?.available?.pro || [];
+      const seen = new Set();
+      const opts = [{ value: '', label: 'Automático (Usar Cerebro Principal)' }];
+      const addOpt = (val, lbl) => {
+        if (!val || seen.has(val)) return;
+        seen.add(val);
+        opts.push({ value: val, label: lbl });
+      };
+      [...availChat, ...availPro].forEach(m => {
+        if (typeof m === 'string') addOpt(m, m);
+        else if (m && m.id) addOpt(m.id, (m.name || m.id) + (m.has_key === false ? ' [Sin clave]' : ''));
+      });
+      if (opts.length === 1) {
+        addOpt('gemini-2.5-flash', 'Google · Gemini 2.5 Flash');
+        addOpt('gemini-2.5-pro', 'Google · Gemini 2.5 Pro');
+        addOpt('llama-3.3-70b-versatile', 'Groq · Llama 3.3 70B');
+        addOpt('deepseek-chat', 'DeepSeek · DeepSeek V3');
+        addOpt('deepseek-reasoner', 'DeepSeek · DeepSeek R1');
+        addOpt('gpt-4o', 'OpenAI · GPT-4o');
+        addOpt('claude-3-5-sonnet-20241022', 'Anthropic · Claude 3.5 Sonnet');
+      }
+      return opts;
+    };
+    const agModelOptions = buildAgentModelOptions();
+
+    G('gs-new-ag-model', {
+      options: agModelOptions,
+      value: newAgModel,
+      label: 'Modelo / API de IA',
+      onChange: v => { newAgModel = v; }
+    });
+
     const add = $('#hb-ag-add');
     if (add) {
       HoldButton(add, {
@@ -2382,6 +2420,7 @@ function mount() {
             c,
             outfit: 'none',
             tool,
+            model: newAgModel || '',
             custom: 1,
             prompt: ($('#ag-prompt')?.value || '').trim()
           };
@@ -2423,6 +2462,10 @@ function mount() {
         if (sel) {
           sel.c = btn.dataset.color;
           saveAgents();
+          $$('[data-color]').forEach(b => b.classList.toggle('on', b === btn));
+          const colIn = $('#ag-colin');
+          if (colIn) colIn.value = sel.c.toLowerCase();
+          heroLive();
           render();
         }
       };
@@ -2461,9 +2504,21 @@ function mount() {
       });
     }
 
-    // Configuración de Servidor MCP exclusivo para el agente
+    // Configuración de Modelo IA y Servidor MCP exclusivo para el agente
     const selAg = AG.find(a => a.id == SELID);
     if (selAg) {
+      G('gs-ag-model', {
+        options: agModelOptions,
+        value: selAg.model || '',
+        label: 'Modelo / API de IA',
+        onChange: v => {
+          selAg.model = v || '';
+          saveAgents();
+          const chosen = agModelOptions.find(o => o.value === v);
+          showToast(v ? `IA "${chosen?.label || v}" asignada a ${selAg.name}` : `${selAg.name} usará el Cerebro Principal`);
+        }
+      });
+
       const mcpServers = STATE.mcp || [];
       const mcpInUse = {};
       AG.forEach(a => {
@@ -2495,7 +2550,6 @@ function mount() {
           selAg.mcp = v;
           saveAgents();
           showToast(v ? `MCP "${v}" asignado a ${selAg.name}` : `Sin MCP para ${selAg.name}`);
-          setTimeout(render, 150);
         }
       });
     }
@@ -3111,13 +3165,26 @@ function onMsg(m) {
     loadBackendData();
     return;
   }
-  if (m.k == 'cfg') { Object.assign(CFG, m.cfg); render(); }
+  if (m.k == 'cfg' && m.cfg) {
+    const prev = JSON.stringify(CFG);
+    Object.assign(CFG, m.cfg);
+    if (JSON.stringify(CFG) !== prev && !typing()) render();
+  }
   else if (m.k == 'agents') {
     const sa = ls.get('miku_agents', null);
-    if (Array.isArray(sa) && sa.length) AG = sa;
-    if (CAT == 'agentes' && !typing()) render();
+    if (Array.isArray(sa) && sa.length) {
+      const prev = JSON.stringify(AG);
+      AG = sa;
+      if (CAT == 'agentes' && !typing() && JSON.stringify(AG) !== prev) render();
+    }
   }
-  else if (m.k == 'select') { selAgent(m.who || 'miku', 1); if (CAT == 'agentes' && !typing()) render(); }
+  else if (m.k == 'select') {
+    const nextWho = m.who || 'miku';
+    if (nextWho !== SELID) {
+      selAgent(nextWho, 1);
+      if (CAT == 'agentes' && !typing()) render();
+    }
+  }
   else if (m.k == 'go_cat' && m.cat) { window.__goCat?.(m.cat); }
   else if (m.k == 'pair') {
     STATE.pairUrl = m.url;
@@ -3129,14 +3196,21 @@ function onMsg(m) {
     if (CAT == 'link' && !window.MikuLinkSection) render();
   }
   else if (m.k == 'outfit') {
+    const nextOut = m.v || 'none';
     if (m.who == 'miku' || !m.who) {
-      PROUT = m.v || 'none';
+      if (PROUT === nextOut) return;
+      PROUT = nextOut;
       try { localStorage.setItem('miku_outfit', PROUT); } catch (_) {}
+      sidebarLive();
+      heroLive();
     } else {
       const ag = AG.find(x => x.id == m.who);
-      if (ag) { ag.outfit = m.v || 'none'; ls.set('miku_agents', AG); }
+      if (ag && ag.outfit !== nextOut) {
+        ag.outfit = nextOut;
+        ls.set('miku_agents', AG);
+        if (CAT == 'agentes' && !typing()) render();
+      }
     }
-    if (!typing()) render();
   }
 }
 
@@ -3148,15 +3222,16 @@ window.addEventListener('focus', () => {
     const cur = localStorage.getItem('miku_outfit') || 'none';
     if (cur !== PROUT) {
       PROUT = cur;
-      if (!typing()) render();
+      sidebarLive();
+      heroLive();
     }
   } catch (_) {}
-  emit({ k: 'hello' });
 });
 window.addEventListener('storage', e => {
-  if (e.key === 'miku_outfit' && e.newValue) {
+  if (e.key === 'miku_outfit' && e.newValue && e.newValue !== PROUT) {
     PROUT = e.newValue;
-    if (!typing()) render();
+    sidebarLive();
+    heroLive();
   }
 });
 
@@ -3331,7 +3406,11 @@ async function loadBackendData() {
   } catch (err) {
     console.warn("Error loading backend data in settings:", err);
   }
-  render();
+  const nextSnap = JSON.stringify({ k: STATE.keys, m: STATE.models?.current, e: STATE.execMode, mcp: STATE.mcp, al: STATE.alerts, ag: AG });
+  if (!window.__lastBackendSnap || window.__lastBackendSnap !== nextSnap) {
+    window.__lastBackendSnap = nextSnap;
+    if (!typing() && CAT !== 'link') render();
+  }
 
   // Si el backend aún no estaba listo al abrir la ventana, reintentar automáticamente en segundo plano
   if (!backendOnline && !_backendPollTimer) {

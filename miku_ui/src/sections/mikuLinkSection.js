@@ -29,6 +29,7 @@ export const ML_STATE = {
   hasPairedDevice: false,
   deviceName: 'Mi teléfono',
   ip: '127.0.0.1',
+  tunnelUrl: '',
   hostname: '',
   battery: null,
   charging: false,
@@ -168,8 +169,11 @@ function renderOffView() {
           `<button class="btn sm" data-a="copy">${escapeHtml(t('common.copy'))}</button>` +
           `<button class="btn sm q" data-a="refresh-qr">Renovar QR</button>` +
         `</div>` +
-        `<div class="row" style="gap:8px">` +
-          `<span class="chip"><i class="dt"></i>Red local: ${escapeHtml(ML_STATE.ip)}:8000</span>` +
+        `<div class="row" style="gap:8px;flex-wrap:wrap">` +
+          `<span class="chip"><i class="dt"></i>Wi‑Fi local: ${escapeHtml(ML_STATE.ip)}:8000</span>` +
+          (ML_STATE.tunnelUrl
+            ? `<span class="chip g" title="${escapeHtml(ML_STATE.tunnelUrl)}"><i class="dt"></i>Túnel Datos Móviles (4G/5G): Activo</span>`
+            : `<span class="chip" title="Instala cloudflared o define MIKU_TUNNEL_URL en .env para conectar fuera de casa">Túnel remoto: Wi‑Fi local</span>`) +
           `<button class="btn q sm" data-a="check-pair">Comprobar vinculación</button>` +
         `</div>` +
       `</div>` +
@@ -215,8 +219,8 @@ function renderConnectedView() {
     ? `${batPct}%${ML_STATE.charging ? ' · Cargando' : ''}`
     : (ML_STATE.connected ? 'En línea' : 'Registrado');
   const connSubtitle = ML_STATE.connected
-    ? `${t('mikuLink.connected.subtitle')} (${ML_STATE.ip})`
-    : `Dispositivo vinculado · Esperando conexión en ${ML_STATE.ip}:8000`;
+    ? `${t('mikuLink.connected.subtitle')} (${ML_STATE.tunnelUrl ? 'Wi‑Fi + Túnel 4G/5G' : ML_STATE.ip})`
+    : `Dispositivo vinculado · Esperando conexión (${ML_STATE.ip}:8000${ML_STATE.tunnelUrl ? ' / Túnel activo' : ''})`;
 
   return (
     `<div class="mlh">` +
@@ -236,29 +240,34 @@ function renderConnectedView() {
 
 function renderTabHome() {
   const hasBat = typeof ML_STATE.battery === 'number' && ML_STATE.battery >= 0;
-  const sbRight = hasBat ? `${ML_STATE.battery}%` : (ML_STATE.connected ? 'Wi‑Fi' : 'Offline');
+  const sbRight = hasBat ? `${ML_STATE.battery}%` : (ML_STATE.connected ? (ML_STATE.signal || 'Wi‑Fi') : 'Offline');
   const innerPhone =
     `<div class="sb"><span class="pt">${formatNowHm()}</span><span>${escapeHtml(sbRight)}</span></div>` +
     `<div class="cl"><b class="pclk">${formatNowHm()}</b><span class="pdt"></span></div>` +
     `<div class="nts" id="pnts">${ML_STATE.notifications.slice(-2).map(renderPhoneNotifCard).join('')}</div>`;
 
   return (
-    `<div class="two" style="align-items:start">` +
-      renderPhoneMockup({
-        id: 'ph',
-        wallpaperUrl: ML_STATE.wallpaperUrl,
-        innerHtml: innerPhone
-      }) +
-      `<div class="col">` +
-        `<div class="row">` +
-          `<button type="button" class="btn" data-a="wp">${escapeHtml(t('mikuLink.home.changeWallpaper'))}</button>` +
-          `<button type="button" class="btn q" data-a="wpx">${escapeHtml(t('mikuLink.home.removeWallpaper'))}</button>` +
-          `<button type="button" class="btn" data-a="ring">${escapeHtml(t('mikuLink.home.ringPhone'))}</button>` +
-          `<button type="button" class="btn q" data-a="open-folder">Recibidos</button>` +
+    `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:20px;align-items:start">` +
+      `<div style="display:flex;justify-content:center">` +
+        renderPhoneMockup({
+          id: 'ph',
+          wallpaperUrl: ML_STATE.wallpaperUrl,
+          innerHtml: innerPhone
+        }) +
+      `</div>` +
+      `<div class="col" style="grid-column:span 2;min-width:260px">` +
+        `<div class="row" style="gap:8px">` +
+          `<button type="button" class="btn sm" data-a="wp">${escapeHtml(t('mikuLink.home.changeWallpaper'))}</button>` +
+          `<button type="button" class="btn sm q" data-a="wpx">${escapeHtml(t('mikuLink.home.removeWallpaper'))}</button>` +
+          `<button type="button" class="btn sm" data-a="ring">${escapeHtml(t('mikuLink.home.ringPhone'))}</button>` +
+          `<button type="button" class="btn sm q" data-a="open-folder">Recibidos</button>` +
           `<input type="file" id="wpf" accept="image/*" hidden>` +
         `</div>` +
-        `<div class="rw" style="border-top:none">` +
-          `<div class="rt"><b>${escapeHtml(t('mikuLink.home.dndTitle'))}</b><small>${escapeHtml(t('mikuLink.home.dndDesc'))}</small></div>` +
+        `<div class="line" style="padding:10px 0;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)">` +
+          `<div>` +
+            `<b style="display:block;font-size:13.5px;color:var(--tx)">${escapeHtml(t('mikuLink.home.dndTitle'))}</b>` +
+            `<span class="d" style="display:block;font-size:12px;color:var(--mu);margin-top:2px">${escapeHtml(t('mikuLink.home.dndDesc'))}</span>` +
+          `</div>` +
           `<button type="button" class="tg" id="dnd" role="switch" data-a="dnd" aria-checked="${ML_STATE.dnd ? 'true' : 'false'}" aria-label="${escapeHtml(t('mikuLink.home.dndTitle'))}"></button>` +
         `</div>` +
         `<div class="dz" id="ml-dropzone" tabindex="0">` +
@@ -266,8 +275,8 @@ function renderTabHome() {
           `<div>${escapeHtml(t('mikuLink.home.dropzoneText'))}</div>` +
           `<div class="fl" id="ml-file-list"></div>` +
         `</div>` +
-        `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px">` +
-          `<button type="button" class="hb r" id="unl" data-r="${escapeHtml(t('mikuLink.home.unpairIdle'))}" data-h="${escapeHtml(t('mikuLink.home.unpairHold'))}" data-d="${escapeHtml(t('mikuLink.home.unpairDone'))}"></button>` +
+        `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px;flex-wrap:wrap">` +
+          `<button type="button" class="hb r sm" id="unl" data-r="${escapeHtml(t('mikuLink.home.unpairIdle'))}" data-h="${escapeHtml(t('mikuLink.home.unpairHold'))}" data-d="${escapeHtml(t('mikuLink.home.unpairDone'))}"></button>` +
           `<button type="button" class="btn q sm" data-a="lock-pc">Bloquear PC ahora</button>` +
         `</div>` +
       `</div>` +
@@ -509,8 +518,8 @@ function renderTabApps() {
       `<div class="col" style="gap:12px">` +
         renderEmptyState({
           iconName: 'phone',
-          title: 'Lista de apps no sincronizada',
-          subtitle: 'Cuando el teléfono conectado publique su catálogo de aplicaciones para transmisión, podrás abrirlas desde aquí.'
+          title: 'Lanzador Rápido de Apps del Teléfono',
+          subtitle: 'Permite abrir cualquier app instalada en tu teléfono directamente desde tu PC (WhatsApp, Spotify, Cámara, etc.) o pedirle por voz a Miku que la inicie en tu móvil.'
         }) +
         `<div class="row" style="justify-content:center">` +
           `<button type="button" class="btn sm" data-a="refresh-apps">Sincronizar apps del teléfono</button>` +
@@ -598,6 +607,7 @@ function applyQrDataToDom(d, announce = false) {
   ML_STATE.qr.ttlSeconds = d.ttl_seconds || 120;
   ML_STATE.qr.serverOffsetSec = (d.issued_at || clientNowSec) - clientNowSec;
   if (d.ip) ML_STATE.ip = d.ip;
+  if (d.tunnel_url !== undefined) ML_STATE.tunnelUrl = d.tunnel_url || '';
 
   const qrEl = document.getElementById('qr');
   const pinEl = document.getElementById('qcode');
@@ -834,6 +844,7 @@ async function refreshStatusFromBackend() {
     ML_STATE.hasPairedDevice = Boolean(st.has_paired_device || (st.devices && st.devices.length));
     ML_STATE.deviceName = st.device_name || 'Mi teléfono';
     if (st.ip) ML_STATE.ip = st.ip;
+    if (st.tunnel_url !== undefined) ML_STATE.tunnelUrl = st.tunnel_url || '';
     if (st.hostname) ML_STATE.hostname = st.hostname;
     ML_STATE.battery = typeof st.battery === 'number' ? st.battery : null;
     ML_STATE.charging = Boolean(st.charging);

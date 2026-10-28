@@ -91,15 +91,18 @@
   --r-sm: 8px;
   --r-nav: 9px;
   --r-btn: 11px;
+  --r-md: 11px;
   --r-btn-lg: 12px;
   --r-chip: 13px;
   --r-acc: 14px;
+  --r-lg: 14px;
   --r-lift: 16px;
   --r-card: 18px;
   --r-win: 20px;
   --r-toast: 20px;
   --r-qr: 24px;
-  --r-phone: 36px;
+  --r-phone: 30px;
+  --r-pill: 99px;
 
   /* Alturas de control (§3) */
   --h-btn-sm: 30px;
@@ -111,6 +114,7 @@
 
   /* Movimiento: curvas y duraciones (§4) */
   --spring: linear(0, .17 3%, .52 7%, .86 12%, .104e1 17%, 1.1 22%, 1.07 28%, 1.01 36%, .99 46%, 1);
+  --sp: var(--spring);
   --e: cubic-bezier(.2, .8, .2, 1);
   --e-load: cubic-bezier(.45, .05, .55, .95);
   --d-press: .15s;

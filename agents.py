@@ -145,13 +145,16 @@ class AgentManager:
         def run_task():
             logger.info(f"Iniciando tarea en paralelo para {final_name} ({final_id}): '{task}'...")
             try:
-                # Usar el proveedor configurado en Ajustes (no solo Vertex AI)
+                # Usar el proveedor o modelo asignado específicamente a este agente en Ajustes
                 gemini_client = None
                 try:
                     from models_provider import get_client_and_model
-                    gemini_client, resolved_model, _prov = get_client_and_model(category="pro")
+                    pref_mod = None
+                    if model_name and str(model_name).strip().lower() not in ("", "auto", "none"):
+                        pref_mod = str(model_name).strip().replace("google/", "")
+                    gemini_client, resolved_model, _prov = get_client_and_model(preferred_model=pref_mod, category="pro")
                     if not gemini_client:
-                        gemini_client, resolved_model, _prov = get_client_and_model(category="chat")
+                        gemini_client, resolved_model, _prov = get_client_and_model(preferred_model=pref_mod, category="chat")
                     if gemini_client and resolved_model:
                         model_name_resolved = resolved_model
                     else:

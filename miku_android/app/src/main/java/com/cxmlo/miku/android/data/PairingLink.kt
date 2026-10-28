@@ -4,7 +4,11 @@ import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
-data class PairingLink(val sessionId: String, val host: String) {
+data class PairingLink(
+    val sessionId: String,
+    val host: String,
+    val tunnelUrl: String = "",
+) {
     companion object {
         fun parse(raw: String): PairingLink {
             val uri = URI(raw.trim())
@@ -24,21 +28,25 @@ data class PairingLink(val sessionId: String, val host: String) {
 
             val sessionId = query["s"]?.takeIf(String::isNotBlank)
                 ?: throw IllegalArgumentException("El QR no contiene una sesión de vinculación.")
+            val tunnelUrl = query["t"]?.trim()?.removeSuffix("/").orEmpty()
             val host = query["ip"]?.takeIf(String::isNotBlank)
+                ?: tunnelUrl.takeIf(String::isNotBlank)
                 ?: throw IllegalArgumentException("El QR no contiene la dirección del servidor.")
-            require(host.matches(Regex("[a-zA-Z0-9.:%_-]+"))) {
-                "La dirección del servidor no es válida."
-            }
             val address = host.substringBefore(':').lowercase()
-            require(
-                address != "localhost" &&
-                    address != "127.0.0.1" &&
-                    address != "0.0.0.0" &&
-                    host.lowercase() != "::1",
-            ) {
-                "El QR apunta a una dirección local del teléfono. Genera un QR nuevo desde Miku Desktop."
+            if (tunnelUrl.isBlank()) {
+                require(host.matches(Regex("[a-zA-Z0-9.:%_-]+"))) {
+                    "La dirección del servidor no es válida."
+                }
+                require(
+                    address != "localhost" &&
+                        address != "127.0.0.1" &&
+                        address != "0.0.0.0" &&
+                        host.lowercase() != "::1",
+                ) {
+                    "El QR apunta a una dirección local del teléfono. Genera un QR nuevo desde Miku Desktop."
+                }
             }
-            return PairingLink(sessionId, host)
+            return PairingLink(sessionId = sessionId, host = host, tunnelUrl = tunnelUrl)
         }
     }
 }
