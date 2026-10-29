@@ -16,6 +16,22 @@ def read_local_bytes(rel_path):
 def rebuild():
     print("Iniciando reconstrucción de la web Miku Desktop (gh-pages)...")
 
+    # ── Utilidad: strip import/export para bundling de módulos ES ──
+    def strip_module_syntax(src: str) -> str:
+        """Elimina import/export statements para convertir módulos ES en scripts clásicos."""
+        # Eliminar líneas 'import ... from ...'
+        src = re.sub(r'^import\s.*?\n', '', src, flags=re.MULTILINE)
+        # Eliminar 'export default' dejando la expresión
+        src = re.sub(r'^export\s+default\s+', '', src, flags=re.MULTILINE)
+        # Eliminar 'export const/let/var/function/class' dejando la declaración
+        src = re.sub(r'^export\s+(const|let|var|function\*?|class|async\s+function)\s', r'\1 ', src, flags=re.MULTILINE)
+        # Eliminar bloques 'export { ... }' sin dejar residuos
+        src = re.sub(r'^export\s*\{[^}]*\}\s*(?:from\s*[\'"][^\'"]*[\'"])?\s*;?\s*$', '', src, flags=re.MULTILINE)
+        return src
+
+    def read_module(rel_path: str) -> str:
+        return strip_module_syntax(read_local(rel_path))
+
     # 1. Archivos locales de UI
     island_css = read_local('miku_ui/src/island.css')
     island_js = read_local('miku_ui/src/island.js')
@@ -26,7 +42,38 @@ def rebuild():
     index_island_html = read_local('miku_ui/src/index.html')
     settings_html = read_local('miku_ui/src/miku_settings.html')
 
-    # 1b. Assets en base64 para los simuladores embebidos
+    # 1b. CSS del design system de Settings (en orden correcto de cascade)
+    tokens_css      = read_local('miku_ui/src/styles/tokens.css')
+    base_css        = read_local('miku_ui/src/styles/base.css')
+    components_css  = read_local('miku_ui/src/styles/components.css')
+    miku_link_css   = read_local('miku_ui/src/styles/miku-link.css')
+    miku_ui_css     = read_local('miku_ui/src/miku_ui.css')
+
+    # 1c. Bundle de módulos ES en orden de dependencias
+    #     design/tokens → design/motion → design/icons → i18n/es
+    #     → components/* → services/mikuLinkService → sections/mikuLinkSection
+    #     → miku_ui (script clásico que los usa todos)
+    modules_bundle = "\n\n".join([
+        f"// ── design/tokens.js ──\n{read_module('miku_ui/src/design/tokens.js')}",
+        f"// ── design/motion.js ──\n{read_module('miku_ui/src/design/motion.js')}",
+        f"// ── design/icons.js ──\n{read_module('miku_ui/src/design/icons.js')}",
+        f"// ── i18n/es.js ──\n{read_module('miku_ui/src/i18n/es.js')}",
+        f"// ── components/primitives.js ──\n{read_module('miku_ui/src/components/primitives.js')}",
+        f"// ── components/feedback.js ──\n{read_module('miku_ui/src/components/feedback.js')}",
+        f"// ── components/overlays.js ──\n{read_module('miku_ui/src/components/overlays.js')}",
+        f"// ── components/interactive.js ──\n{read_module('miku_ui/src/components/interactive.js')}",
+        f"// ── components/particlesHeader.js ──\n{read_module('miku_ui/src/components/particlesHeader.js')}",
+        f"// ── components/qrPhone.js ──\n{read_module('miku_ui/src/components/qrPhone.js')}",
+        f"// ── services/mikuLinkService.js ──\n{read_module('miku_ui/src/services/mikuLinkService.js')}",
+        f"// ── sections/mikuLinkSection.js ──\n{read_module('miku_ui/src/sections/mikuLinkSection.js')}",
+        f"// ── components/index.js ──\n{read_module('miku_ui/src/components/index.js')}",
+        f"// ── miku_ui.js ──\n{read_local('miku_ui/src/miku_ui.js')}",
+    ])
+
+    # 1d. QR vendor
+    qrcode_js = read_local('miku_ui/src/vendor/qrcode.min.js')
+
+    # 1e. Assets en base64 para los simuladores embebidos
     b64_icon_settings = ""
     icon_settings_path = root / 'miku_ui/src/assets/icon_settings.png'
     if icon_settings_path.exists():
@@ -48,16 +95,63 @@ def rebuild():
     d1_inlined = d1_inlined.replace('<script src="island.js"></script>', f'<script>\n{island_js}\n</script>')
     b64_d1 = base64.b64encode(d1_inlined.encode('utf-8')).decode('ascii')
 
-    # 3. Simulador d2 (Ajustes & Miku-Link)
+    # 3. Simulador d2 (Ajustes & Miku-Link) – inlining completo de CSS y módulos ES
     d2_inlined = settings_html
     d2_inlined = d2_inlined.replace('<head>', '<head><script>window.IS_WEB_SHOWCASE = true;</script>')
     if b64_icon_settings:
         d2_inlined = d2_inlined.replace('assets/icon_settings.png', f'data:image/png;base64,{b64_icon_settings}')
-    d2_inlined = d2_inlined.replace('<link rel="stylesheet" href="settings.css">', f'<style>\n{settings_css}\n</style>')
+
+    # CSS – en orden de cascade (tokens primero)
+    d2_inlined = d2_inlined.replace(
+        '<link rel="stylesheet" href="styles/tokens.css">',
+        f'<style>\n{tokens_css}\n</style>'
+    )
+    d2_inlined = d2_inlined.replace(
+        '<link rel="stylesheet" href="styles/base.css">',
+        f'<style>\n{base_css}\n</style>'
+    )
+    d2_inlined = d2_inlined.replace(
+        '<link rel="stylesheet" href="styles/components.css">',
+        f'<style>\n{components_css}\n</style>'
+    )
+    d2_inlined = d2_inlined.replace(
+        '<link rel="stylesheet" href="styles/miku-link.css">',
+        f'<style>\n{miku_link_css}\n</style>'
+    )
+    d2_inlined = d2_inlined.replace(
+        '<link rel="stylesheet" href="miku_ui.css">',
+        f'<style>\n{miku_ui_css}\n</style>'
+    )
+    d2_inlined = d2_inlined.replace(
+        '<link rel="stylesheet" href="settings.css">',
+        f'<style>\n{settings_css}\n</style>'
+    )
+
+    # JS – vendor QR primero, luego bundle de módulos, luego scripts clásicos
+    d2_inlined = d2_inlined.replace(
+        '<script src="vendor/qrcode.min.js"></script>',
+        f'<script>\n{qrcode_js}\n</script>'
+    )
+    # Reemplazar TODOS los <script type="module"> con el bundle concatenado (primer match)
+    # y eliminar los subsiguientes (ya están incluidos en el bundle)
+    module_scripts_pattern = re.compile(
+        r'<script\s+type="module"\s+src="[^"]+"></script>\s*', re.DOTALL
+    )
+    # Insertar el bundle en la posición del primer módulo
+    first_module = module_scripts_pattern.search(d2_inlined)
+    if first_module:
+        before = d2_inlined[:first_module.start()]
+        after = module_scripts_pattern.sub('', d2_inlined[first_module.start():])
+        d2_inlined = before + f'<script>\n{modules_bundle}\n</script>\n' + after
+
     d2_inlined = d2_inlined.replace('<script src="bridge.js"></script>', f'<script>\n{bridge_js}\n</script>')
     d2_inlined = d2_inlined.replace('<script src="sound_fx.js"></script>', f'<script>\n{sound_fx_js}\n</script>')
+    # miku_ui.js ya está en el bundle; eliminar el tag duplicado si existe
+    d2_inlined = d2_inlined.replace('<script src="miku_ui.js"></script>', '')
     d2_inlined = d2_inlined.replace('<script src="settings.js"></script>', f'<script>\n{settings_js}\n</script>')
+
     b64_d2 = base64.b64encode(d2_inlined.encode('utf-8')).decode('ascii')
+    print(f"  d2 inlined: {len(d2_inlined):,} bytes -> b64: {len(b64_d2):,} chars")
 
     # 4. Obtener plantilla base
     template_path = root / 'website' / 'landing_template.html'
@@ -394,3 +488,4 @@ nav .lang button.on {
 
 if __name__ == '__main__':
     rebuild()
+
