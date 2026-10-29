@@ -73,10 +73,10 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build Miku Core Sidecar (--onefile)
+      - name: Build Miku Core Sidecar (--onedir)
         shell: pwsh
         run: |
-          python scripts/build_sidecar.py --onefile
+          python scripts/build_sidecar.py
 
       - name: Prepare Release Description
         shell: pwsh
