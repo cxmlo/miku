@@ -1,5 +1,11 @@
 name: 'Release Miku Desktop & Mobile'
 
+# Permisos a nivel de workflow (necesarios para crear releases y tags)
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 on:
   push:
     tags:
@@ -7,9 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       tagName:
-        description: 'Release Tag (ej. v0.1.6)'
+        description: 'Release Tag (ej. v0.2.0)'
         required: true
-        default: 'v0.1.6'
+        default: 'v0.2.0'
         type: string
       releaseNotes:
         description: 'Descripcion / Notas de la version (dejar vacio para usar RELEASE_NOTES.md)'
@@ -36,6 +42,25 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Crear y pushear tag si no existe (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tagName }}"
+          $exists = git tag -l $tag
+          if (-not $exists) {
+            Write-Host "Creando tag $tag..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+            git tag $tag
+            git push origin $tag
+          } else {
+            Write-Host "Tag $tag ya existe."
+          }
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
