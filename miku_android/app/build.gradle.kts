@@ -26,17 +26,32 @@ android {
             val keyAlias = System.getenv("KEY_ALIAS")
             val keyPassword = System.getenv("KEY_PASSWORD")
 
-            if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
-                storeFile = file(keystorePath)
+            val releaseFile = if (!keystorePath.isNullOrBlank()) file(keystorePath) else null
+
+            if (releaseFile != null && releaseFile.exists()) {
+                storeFile = releaseFile
                 storePassword = keystorePassword ?: ""
                 this.keyAlias = keyAlias ?: ""
                 this.keyPassword = keyPassword ?: ""
             } else {
+                val bundledDebugKeystore = file("debug.keystore")
+                val rootDebugKeystore = rootProject.file("debug.keystore")
                 val debugConfig = signingConfigs.getByName("debug")
-                storeFile = debugConfig.storeFile
-                storePassword = debugConfig.storePassword
-                this.keyAlias = debugConfig.keyAlias
-                this.keyPassword = debugConfig.keyPassword
+                val userDebug = debugConfig.storeFile
+
+                val fallbackFile = when {
+                    bundledDebugKeystore.exists() -> bundledDebugKeystore
+                    rootDebugKeystore.exists() -> rootDebugKeystore
+                    userDebug != null && userDebug.exists() -> userDebug
+                    else -> null
+                }
+
+                if (fallbackFile != null) {
+                    storeFile = fallbackFile
+                    storePassword = "android"
+                    this.keyAlias = "androiddebugkey"
+                    this.keyPassword = "android"
+                }
             }
         }
     }
@@ -44,7 +59,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
+                signingConfig = releaseSigning
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

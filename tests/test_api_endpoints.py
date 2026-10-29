@@ -380,8 +380,11 @@ def test_miku_link_actions_and_mutations(client):
     assert cancel_res.status_code == 200
     assert cancel_res.json()["status"] == "ok"
 
+    del_res = client.delete("/api/link/phone_wallpaper")
+    assert del_res.status_code == 200
+    assert del_res.json()["status"] == "ok"
+
     wall_res = client.get("/api/link/phone_wallpaper")
-    assert wall_res.status_code == 200
-    assert wall_res.json()["status"] == "ok"
+    assert wall_res.status_code == 404
 
 

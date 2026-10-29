@@ -9,8 +9,8 @@
   "barge_in": 1,
   "wake_paused": 0,
   "hover_open": false,
-  "local_net": true,
-  "biometric": true,
+  "local_net": 1,
+  "biometric": 1,
   "accent_color": "#C4A750",
   "execution_mode": "full"
 }

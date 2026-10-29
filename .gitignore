@@ -6,6 +6,7 @@
 *.key
 *.jks
 *.keystore
+!miku_android/app/debug.keystore
 *.p12
 
 # Python

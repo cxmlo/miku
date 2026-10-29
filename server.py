@@ -865,12 +865,6 @@ async def pair_confirm(req: PairConfirmRequest):
     MIKU_LINK_RUNTIME["device_name"] = req.name
     MIKU_LINK_RUNTIME["last_seen"] = time.time()
 
-    await manager.broadcast_message({
-        "type": "miku_link_connected",
-        "device": req.device_id,
-        "name": req.name
-    })
-
     server_pub = miku_db.get_server_public_key_b64()
     return {"status": "ok", "server_public_key": server_pub}
 

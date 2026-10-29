@@ -59,12 +59,12 @@ jobs:
               echo "keystore_path=${{ runner.temp }}/miku-release.jks" >> $GITHUB_OUTPUT
               echo "[OK] Keystore decodificado correctamente en ${{ runner.temp }}/miku-release.jks"
             else
-              echo "[ERROR] El archivo decodificado esta vacio. Verifique el secreto KEYSTORE_BASE64 en GitHub."
-              exit 1
+              echo "[WARN] El archivo decodificado esta vacio. Se usara debug.keystore por defecto."
+              echo "has_keystore=false" >> $GITHUB_OUTPUT
             fi
           else
-            echo "[ERROR] KEYSTORE_BASE64 no esta configurado en los secretos de GitHub."
-            exit 1
+            echo "[INFO] KEYSTORE_BASE64 no configurado en secretos. Se usara debug.keystore por defecto."
+            echo "has_keystore=false" >> $GITHUB_OUTPUT
           fi
         env:
           KEYSTORE_DATA: ${{ secrets.KEYSTORE_BASE64 }}

@@ -148,9 +148,32 @@ jobs:
         working-directory: ./miku_android
         run: chmod +x gradlew
 
+      - name: Preparar Keystore de Firma Release (opcional)
+        id: setup_keystore
+        run: |
+          if [ -n "$KEYSTORE_DATA" ]; then
+            echo "Decodificando Keystore oficial..."
+            echo "$KEYSTORE_DATA" | tr -d '\r\n ' | base64 -d > "${{ runner.temp }}/miku-release.jks"
+            if [ -s "${{ runner.temp }}/miku-release.jks" ]; then
+              echo "keystore_path=${{ runner.temp }}/miku-release.jks" >> $GITHUB_OUTPUT
+            fi
+          fi
+        env:
+          KEYSTORE_DATA: ${{ secrets.KEYSTORE_BASE64 }}
+
       - name: Compilar APK Release
         working-directory: ./miku_android
         run: ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          KEYSTORE_PATH: ${{ steps.setup_keystore.outputs.keystore_path }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Limpiar archivo de firma temporal
+        if: always()
+        run: |
+          rm -f "${{ runner.temp }}/miku-release.jks"
 
       - name: Localizar y renombrar APK generado
         id: locate_apk

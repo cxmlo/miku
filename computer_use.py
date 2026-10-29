@@ -838,11 +838,6 @@ def hacer_clic_visual(intencion: str, verificar_exito: bool = False, usar_nivele
         print(f"[Computer Use] Clic físico emitido en ({click_x}, {click_y}) ({app_name}).")
         
         if not verificar_exito:
-            if not cached_coords:
-                try:
-                    spatial_memory.save_coordinates(intencion, [ymin, xmin, ymax, xmax])
-                except Exception:
-                    pass
             return ActionResult(
                 status=ActionStatus.EXECUTED_UNVERIFIED.value,
                 action="click_visual",

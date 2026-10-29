@@ -303,7 +303,7 @@
   --bg: rgba(255, 255, 255, .1);
   --fg: var(--tx);
   --hb-fill: rgba(255, 255, 255, .24);
-  --ink2: #fff;
+  --ink2: var(--tx);
   border-color: rgba(255, 255, 255, .2);
 }
 .hb.r,
@@ -311,7 +311,7 @@
   --bg: var(--erbg);
   --fg: var(--er);
   --hb-fill: var(--er);
-  --ink2: #fff;
+  --ink2: var(--tx);
   border-color: rgba(255, 69, 58, .3);
 }
 
@@ -1822,10 +1822,10 @@ kbd {
   border-color: rgba(168, 140, 255, 0.45);
 }
 .pl-action-btn.active svg {
-  stroke: #c8b6ff;
+  stroke: var(--ok);
 }
 .pl-action-btn.active span {
-  color: #fff;
+  color: var(--tx);
 }
 
 @keyframes phone-ring-vibe {
