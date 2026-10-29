@@ -223,6 +223,9 @@ jobs:
     name: Sincronizar y Actualizar Web (gh-pages)
     needs: [release-desktop, release-android]
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       contents: write
       pages: write
