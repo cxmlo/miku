@@ -200,6 +200,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout repositorio
@@ -216,9 +218,27 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          python scratch/rebuild_gh_pages.py
+          python scripts/rebuild_gh_pages.py
           python scripts/update_gh_pages.py
           git push origin gh-pages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preparar assets adicionales para GitHub Pages
+        run: |
+          if [ -d "assets" ]; then cp -r assets website/; fi
+          if [ -d "miku_ui/src/assets" ]; then cp -r miku_ui/src/assets website/; fi
+          touch website/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './website'
+
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 

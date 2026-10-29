@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="description" content="Miku Dynamic Island en fase Beta pública para Windows y Android. Asistente IA, visión, control de PC y sincronización móvil.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Miku Beta · Dynamic Island para Windows y Android</title>
+<link rel="icon" type="image/png" href="assets/app_icon.png">
+<link rel="apple-touch-icon" href="assets/app_icon.png">
+<style>
+:root{color-scheme:dark;--bg:#000;--fg:#f5f5f7;--mut:#8e919a;--line:#2a2a2d;--card:#0a0a0b;--mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;--sans:'SF Pro Display','Segoe UI Variable','Segoe UI',system-ui,sans-serif;--spr:cubic-bezier(.3,1.35,.5,1);--ease:cubic-bezier(.16,1,.3,1);--soft:cubic-bezier(.32,.72,0,1);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--sans);overflow-x:hidden;background-image:radial-gradient(#ffffff17 1px,transparent 1px);background-size:24px 24px}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(420px circle at var(--mx,50%) var(--my,20%),#ffffff0f,transparent 70%);transition:background .4s}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:40;background:repeating-linear-gradient(0deg,#ffffff06 0 1px,transparent 1px 3px)}
+a{color:inherit;text-decoration:none}
+section,header,footer{position:relative;z-index:1;padding:0 max(18px,calc((100vw - 1040px)/2))}
+.mono{font:12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+#pg{position:fixed;top:0;left:0;height:2px;width:0;background:#fff;z-index:60}
+nav{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:30;display:flex;justify-content:center;gap:clamp(12px,4vw,34px);padding:14px 16px;backdrop-filter:blur(18px);background:#000a;border-bottom:1px solid #ffffff12}
+nav a{font:12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);transition:color .3s var(--soft)}
+nav a:hover,nav a.dl{color:#fff}nav a.dl{border-bottom:1px solid #fff}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.btn{display:inline-block;padding:13px 26px;border-radius:30px;font-weight:600;background:#fff;color:#000;transition:transform .45s var(--spr),background .3s var(--soft),color .3s var(--soft),translate .3s var(--soft)}
+.btn.g{background:none;color:#fff;box-shadow:inset 0 0 0 1px #ffffff55}.btn:hover{transform:scale(1.05)}.btn:active{transform:scale(.95)}.btn.g:hover{background:#fff;color:#000}
+.hero{text-align:center;padding-top:110px;padding-bottom:30px}
+h1{font-size:clamp(64px,15vw,150px);line-height:.95;letter-spacing:-.06em;font-weight:600;margin:8px 0 6px}
+.cur{display:inline-block;width:.5em;height:2px;background:#fff;margin-left:4px;animation:cb 1s steps(1) infinite}
+@keyframes cb{50%{opacity:0}}
+.sub{color:var(--mut);max-width:540px;margin:16px auto 26px;font-size:19px}
+h2{font-size:clamp(32px,6vw,56px);letter-spacing:-.04em;line-height:1.05;font-weight:600}
+.sec{padding-top:100px}.sec>p{color:var(--mut);margin:12px 0 28px;max-width:560px}
+.win{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .6s var(--soft),background .4s var(--soft),color .4s var(--soft),border-color .4s var(--soft),box-shadow .6s var(--soft);position:relative}
+.tb{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);background:repeating-linear-gradient(0deg,#ffffff10 0 1px,transparent 1px 4px);transition:.4s var(--soft)}
+.tb i{width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 1px #777}.tb span{margin:0 auto;font:11px var(--mono);letter-spacing:.1em;color:var(--mut);text-transform:uppercase;background:var(--card);padding:0 10px;transition:.4s var(--soft)}
+.bd{padding:20px}
+.screen{position:relative;height:calc(400px*var(--k,1));overflow:hidden;background:radial-gradient(#ffffff12 1px,transparent 1px) 0 0/18px 18px,#050506;border-bottom:1px solid var(--line)}
+.screen iframe{position:absolute;top:0;left:50%;width:720px;height:400px;margin-left:-360px;border:0;background:transparent;transform:scale(var(--k,1));transform-origin:top center}
+.ctl{padding:16px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pill{font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:8px 13px;border-radius:18px;box-shadow:inset 0 0 0 1px var(--line);color:var(--mut);transition:transform .45s var(--spr),background .3s var(--soft),color .3s var(--soft),box-shadow .3s var(--soft)}
+.pill:hover{color:#fff;transform:translateY(-3px);box-shadow:inset 0 0 0 1px #888}.pill:active{transform:scale(.93)}.pill.on{background:#fff;color:#000;box-shadow:none}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.card{cursor:pointer}.card:hover{transform:translateY(-7px);background:#fff;color:#000;border-color:#fff;box-shadow:0 22px 40px -20px #fff4}
+.card:hover .tb{border-color:#0002;background:repeating-linear-gradient(0deg,#0002 0 1px,transparent 1px 4px)}
+.card:hover .tb span{background:#fff;color:#444}
+.card h3{font-size:19px;letter-spacing:-.02em;font-weight:600;margin:6px 0 4px}.card p{color:var(--mut);font-size:14px;transition:color .4s var(--soft)}.card:hover p{color:#444}
+.card .n{font:11px var(--mono);color:var(--mut)}.card:hover .n{color:#444}
+.card .go{display:inline-block;margin-top:12px;font:11px var(--mono);letter-spacing:.1em;text-transform:uppercase;opacity:.5;transform:translateX(-6px);transition:.5s var(--soft)}.card:hover .go{opacity:1;transform:none}
+.card.hide{display:none}
+.rv{opacity:0;transform:translateY(34px) scale(.985)}.rv.in{opacity:1;transform:none;transition:opacity .9s var(--soft),transform .9s var(--soft)}
+@keyframes drop{from{opacity:0;transform:translateY(16px) scale(.97)}}
+.set{height:680px;display:block;width:100%;border:0;background:#0e0f12}
+.dl{text-align:center}.dl .bd{padding:54px 20px}
+.blk{display:flex;gap:3px;justify-content:center;margin:22px auto 0;opacity:0;transition:opacity .4s var(--soft)}.blk.on{opacity:1}.blk u{width:11px;height:16px;border:1px solid #555;transition:.25s var(--soft)}.blk u.f{background:#fff;border-color:#fff}
+.lg{position:relative;display:flex;margin-left:6px;padding:2px;border-radius:16px;box-shadow:inset 0 0 0 1px #ffffff30}
+.lg b{position:absolute;top:2px;left:2px;width:34px;height:calc(100% - 4px);border-radius:14px;background:#fff;transition:transform .55s var(--spr)}
+.lg.es b{transform:translateX(34px)}
+.brand{display:inline-flex;align-items:center;gap:8px;font-weight:700;letter-spacing:-.01em;color:#fff}
+.brand img{width:22px;height:22px;border-radius:6px;box-shadow:0 0 10px rgba(0,242,254,0.3);object-fit:cover;flex:none}
+.gh-btn{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:14px;box-shadow:inset 0 0 0 1px #ffffff25;color:var(--mut);font:11px var(--mono);text-transform:uppercase;transition:color .25s var(--soft),box-shadow .25s var(--soft)}
+.gh-btn:hover{color:#fff;box-shadow:inset 0 0 0 1px #ffffff60}
+.gh-btn svg{width:13px;height:13px;fill:currentColor;flex:none}
+.lg button{position:relative;z-index:1;width:34px;padding:3px 0;font:11px var(--mono);letter-spacing:.08em;color:var(--mut);transition:color .3s var(--soft)}.lg button.on{color:#000}
+.sw{transition:opacity .25s var(--soft)}
+footer{text-align:center;padding-top:60px;padding-bottom:50px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+
+/* === Mobile Responsive Polish === */
+.screen-set{position:relative;height:calc(740px*var(--k-set,1));overflow:hidden;background:#0c0d10;border-bottom:0}
+.screen-set iframe{position:absolute;top:0;left:50%;width:960px;height:740px;margin-left:-480px;border:0;background:transparent;transform:scale(var(--k-set,1));transform-origin:top center}
+
+@media(max-width:768px){
+  section,header,footer{padding:0 14px}
+  nav{padding:10px 14px;gap:8px;justify-content:space-between;align-items:center}
+  nav .nav-link-sub{display:none}
+  nav .brand{font-size:13.5px}
+  nav .gh-btn{padding:4px 8px}
+  nav .gh-btn span{display:none}
+  .hero{padding-top:76px;padding-bottom:20px}
+  h1{font-size:clamp(46px,13vw,68px);letter-spacing:-.04em}
+  .sub{font-size:15.5px;padding:0 6px;margin:12px auto 20px}
+  .btn{padding:11px 20px;font-size:14px}
+  .sec{padding-top:54px}
+  .sec>p{margin:8px 0 20px}
+  .ctl{display:flex;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:12px 14px;gap:7px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .ctl::-webkit-scrollbar{display:none}
+  .ctl .pill{flex:none;font-size:10.5px;padding:7px 11px}
+  .tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;gap:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs .pill{flex:none}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .dl .bd{padding:34px 16px}
+}
+
+
+.dl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:880px;margin:24px auto 0}
+.dl-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;transition:transform .5s var(--spr),border-color .3s var(--soft),box-shadow .5s var(--soft);text-align:center}
+.dl-card:hover{transform:translateY(-6px);border-color:#ffffff44;box-shadow:0 20px 40px -15px rgba(0,0,0,0.8),0 0 30px -10px rgba(0,242,254,0.18)}
+.dl-card .bd{padding:38px 24px;display:flex;flex-direction:column;align-items:center;height:100%}
+.dl-icon-box{width:64px;height:64px;border-radius:18px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:#fff;transition:transform .4s var(--spr),background .3s var(--soft),border-color .3s var(--soft),color .3s var(--soft);box-shadow:0 8px 20px rgba(0,0,0,0.3)}
+.dl-card:hover .dl-icon-box{transform:scale(1.1);background:#fff;color:#000;border-color:#fff;box-shadow:0 12px 28px rgba(255,255,255,0.25)}
+.dl-badge{display:inline-block;padding:3px 10px;border-radius:99px;font:11px var(--mono);background:rgba(0,242,254,0.12);color:#00f2fe;border:1px solid rgba(0,242,254,0.32);letter-spacing:.08em;margin-bottom:12px;text-transform:uppercase}
+.dl-card h3{font-size:22px;letter-spacing:-.02em;font-weight:600;margin:4px 0 8px}
+.dl-card p.sub{font-size:14px;color:var(--mut);margin:0 0 20px;max-width:320px}
+.dl-card .btn{width:100%;max-width:260px;margin-top:auto}
+.dl-note{margin-top:28px;text-align:center;padding:16px 22px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);max-width:880px;margin-left:auto;margin-right:auto}
+.dl-note p{font-size:13.5px;color:var(--mut);margin:0;line-height:1.55}
+.dl-note strong{color:var(--fg);font-weight:600}
+
+</style></head><body>
+<div id="pg"></div>
+<nav>
+  <a href="#top" class="brand"><img src="assets/app_icon.png" alt="Miku">Miku</a>
+  <a href="#isla" data-t="n_isl" class="nav-link-sub"></a>
+  <a href="#skills" data-t="n_sk" class="nav-link-sub"></a>
+  <a href="#ajustes" data-t="n_set" class="nav-link-sub"></a>
+  <a class="dl" href="#download" data-t="n_ins"></a>
+    <a href="https://ko-fi.com/cxmlo" target="_blank" rel="noopener noreferrer" class="kofi-nav-btn" title="Apoyar en Ko-fi">
+    <span class="kofi-icon-wrap">
+      <img src="assets/kofi_badge.png" class="kofi-img-anim" alt="Ko-fi">
+    </span>
+    <span class="kofi-label">
+      <strong class="kofi-brand">Ko-fi</strong>
+      <span class="kofi-sub">Donar</span>
+    </span>
+  </a>
+  <a href="https://github.com/cxmlo/miku" target="_blank" rel="noopener noreferrer" class="gh-btn" title="GitHub Repo">
+    <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+    <span>GitHub</span>
+  </a>
+  <div class="lg" id="lg"><b></b><button data-l="en">EN</button><button data-l="es">ES</button></div>
+</nav>
+
+<header class="hero" id="top">
+ <p class="mono" data-t="tag"></p>
+ <h1>Miku<span class="cur"></span></h1>
+ <p class="sub" data-t="sub"></p>
+ <a class="btn" href="#download" data-t="b1"></a> <a class="btn g" href="#isla" data-t="b2"></a>
+</header>
+
+<section id="isla">
+ <div class="win rv" style="--k:1" id="demo"><div class="tb"><i></i><i></i><i></i><span data-t="scr"></span></div>
+  <div class="screen" id="scr"><iframe id="fi" title="Miku Dynamic Island"></iframe></div>
+  <div class="ctl" id="ctl"></div></div>
+</section>
+
+<section class="sec" id="skills">
+ <h2 class="rv" data-t="h_sk"></h2><p class="rv" data-t="p_sk"></p>
+ <div class="tabs rv" id="tabs"></div><div class="grid" id="grid"></div>
+</section>
+
+<section class="sec" id="ajustes">
+ <h2 class="rv" data-t="h_set"></h2><p class="rv" data-t="p_set"></p>
+ <div class="win rv" id="win-set" style="--k-set:1"><div class="tb"><i></i><i></i><i></i><span data-t="w_set"></span></div><div class="screen screen-set" id="scr-set"><iframe class="set" id="fs" title="Configuración de Miku"></iframe></div></div>
+</section>
+
+<section class="sec" id="download">
+ <div style="text-align:center;margin-bottom:28px">
+  <h2 class="rv" data-t="h_dl"></h2>
+  <p class="sub rv" style="margin:12px auto 0" data-t="p_dl"></p>
+ </div>
+ <div class="dl-grid">
+  <!-- Windows Desktop Card -->
+  <div class="dl-card rv">
+   <div class="tb"><i></i><i></i><i></i><span>Miku_Setup.exe</span></div>
+   <div class="bd">
+    <div class="dl-icon-box" title="Windows">
+     <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+    </div>
+    <span class="dl-badge" data-t="dl_win_tag">Beta v0.1.6</span>
+    <h3 data-t="dl_win_h">Miku Desktop</h3>
+    <p class="sub" data-t="dl_win_p">Windows 10 / 11 · 64-bit · Instalador .exe (177 MB)</p>
+    <button class="btn" id="dl-win" data-t="dl_win_btn">Descargar para Windows</button>
+    <div class="blk" id="blk-win"></div>
+    <p class="mono" id="dt-win" style="margin-top:14px;text-transform:none" data-t="dl_win_ver">Desktop Beta v0.1.6</p>
+   </div>
+  </div>
+  <!-- Android Mobile Card -->
+  <div class="dl-card rv">
+   <div class="tb"><i></i><i></i><i></i><span>miku-mobile.apk</span></div>
+   <div class="bd">
+    <div class="dl-icon-box" title="Android">
+     <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.0805 12 8.0805c-1.8533 0-3.5902.3311-5.1368.8692L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/></svg>
+    </div>
+    <span class="dl-badge" data-t="dl_apk_tag">Beta v0.1.6</span>
+    <h3 data-t="dl_apk_h">Miku Mobile</h3>
+    <p class="sub" data-t="dl_apk_p">Android 8.0+ · Paquete .apk directo (8.3 MB)</p>
+    <button class="btn" id="dl-apk" data-t="dl_apk_btn">Descargar APK Android</button>
+    <div class="blk" id="blk-apk"></div>
+    <p class="mono" id="dt-apk" style="margin-top:14px;text-transform:none" data-t="dl_apk_ver">Mobile Beta v0.1.6</p>
+   </div>
+  </div>
+ </div>
+ <div class="dl-note rv">
+  <p><strong data-t="dl_note_title">Fase Beta Activa:</strong> <span data-t="dl_note_desc">Miku se mantendrá en fase Beta pública en todas sus plataformas hasta el lanzamiento oficial de la versión 1.0.0.</span></p>
+ </div>
+</section>
+<footer><p class="mono" data-t="foot"></p></footer>
+
+<script id="d1" type="text/plain">PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVzIj48aGVhZD48bWV0YSBjaGFyc2V0PSJ1dGYtOCI+CjxtZXRhIG5hbWU9InZpZXdwb3J0IiBjb250ZW50PSJ3aWR0aD1kZXZpY2Utd2lkdGgsaW5pdGlhbC1zY2FsZT0xIj4KPHRpdGxlPk1pa3UgwrcgRHluYW1pYyBJc2xhbmQ8L3RpdGxlPgo8bGluayByZWw9Imljb24iIHR5cGU9ImltYWdlL3BuZyIgaHJlZj0iYXNzZXRzL2ljb25fbWFpbi5wbmciPgo8bGluayByZWw9InN0eWxlc2hlZXQiIGhyZWY9ImlzbGFuZC5jc3MiPjwvaGVhZD48Ym9keT4KPHN2ZyB3aWR0aD0iMCIgaGVpZ2h0PSIwIiBzdHlsZT0icG9zaXRpb246YWJzb2x1dGUiPjxkZWZzPgo8c3ltYm9sIGlkPSJpLWhvbWUiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTMgMTEuNSAxMiA0bDkgNy41Ii8+PHBhdGggZD0iTTUuNSAxMHY5LjVoMTNWMTAiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1wbHVzIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xMiA1djE0TTUgMTJoMTQiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1zaGlydCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNOCAzIDMgNmwyIDQgMi0xdjExaDEwVjlsMiAxIDItNC01LTNhNCA0IDAgMCAxLTggMHoiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1nZWFyIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik00IDIxdi03TTQgMTBWM00xMiAyMXYtOU0xMiA4VjNNMjAgMjF2LTVNMjAgMTJWM00xIDE0aDZNOSA4aDZNMTcgMTZoNiIvPjwvc3ltYm9sPgo8c3ltYm9sIGlkPSJpLWNvZyIgdmlld0JveD0iMCAwIDI0IDI0Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PHBhdGggZD0iTTE5LjQgMTVhMS42NSAxLjY1IDAgMCAwIC4zMyAxLjgybC4wNi4wNmEyIDIgMCAwIDEgMCAyLjgzIDIgMiAwIDAgMS0yLjgzIDBsLS4wNi0uMDZhMS42NSAxLjY1IDAgMCAwLTEuODItLjMzIDEuNjUgMS42NSAwIDAgMC0xIDEuNTFWMjFhMiAyIDAgMCAxLTIgMiAyIDIgMCAwIDEtMi0ydi0uMDlBMS42NSAxLjY1IDAgMCAwIDkgMTkuNGExLjY1IDEuNjUgMCAwIDAtMS44Mi4zM2wtLjA2LjA2YTIgMiAwIDAgMS0yLjgzIDAgMiAyIDAgMCAxIDAtMi44M2wuMDYtLjA2YTEuNjUgMS42NSAwIDAgMCAuMzMtMS44MiAxLjY1IDEuNjUgMCAwIDAtMS41MS0xSDNhMiAyIDAgMCAxLTItMiAyIDIgMCAwIDEgMi0yaC4wOUExLjY1IDEuNjUgMCAwIDAgNC42IDlhMS42NSAxLjY1IDAgMCAwLS4zMy0xLjgybC0uMDYtLjA2YTIgMiAwIDAgMSAwLTIuODMgMiAyIDAgMCAxIDIuODMgMGwuMDYuMDZhMS42NSAxLjY1IDAgMCAwIDEuODIuMzNIOWExLjY1IDEuNjUgMCAwIDAgMS0xLjUxVjNhMiAyIDAgMCAxIDItMiAyIDIgMCAwIDEgMiAydi4wOWExLjY1IDEuNjUgMCAwIDAgMSAxLjUxIDEuNjUgMS42NSAwIDAgMCAxLjgyLS4zM2wuMDYtLjA2YTIgMiAwIDAgMSAyLjgzIDAgMiAyIDAgMCAxIDAgMi44M2wtLjA2LjA2YTEuNjUgMS42NSAwIDAgMC0uMzMgMS44MlY5YTEuNjUgMS42NSAwIDAgMCAxLjUxIDFIMjFhMiAyIDAgMCAxIDIgMiAyIDIgMCAwIDEtMiAyaC0uMDlhMS42NSAxLjY1IDAgMCAwLTEuNTEgMXoiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1zcGVha2VyIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xMSA1IDYgOUgydjZoNGw1IDR6Ii8+PHBhdGggZD0iTTE5LjA3IDQuOTNhMTAgMTAgMCAwIDEgMCAxNC4xNE0xNS41NCA4LjQ2YTUgNSAwIDAgMSAwIDcuMDciLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1zcGVha2VyLW9mZiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTEgNSA2IDlIMnY2aDRsNSA0eiIvPjxwYXRoIGQ9Ik0yMyA5bC02IDZNMTcgOWw2IDYiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1ub25lIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjgiLz48cGF0aCBkPSJNNi4zIDYuM2wxMS40IDExLjQiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS14IiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xOCA2TDYgMThNNiA2bDEyIDEyIi8+PC9zeW1ib2w+CjxzeW1ib2wgaWQ9ImktY29weSIgdmlld0JveD0iMCAwIDI0IDI0Ij48cmVjdCB4PSI5IiB5PSI5IiB3aWR0aD0iMTEiIGhlaWdodD0iMTEiIHJ4PSIyIi8+PHBhdGggZD0iTTUgMTVWNmEyIDIgMCAwIDEgMi0yaDkiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1waG9uZSIgdmlld0JveD0iMCAwIDI0IDI0Ij48cmVjdCB4PSI2IiB5PSIyIiB3aWR0aD0iMTIiIGhlaWdodD0iMjAiIHJ4PSIzIi8+PHBhdGggZD0iTTExIDE4aDIiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1zcGFyayIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTIgM2wxLjggNS4yTDE5IDEwbC01LjIgMS44TDEyIDE3bC0xLjgtNS4yTDUgMTBsNS4yLTEuOHoiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1yZXRyeSIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMjMgNHY2aC02Ii8+PHBhdGggZD0iTTIwLjUgMTVhOSA5IDAgMSAxLTIuMS05LjRMMjMgMTAiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1taWMiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iOSIgeT0iMiIgd2lkdGg9IjYiIGhlaWdodD0iMTIiIHJ4PSIzIi8+PHBhdGggZD0iTTUgMTFhNyA3IDAgMCAwIDE0IDBNMTIgMTh2NCIvPjwvc3ltYm9sPgo8c3ltYm9sIGlkPSJpLXNlbmQiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTIyIDJMMTEgMTNNMjIgMmwtNyAyMC00LTktOS00eiIvPjwvc3ltYm9sPgo8c3ltYm9sIGlkPSJpLWV5ZSIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMSAxMnM0LTcgMTEtNyAxMSA3IDExIDctNCA3LTExIDdTMSAxMiAxIDEyeiIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1wbGF5IiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik03IDRsMTMgOC0xMyA4eiIvPjwvc3ltYm9sPgo8c3ltYm9sIGlkPSJpLXBhdXNlIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik04IDV2MTRNMTYgNXYxNCIvPjwvc3ltYm9sPgo8c3ltYm9sIGlkPSJpLXByZXYiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTE5IDV2MTRMOCAxMnpNNSA1djE0Ii8+PC9zeW1ib2w+CjxzeW1ib2wgaWQ9ImktbmV4dCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNNSA1djE0bDExLTd6TTE5IDV2MTQiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1maWxlIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xNCAzSDdhMiAyIDAgMCAwLTIgMnYxNGEyIDIgMCAwIDAgMiAyaDEwYTIgMiAwIDAgMCAyLTJWOHoiLz48cGF0aCBkPSJNMTQgM3Y1aDUiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1jaGVjayIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNNSAxMmw1IDUgOS0xMCIvPjwvc3ltYm9sPgo8c3ltYm9sIGlkPSJpLWNoYXQiIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTIxIDEyYTggOCAwIDAgMS0xMS42IDcuMUw0IDIwbDEtNC42QTggOCAwIDEgMSAyMSAxMnoiLz48L3N5bWJvbD4KPHN5bWJvbCBpZD0iaS1zY3JlZW4iIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjEyIiByeD0iMiIvPjxwYXRoIGQ9Ik04IDIwaDhNMTIgMTZ2NCIvPjwvc3ltYm9sPgo8L2RlZnM+PC9zdmc+CjxkaXYgY2xhc3M9ImlzbGFuZCIgaWQ9ImlzbCI+PGNhbnZhcyBpZD0id2FycCI+PC9jYW52YXM+PGRpdiBpZD0iaW4iIGNsYXNzPSJtIj48ZGl2IGNsYXNzPSJta3ciIGlkPSJta3ciIGRhdGEtaz0iLjQiPjwvZGl2PjxkaXYgaWQ9ImNvbCI+PC9kaXY+PC9kaXY+PGNhbnZhcyBpZD0ibWsiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48L2NhbnZhcz48L2Rpdj4KPHNjcmlwdCBzcmM9InNvdW5kX2Z4LmpzIj48L3NjcmlwdD4KPHNjcmlwdCBzcmM9ImJyaWRnZS5qcyI+PC9zY3JpcHQ+CjxzY3JpcHQgc3JjPSJpc2xhbmQuanMiPjwvc2NyaXB0Pgo8L2JvZHk+PC9odG1sPg==</script>
+<script id="d2" type="text/plain">PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVzIj48aGVhZD48bWV0YSBjaGFyc2V0PSJ1dGYtOCI+CjxtZXRhIG5hbWU9InZpZXdwb3J0IiBjb250ZW50PSJ3aWR0aD1kZXZpY2Utd2lkdGgsaW5pdGlhbC1zY2FsZT0xIj4KPHRpdGxlPkNvbmZpZ3VyYWNpw7NuIMK3IE1pa3UgdjAuMS42IEJldGE8L3RpdGxlPgo8bGluayByZWw9Imljb24iIHR5cGU9ImltYWdlL3BuZyIgaHJlZj0iYXNzZXRzL2ljb25fc2V0dGluZ3MucG5nIj4KPHNjcmlwdCBzcmM9ImJyaWRnZS5qcyI+PC9zY3JpcHQ+CjxzY3JpcHQgc3JjPSJzb3VuZF9meC5qcyI+PC9zY3JpcHQ+CjxsaW5rIHJlbD0ic3R5bGVzaGVldCIgaHJlZj0ic2V0dGluZ3MuY3NzIj48L2hlYWQ+PGJvZHk+CjxkaXYgY2xhc3M9ImFwcC13aW5kb3ciPgogIDxkaXYgY2xhc3M9InRvcC1jaHJvbWUiIGRhdGEtdGF1cmktZHJhZy1yZWdpb24+CiAgICA8ZGl2IGNsYXNzPSJjaHJvbWUtdGl0bGUiIGRhdGEtdGF1cmktZHJhZy1yZWdpb24+CiAgICAgIDxpbWcgc3JjPSJhc3NldHMvaWNvbl9zZXR0aW5ncy5wbmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgc3R5bGU9ImJvcmRlci1yYWRpdXM6NHB4O29iamVjdC1maXQ6Y29udGFpbjtmbGV4Om5vbmU7IiBhbHQ9IkFqdXN0ZXMiPgogICAgICA8c3BhbiBjbGFzcz0iY2hyb21lLXRleHQiPkNvbmZpZ3VyYWNpw7NuIMK3IE1pa3U8L3NwYW4+CiAgICAgIDxkaXYgY2xhc3M9ImNocm9tZS1iYWRnZSI+djAuMS42IEJldGE8L2Rpdj4KICAgIDwvZGl2PgogICAgPGRpdiBjbGFzcz0id2luLWN0cmxzIj4KICAgICAgPHNwYW4gaWQ9ImhiLXdpbi11cGRhdGUiIHN0eWxlPSJkaXNwbGF5Om5vbmU7bWFyZ2luLXJpZ2h0OjhweCIgdGl0bGU9Ik1hbnTDqW4gcHVsc2FkbyBwYXJhIHJlaW5pY2lhciB5IGFwbGljYXIgYWN0dWFsaXphY2nDs24iPjwvc3Bhbj4KICAgICAgPGJ1dHRvbiB0eXBlPSJidXR0b24iIGNsYXNzPSJ3Yy1idG4gbWluIiBpZD0id2luLW1pbiIgdGl0bGU9Ik1pbmltaXphciIgYXJpYS1sYWJlbD0iTWluaW1pemFyIj48L2J1dHRvbj4KICAgICAgPGJ1dHRvbiB0eXBlPSJidXR0b24iIGNsYXNzPSJ3Yy1idG4gY2xzIiBpZD0id2luLWNscyIgdGl0bGU9IkNlcnJhciIgYXJpYS1sYWJlbD0iQ2VycmFyIj48L2J1dHRvbj4KICAgIDwvZGl2PgogIDwvZGl2PgogIDxkaXYgY2xhc3M9ImFwcC1zY3JvbGwiPgogICAgPGRpdiBjbGFzcz0ic2hlbGwiPgogICAgICA8YXNpZGUgY2xhc3M9InNpZGViYXIiIGlkPSJzaWRlYmFyIj4KICAgICAgICA8ZGl2IGNsYXNzPSJzaWRlYmFyLWF2YXRhci1jYXJkIj4KICAgICAgICAgIDxkaXYgY2xhc3M9InNpZGViYXItYXZhdGFyLW13Ij4KICAgICAgICAgICAgPGNhbnZhcyBpZD0ic2lkZWJhci1obCIgY2xhc3M9ImhsIiBkYXRhLXdobz0ibWlrdSIgd2lkdGg9IjExMCIgaGVpZ2h0PSIxMTAiPjwvY2FudmFzPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8ZGl2IGNsYXNzPSJzaWRlYmFyLWJyYW5kLW5hbWUiPk1pa3U8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8bmF2IGNsYXNzPSJyYWlsIiBpZD0icmFpbCIgYXJpYS1sYWJlbD0iU2VjY2lvbmVzIGRlIGNvbmZpZ3VyYWNpw7NuIj48L25hdj4KICAgICAgICA8ZGl2IGNsYXNzPSJzaWRlYmFyLWZvb3RlciI+CiAgICAgICAgICA8ZGl2IGNsYXNzPSJzaWRlYmFyLXN0YXR1cy1waWxsIj4KICAgICAgICAgICAgPHNwYW4gY2xhc3M9InB1bHNlLWRvdCI+PC9zcGFuPgogICAgICAgICAgICA8c3Bhbj5MaXN0byDCtyB2MC4xLjYgQmV0YTwvc3Bhbj4KICAgICAgICAgIDwvZGl2PgogICAgICAgIDwvZGl2PgogICAgICA8L2FzaWRlPgogICAgICA8bWFpbiBjbGFzcz0icGFuZSIgaWQ9InBhbmUiPjwvbWFpbj4KICAgIDwvZGl2PgogIDwvZGl2Pgo8L2Rpdj4KCjxzY3JpcHQgc3JjPSJzZXR0aW5ncy5qcyI+PC9zY3JpcHQ+CjwvYm9keT48L2h0bWw+Cg==</script>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const dec=id=>new TextDecoder().decode(Uint8Array.from(atob($(id).textContent.trim()),c=>c.charCodeAt(0)));
+const fi=$('#fi'),W=()=>fi.contentWindow;
+/* iframes reales, cargados al ser visibles (así la intro de Miku se ve) */
+const lazy=(el,id)=>{const o=new IntersectionObserver(e=>{if(e[0].isIntersecting){el.srcdoc=dec(id);o.disconnect()}},{rootMargin:'200px'});o.observe(el)};
+lazy(fi,'#d1');lazy($('#fs'),'#d2');
+/* escala responsive de la pantalla */
+const fit=()=>{
+  const scr=$('#scr');
+  if(scr){
+    const k=Math.min(1,scr.clientWidth/720);
+    $('#demo').style.setProperty('--k',k);
+  }
+  const s=$('#scr-set');
+  if(s){
+    const ks=Math.min(1,s.clientWidth/960);
+    $('#win-set').style.setProperty('--k-set',ks);
+  }
+};
+addEventListener('resize',fit);fit();
+setTimeout(fit,150);
+/* Miku te mira en toda la página */
+addEventListener('pointermove',e=>{document.body.style.setProperty('--mx',e.clientX+'px');document.body.style.setProperty('--my',e.clientY+'px');
+ try{const r=fi.getBoundingClientRect(),k=r.width/720;W().feed((e.clientX-r.left)/k,(e.clientY-r.top)/k)}catch{}});
+const io=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.style.transitionDelay=(x.target.dataset.d||0)+'s';x.target.classList.add('in');io.unobserve(x.target)}}),{threshold:.08});
+$$('.rv').forEach((e,i)=>{e.dataset.d=(i%4)*.06;io.observe(e)});
+/* i18n */
+const I={en:{n_isl:'Island',n_sk:'Skills',n_set:'Settings',n_ins:'Download Beta',tag:'Beta v0.1.6 · Dynamic Island for Windows & Android',sub:'It lives at the top of your screen. It talks, sees, uses your PC and coordinates your AI agents. What’s below is the real app: try it.',b1:'Download Beta',b2:'Try the island',scr:'Desktop · Miku live',h_sk:'Everything it can do.',p_sk:'Tap a window and watch it play out in the island above.',h_set:'Make it yours.',p_set:'This is the real settings window: agents, chat & AI, voice, shortcuts and wardrobe.',w_set:'Settings · Miku Beta v0.1.6',h_dl:'Get Miku Beta',p_dl:'Available for Windows desktop and Android mobile devices. In public Beta until version 1.0.0.',dl_win_tag:'Beta v0.1.6',dl_win_h:'Miku Desktop',dl_win_p:'Windows 10 / 11 · 64-bit · Installer .exe (177 MB)',dl_win_btn:'Download for Windows',dl_win_ver:'Desktop Beta v0.1.6',dl_apk_tag:'Beta v0.1.6',dl_apk_h:'Miku Mobile',dl_apk_p:'Android 8.0+ · Direct .apk package (8.3 MB)',dl_apk_btn:'Download Android APK',dl_apk_ver:'Mobile Beta v0.1.6',dl_note_title:'Public Beta Active:',dl_note_desc:'Miku remains in public Beta across all platforms until official version 1.0.0 release.',prep:'Preparing...',done_win:'Downloading Miku_Setup.exe...',done_apk:'Downloading miku-mobile.apk...',foot:'Miku · Made with care',title:'Miku Beta · Dynamic Island for Windows & Android'},
+es:{n_isl:'Isla',n_sk:'Habilidades',n_set:'Ajustes',n_ins:'Descargar Beta',tag:'Beta v0.1.6 · Dynamic Island para Windows y Android',sub:'Vive arriba de tu pantalla. Habla, ve, usa tu PC y se coordina con tus agentes de IA. Lo de abajo es la app real: pruébala.',b1:'Descargar Beta',b2:'Probar la isla',scr:'Escritorio · Miku en vivo',h_sk:'Todo lo que sabe hacer.',p_sk:'Toca una ventana y la verás pasar en la isla de arriba.',h_set:'Configúrala a tu gusto.',p_set:'Esta es la ventana de ajustes real: agentes, chat e IA, voz, atajos y guardarropa.',w_set:'Configuración · Miku Beta v0.1.6',h_dl:'Obtén Miku Beta',p_dl:'Disponible para escritorio en Windows y dispositivos móviles en Android. En fase Beta pública hasta la versión 1.0.0.',dl_win_tag:'Beta v0.1.6',dl_win_h:'Miku Desktop',dl_win_p:'Windows 10 / 11 · 64 bits · Instalador .exe (177 MB)',dl_win_btn:'Descargar para Windows',dl_win_ver:'Desktop Beta v0.1.6',dl_apk_tag:'Beta v0.1.6',dl_apk_h:'Miku Mobile',dl_apk_p:'Android 8.0+ · Paquete .apk directo (8.3 MB)',dl_apk_btn:'Descargar APK Android',dl_apk_ver:'Mobile Beta v0.1.6',dl_note_title:'Fase Beta Activa:',dl_note_desc:'Miku se mantendrá en fase Beta pública en todas sus plataformas hasta el lanzamiento oficial de la versión 1.0.0.',prep:'Preparando...',done_win:'Descargando Miku_Setup.exe...',done_apk:'Descargando miku-mobile.apk...',foot:'Miku · Hecha con cariño',title:'Miku Beta · Dynamic Island para Windows y Android'}};
+
+const PL={en:{notif:['Miku-Link','Pixel 8 connected'],perm:['Allow Claude Code to run a command?','npm run build'],ask:['How are you feeling today?','I can adjust my tone with you.',['Energized','Calm','Focused']],vis:'Analyzing screen',res:'You have 3 windows open: your editor with miku.html, the terminal running Claude Code and the browser. There are 2 pending tasks.'},
+es:{notif:['Miku-Link','Pixel 8 conectado'],perm:['¿Permitir a Claude Code ejecutar un comando?','npm run build'],ask:['¿Cómo te sientes hoy?','Puedo ajustar mi tono contigo.',['Con energía','Tranquilo','Enfocado']],vis:'Analizando pantalla',res:'Tienes 3 ventanas abiertas: tu editor con miku.html, la terminal con Claude Code y el navegador. Hay 2 tareas pendientes.'}};
+const CTL={en:['Idle','Home','Notification','Permission','Question','Music','Computer Use','Files','Ask','Answer','Miku-Link','Wardrobe','Settings','Emotions','Thinking','Listening'],es:['Reposo','Inicio','Notificación','Permiso','Pregunta','Música','Computer Use','Archivos','Preguntar','Respuesta','Miku-Link','Guardarropa','Ajustes','Emociones','Pensando','Escuchando']};
+const TABS={en:['All','Voice','AI','Your PC','Connections'],es:['Todo','Voz','IA','Tu PC','Conexiones']};
+const SK=[['voz','escuchando',['Voice','Wake word “Miku”','Wake it by speaking. It answers aloud and you can interrupt it.'],['Voz','Palabra «Miku»','Actívala hablando. Responde en voz alta y puedes interrumpirla.']],
+['voz','chat',['English & Spanish','Two languages','It understands and replies in both.'],['Español e inglés','Dos idiomas','Entiende y responde en ambos.']],
+['ia','chat',['AI chat','Claude, Google, OpenAI','Opus, Sonnet and Haiku 5.5, Google AI, OpenAI and OpenRouter.'],['Chat con IA','Claude, Google, OpenAI','Opus, Sonnet y Haiku 5.5, Google AI, OpenAI y OpenRouter.']],
+['ia','resultado',['Local models','Ollama · LM Studio','Chat with a model running on your own machine.'],['Modelos locales','Ollama · LM Studio','Chatea con un modelo que corre en tu equipo.']],
+['ia','resultado',['Answers','Copy, send, summarize','Every answer comes with quick actions.'],['Respuestas','Copiar, enviar, resumir','Cada respuesta llega con acciones rápidas.']],
+['pc','vision',['Computer Use','Controls your PC','Sees the screen, summarizes it and acts with your permission.'],['Computer Use','Controla tu PC','Ve la pantalla, la resume y actúa con tu permiso.']],
+['pc','archivos',['Files','Drop and go','Drag files onto the island and Miku analyzes them.'],['Archivos','Suelta y listo','Arrastra archivos a la isla y Miku los analiza.']],
+['pc','musica',['Music','Player in the island','Play, pause, volume and cover art.'],['Música','Reproductor en la isla','Reproducir, pausar, volumen y portada.']],
+['pc','ropa',['Wardrobe','15 outfits','Beanie, crown, witch hat, glasses, halo and more.'],['Guardarropa','15 prendas','Gorro, corona, bruja, gafas, aureola y más.']],
+['link','link',['Miku-Link','Your phone','Scan a QR to sync clipboard, files and notifications.'],['Miku-Link','Tu celular','Escanea un QR y sincroniza portapapeles, archivos y notificaciones.']],
+['link','hub',['Coding agents','Up to 8 at once','Claude Code, Gemini CLI, Cursor, OpenCode and more.'],['Agentes de código','Hasta 8 a la vez','Claude Code, Gemini CLI, Cursor, OpenCode y más.']],
+['link','permiso',['Permissions','Slide to allow','Optional: ask for fingerprint or lock before approving.'],['Permisos','Desliza para permitir','Opcional: pide huella o bloqueo antes de aprobar.']],
+['link','pregunta',['Questions','It asks you','Miku asks and you pick with one tap.'],['Preguntas','Te consulta a ti','Miku te pregunta y tú eliges con un toque.']],
+['link','notif',['Notifications','Alerts in the island','Events from your agents and your phone.'],['Notificaciones','Avisos en la isla','Eventos de tus agentes y tu celular.']],
+['pc','emo',['Emotions','25 animations','Happy, in love, thinking, asleep…'],['Emociones','25 animaciones','Contenta, enamorada, pensando, dormida…']]];
+const CK=['reposo','hub','notif','permiso','pregunta','musica','vision','archivos','chat','resultado','link','ropa','ajustes','emo','pensando','escuchando'],CAT=['all','voz','ia','pc','link'];
+let L='en',cur='',cat='all',first=1;
+try{L=localStorage.getItem('miku_lang')||'en'}catch{}
+if(L!='es')L='en';
+const sc=(name,args={})=>()=>W().feed({type:'scene',name,args});
+const AC={reposo:sc('compact'),hub:sc('overview'),
+ notif:()=>W().feed({type:'notify',title:PL[L].notif[0],text:PL[L].notif[1],emote:'happy',ms:4000}),
+ permiso:()=>W().feed({type:'approve',title:PL[L].perm[0],text:PL[L].perm[1]}),
+ pregunta:()=>{const a=PL[L].ask;W().feed({type:'ask',title:a[0],text:a[1],options:a[2]})},
+ musica:()=>{W().feed({type:'music',title:'Midnight City',artist:'M83',playing:1,dur:244,pos:32});W().feed({type:'scene',name:'player'})},
+ vision:()=>W().feed({type:'scene',name:'tool_use',args:{label:PL[L].vis}}),archivos:sc('drop'),chat:sc('prompt'),
+ resultado:()=>W().feed({type:'scene',name:'result',args:{text:PL[L].res}}),
+ link:sc('link'),ropa:sc('wardrobe'),ajustes:sc('settings'),emo:sc('gallery'),
+ pensando:()=>{W().feed({type:'scene',name:'compact'});W().feed({type:'state',name:'thinking'})},
+ escuchando:()=>{W().feed({type:'scene',name:'compact'});W().feed({type:'state',name:'listening'})}};
+const run=k=>{cur=k;try{AC[k]()}catch{}$$('#ctl .pill').forEach(b=>b.classList.toggle('on',b.dataset.k==k))};
+const drawCtl=()=>{$('#ctl').innerHTML=CK.map((k,i)=>`<button class="pill ${k==cur?'on':''}" data-k="${k}">${CTL[L][i]}</button>`).join('')};
+const drawTabs=()=>{$('#tabs').innerHTML=CAT.map((k,i)=>`<button class="pill ${k==cat?'on':''}" data-c="${k}">${TABS[L][i]}</button>`).join('')};
+const drawGrid=()=>{$('#grid').innerHTML=SK.map((s,i)=>{const x=s[L=='en'?2:3];return `<div class="win card rv ${first?'':'in'} ${cat!='all'&&s[0]!=cat?'hide':''}" data-c="${s[0]}" data-k="${s[1]}"><div class="tb"><i></i><i></i><i></i><span>${String(i+1).padStart(2,'0')}</span></div><div class="bd"><div class="n">${x[1]}</div><h3>${x[0]}</h3><p>${x[2]}</p><span class="go">${L=='en'?'Try it':'Probar'} ▸</span></div></div>`}).join('');$$('#grid .rv:not(.in)').forEach((e,i)=>{e.dataset.d=(i%4)*.06;io.observe(e)})};
+const setLang=l=>{L=l;try{localStorage.setItem('miku_lang',l)}catch{}document.documentElement.lang=l;document.title=I[l].title;
+ $$('[data-t]').forEach(e=>e.textContent=I[l][e.dataset.t]);$('#lg').classList.toggle('es',l=='es');$$('#lg button').forEach(b=>b.classList.toggle('on',b.dataset.l==l));
+ if($('#dt-win')&&$('#dt-win').dataset.s!='1')$('#dt-win').textContent=I[l].dl_win_ver;
+if($('#dt-apk')&&$('#dt-apk').dataset.s!='1')$('#dt-apk').textContent=I[l].dl_apk_ver;
+ drawCtl();drawTabs();drawGrid();first=0;[fi,$('#fs')].forEach(f=>{try{f.contentWindow.__lang(l)}catch{}})};
+$('#lg').onclick=e=>{const b=e.target.closest('button');if(b)setLang(b.dataset.l)};
+fi.addEventListener('load',()=>{try{W().__lang(L)}catch{}});$('#fs').addEventListener('load',()=>{try{$('#fs').contentWindow.__lang(L)}catch{}});
+$('#ctl').onclick=e=>{const b=e.target.closest('button');if(b)run(b.dataset.k)};
+$('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;cat=b.dataset.c;$$('#tabs .pill').forEach(x=>x.classList.toggle('on',x==b));let n=0;
+ $$('#grid .card').forEach(c=>{const h=cat!='all'&&c.dataset.c!=cat;c.classList.toggle('hide',h);if(!h){c.style.animation='none';c.offsetWidth;c.style.animation=`drop .7s ${n++*.045}s var(--soft) backwards`}})};
+$('#grid').onclick=e=>{const c=e.target.closest('.card');if(!c)return;$('#isla').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>run(c.dataset.k),650)};
+/* descarga */
+const setupDl=(btnId,blkId,dtId,url,name,doneKey)=>{
+  const btn=$(btnId),blk=$(blkId),dt=$(dtId);
+  if(!btn||!blk||!dt)return;
+  blk.innerHTML='<u></u>'.repeat(20);
+  btn.onclick=()=>{
+    const bl=$$(blkId+' u');
+    blk.classList.add('on');
+    bl.forEach(u=>u.classList.remove('f'));
+    dt.dataset.s=1;
+    dt.textContent=I[L].prep;
+    let n=0;
+    const t=setInterval(()=>{
+      n+=1+(Math.random()*2|0);
+      bl.slice(0,n).forEach(u=>u.classList.add('f'));
+      if(n>=20){
+        clearInterval(t);
+        dt.textContent=I[L][doneKey];
+        const a=document.createElement('a');
+        a.href=url;
+        a.download=name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    },140);
+  };
+};
+setupDl('#dl-win','#blk-win','#dt-win','https://github.com/cxmlo/miku/releases/latest/download/Miku_Setup.exe','Miku_Setup.exe','done_win');
+setupDl('#dl-apk','#blk-apk','#dt-apk','https://github.com/cxmlo/miku/releases/latest/download/miku-mobile.apk','miku-mobile.apk','done_apk');
+/* scroll */
+addEventListener('scroll',()=>$('#pg').style.width=scrollY/(document.documentElement.scrollHeight-innerHeight)*100+'%',{passive:true});
+setLang(L);
+</script></body></html>

@@ -46,7 +46,9 @@ Genera el paquete APK nativo de Kotlin/Compose con los íconos adaptativos y ser
 Actualiza los simuladores de la Isla y Ajustes con las últimas funciones de la aplicación y regenera el index de GitHub Pages:
 * **Comando:**
   ```powershell
-  python scratch/rebuild_gh_pages.py
+  python scripts/rebuild_gh_pages.py
+  python scripts/update_gh_pages.py
+  git push origin gh-pages
   ```
 * **Verificación:** Asegurar que la tarjeta de Ko-fi esté ubicada en la sección Hero directamente debajo de la descripción de texto de Miku, con adaptación móvil y navbar limpio.
 

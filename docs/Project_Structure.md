@@ -12,7 +12,13 @@ Esta guía mapea el directorio raíz de `miku V2` y orienta a desarrolladores y 
 - **`miku_app/`**: Cliente anterior React Native/Expo, conservado intacto como legado y rollback durante la migración a Android nativo. No es la ruta activa para nuevas funciones móviles. 👉 [[Mobile_App]]
 - **`miku_island/`**: Espejo de compatibilidad que el backend aún publica en `/island`. Los archivos compartidos se verifican con `python scripts/sync_island.py` y se sincronizan desde `miku_ui/src/` con `python scripts/sync_island.py --sync`; no borrar mientras siga montado por FastAPI.
 - **`docs/`**: Grafo de conocimiento y documentación técnica en formato Obsidian. 👉 [[Home]]
-- **`scripts/`**: Scripts de construcción y automatización (`build_sidecar.py`).
+- **`website/`**: Plantilla base y artefactos construidos para la Landing Page pública de Miku.
+- **`scripts/`**: Scripts de construcción y automatización (`build_sidecar.py`, `rebuild_gh_pages.py`, `update_gh_pages.py`).
+- **`.github/workflows/`**: Automatización y CI/CD en GitHub Actions:
+  - `build-desktop.yml`: Compilación individual del instalador de Windows (`.exe`).
+  - `build-android.yml`: Compilación individual del APK firmado de Android (`.apk`).
+  - `deploy-web.yml`: Reconstrucción y despliegue individual de la web (`gh-pages`).
+  - `release.yml`: Publicación unificada de la versión completa (Desktop .exe + Android .apk + Web).
 - **`assets/`**: Iconos, imágenes oficiales de la aplicación e ilustraciones de Miku.
 - **`venv/`**: Entorno virtual de Python local; no forma parte del código fuente.
 

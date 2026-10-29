@@ -1,0 +1,66 @@
+name: 'Deploy Website to gh-pages (Web)'
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Motivo de la actualizacion web'
+        required: false
+        default: 'Actualizar landing page y simuladores en gh-pages'
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy-website:
+    name: Reconstruir y Desplegar Web (gh-pages)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Reconstruir Landing Page y Sincronizar rama gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          python scripts/rebuild_gh_pages.py
+          python scripts/update_gh_pages.py
+          git push origin gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preparar assets adicionales para GitHub Pages
+        run: |
+          # Asegurar que assets globales esten presentes en website/
+          if [ -d "assets" ]; then cp -r assets website/; fi
+          if [ -d "miku_ui/src/assets" ]; then cp -r miku_ui/src/assets website/; fi
+          touch website/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './website'
+
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
