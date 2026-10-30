@@ -52,9 +52,16 @@ class ActionResult:
     action: str  # 'click', 'click_visual', 'type', 'scan', 'scroll', 'move_visual', etc.
     target: str = ""
     evidence: str = ""
+    message: str = ""
     error: Optional[str] = None
     requires_user_reason: Optional[str] = None
     data: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if isinstance(self.status, ActionStatus):
+            self.status = self.status.value
+        if self.message and not self.evidence:
+            self.evidence = self.message
 
     def is_confirmed(self) -> bool:
         return self.status == ActionStatus.CONFIRMED.value
@@ -73,11 +80,16 @@ class ActionResult:
             "status": self.status,
             "action": self.action,
             "target": self.target,
+            "message": self.message or self.evidence,
             "evidence": self.evidence,
             "error": self.error,
             "requires_user_reason": self.requires_user_reason,
             "data": self.data
         }
+
+    def to_tool_response(self) -> str:
+        """Returns deterministic JSON string representation for tool outputs."""
+        return json.dumps(self.to_dict(), ensure_ascii=False, sort_keys=True)
 
     def to_agent_string(self) -> str:
         """Formato claro y estructurado para ser consumido por el LLM en su historial."""
@@ -88,6 +100,8 @@ class ActionResult:
         ]
         if self.target:
             lines.append(f"Objetivo: {self.target}")
+        if self.message:
+            lines.append(f"Mensaje: {self.message}")
         if self.evidence:
             lines.append(f"Evidencia: {self.evidence}")
         if self.error:

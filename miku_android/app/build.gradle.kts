@@ -30,9 +30,9 @@ android {
 
             if (releaseFile != null && releaseFile.exists()) {
                 storeFile = releaseFile
-                storePassword = keystorePassword ?: ""
-                this.keyAlias = keyAlias ?: ""
-                this.keyPassword = keyPassword ?: ""
+                storePassword = if (!keystorePassword.isNullOrBlank()) keystorePassword else "android"
+                this.keyAlias = if (!keyAlias.isNullOrBlank()) keyAlias else "androiddebugkey"
+                this.keyPassword = if (!keyPassword.isNullOrBlank()) keyPassword else "android"
             } else {
                 val bundledDebugKeystore = file("debug.keystore")
                 val rootDebugKeystore = rootProject.file("debug.keystore")
@@ -98,6 +98,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("androidx.biometric:biometric:1.1.0")
 
     testImplementation("junit:junit:4.13.2")
 }

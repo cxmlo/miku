@@ -17,17 +17,22 @@ const Bridge = (() => {
   );
 
   // In Tauri on Windows, location.hostname is "tauri.localhost", which does NOT resolve in Windows DNS.
-  // We must explicitly use 127.0.0.1 for local communication.
+  // When served by the web gateway on port 3000 (or HTTPS preview), route directly to the same origin.
+  const isWebGateway = typeof location !== "undefined" && (
+    location.port === "3000" ||
+    location.protocol === "https:"
+  );
   const isLocal = !isShowcase && (!location.hostname || 
                   location.hostname === "localhost" || 
                   location.hostname === "127.0.0.1" || 
                   location.hostname.endsWith(".localhost") || 
                   location.hostname.includes("tauri"));
-  const HOST = isLocal ? "127.0.0.1" : (location.hostname || "127.0.0.1");
-  const BACKEND_PORT = "8000";
+  const HOST = isWebGateway ? (location.hostname || "127.0.0.1") : (isLocal ? "127.0.0.1" : (location.hostname || "127.0.0.1"));
+  const BACKEND_PORT = isWebGateway ? (location.port || (location.protocol === "https:" ? "443" : "3000")) : "8000";
   const PORT = BACKEND_PORT;
-  const BASE_URL = `http://${HOST}:${BACKEND_PORT}`;
-  const WS_URL = `ws://${HOST}:${BACKEND_PORT}/ws`;
+  const BASE_URL = isWebGateway ? location.origin : `http://${HOST}:${BACKEND_PORT}`;
+  const wsProto = (typeof location !== "undefined" && location.protocol === "https:") ? "wss" : "ws";
+  const WS_URL = isWebGateway ? `${wsProto}://${location.host}/ws` : `ws://${HOST}:${BACKEND_PORT}/ws`;
   const API_KEY = (typeof localStorage !== "undefined" && localStorage.getItem("miku_api_key")) || "miku_secure_key_2026";
 
   let ws = null;

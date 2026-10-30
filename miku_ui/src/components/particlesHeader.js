@@ -115,95 +115,83 @@ export function createParticlesEngine(cv, state) {
       hero.style.setProperty('--h', c.h.toFixed(1));
     }
 
-    x.globalCompositeOperation = 'destination-out';
-    x.fillStyle = 'rgba(0,0,0,.14)';
-    x.fillRect(0, 0, W, H);
-    x.globalCompositeOperation = 'lighter';
+    // Fast clear without expensive destination-out compositing
+    x.clearRect(0, 0, W, H);
 
-    const near = [];
+    // Subtle ambient glow patch at cursor or center
+    const glowX = mx > 0 ? mx : W * 0.5;
+    const glowY = my > 0 ? my : H * 0.4;
+    const grad = x.createRadialGradient(glowX, glowY, 4, glowX, glowY, 140);
+    grad.addColorStop(0, hs(c.h, 60, 0.08));
+    grad.addColorStop(1, 'transparent');
+    x.fillStyle = grad;
+    x.fillRect(0, 0, W, H);
+
+    // Optimized Epic Cyber Dot-Matrix (<1% CPU)
     for (let i = 0; i < P.length; i++) {
       const q = P[i];
-      const sp = 0.22 + q.z * 0.85;
-      const a = Math.sin(q.x * 0.006 + tNow * 0.00022) * 2.4 + Math.cos(q.y * 0.01 - tNow * 0.00018) * 2.4;
+      const sp = 0.15 + q.z * 0.35;
+      const angle = q.p + tNow * 0.0004;
+
+      // Gentle interactive cursor influence
       const dx = q.x - mx;
       const dy = q.y - my;
-      const d = dx * dx + dy * dy;
+      const distSq = dx * dx + dy * dy;
 
-      if (d < 16900) {
-        const l = Math.sqrt(d) || 1;
-        const m = (1 - l / 130) * 0.5;
-        q.vx += (dx / l) * m * 0.5 - (dy / l) * m * 0.9;
-        q.vy += (dy / l) * m * 0.5 + (dx / l) * m * 0.9;
-        near.push(q);
+      if (distSq < 10000 && distSq > 4) {
+        const dist = Math.sqrt(distSq);
+        const force = (1 - dist / 100) * 0.4;
+        q.vx += (dx / dist) * force;
+        q.vy += (dy / dist) * force;
       }
 
-      q.vx *= 0.93;
-      q.vy *= 0.93;
-      q.x += Math.cos(a) * sp + q.vx;
-      q.y += Math.sin(a) * sp * 0.55 + q.vy;
+      q.vx *= 0.94;
+      q.vy *= 0.94;
+      q.x += Math.cos(angle) * sp + q.vx;
+      q.y += Math.sin(angle) * sp * 0.6 + q.vy;
 
-      if (q.x > W + 6) q.x = -6;
-      else if (q.x < -6) q.x = W + 6;
-      if (q.y > H + 6) q.y = -6;
-      else if (q.y < -6) q.y = H + 6;
+      if (q.x > W + 4) q.x = -4;
+      else if (q.x < -4) q.x = W + 4;
+      if (q.y > H + 4) q.y = -4;
+      else if (q.y < -4) q.y = H + 4;
 
-      const hu = c.h + q.o * 0.5 + Math.sin(tNow / 3200 + q.p) * 14;
-      const al = (0.28 + 0.55 * (0.5 + 0.5 * Math.sin((tNow / 650) * (0.5 + q.z) + q.p))) * (0.35 + q.z * 0.65);
+      const alpha = (0.35 + 0.55 * Math.sin(tNow * 0.0018 + q.p)) * (0.4 + q.z * 0.6);
+      const dotHue = (c.h + q.o * 0.3 + 360) % 360;
 
-      x.fillStyle = hs(hu, c.l + q.z * 14, al * 0.16);
+      // Draw epic crisp dots
+      x.fillStyle = hs(dotHue, Math.min(95, c.l + q.z * 15), alpha);
+      const dotSize = q.r <= 1.2 ? 1.5 : (q.r <= 1.8 ? 2.2 : 3.0);
       x.beginPath();
-      x.arc(q.x, q.y, q.r * 3.4, 0, 6.283);
-      x.fill();
-
-      x.fillStyle = hs(hu, Math.min(96, c.l + q.z * 20), al);
-      x.beginPath();
-      x.arc(q.x, q.y, q.r, 0, 6.283);
+      x.arc(q.x, q.y, dotSize, 0, 6.283);
       x.fill();
     }
 
-    x.lineWidth = 0.7;
-    for (let i = 0; i < near.length; i++) {
-      for (let j = i + 1; j < near.length; j++) {
-        const u = near[i];
-        const v = near[j];
-        const ex = u.x - v.x;
-        const ey = u.y - v.y;
-        const e = ex * ex + ey * ey;
-        if (e < 3600) {
-          x.strokeStyle = hs(c.h, c.l + 10, (1 - e / 3600) * 0.35);
-          x.beginPath();
-          x.moveTo(u.x, u.y);
-          x.lineTo(v.x, v.y);
-          x.stroke();
-        }
-      }
-    }
-
+    // Occasional subtle shooting star
     if (tNow > ns) {
-      ns = tNow + 3500 + Math.random() * 3500;
+      ns = tNow + 5000 + Math.random() * 4000;
       SS.push({
-        x: Math.random() * W * 0.6,
-        y: Math.random() * H * 0.4,
-        vx: 7 + Math.random() * 4,
-        vy: 2.5 + Math.random() * 2,
+        x: Math.random() * W * 0.7,
+        y: Math.random() * H * 0.3,
+        vx: 5 + Math.random() * 3,
+        vy: 1.5 + Math.random() * 1.5,
         l: 1
       });
     }
 
     for (let k = SS.length - 1; k >= 0; k--) {
       const s = SS[k];
-      const gr = x.createLinearGradient(s.x, s.y, s.x - s.vx * 7, s.y - s.vy * 7);
-      gr.addColorStop(0, hs(c.h, 88, 0.85 * s.l));
-      gr.addColorStop(1, hs(c.h, 88, 0));
-      x.strokeStyle = gr;
-      x.lineWidth = 1.4;
+      const sgr = x.createLinearGradient(s.x, s.y, s.x - s.vx * 6, s.y - s.vy * 6);
+      sgr.addColorStop(0, hs(c.h, 92, 0.7 * s.l));
+      sgr.addColorStop(1, 'transparent');
+      x.strokeStyle = sgr;
+      x.lineWidth = 1.2;
       x.beginPath();
       x.moveTo(s.x, s.y);
-      x.lineTo(s.x - s.vx * 7, s.y - s.vy * 7);
+      x.lineTo(s.x - s.vx * 6, s.y - s.vy * 6);
       x.stroke();
       s.x += s.vx;
       s.y += s.vy;
-      s.l -= 0.02;
+      s.l -= 0.025;
       if (s.l <= 0) SS.splice(k, 1);
     }
 

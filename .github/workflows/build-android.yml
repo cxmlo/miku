@@ -48,21 +48,28 @@ jobs:
       - name: Preparar Keystore de Firma Release
         id: setup_keystore
         run: |
+          mkdir -p "${{ runner.temp }}"
           if [ -n "$KEYSTORE_DATA" ]; then
             echo "Decodificando Keystore oficial desde secretos protegidos..."
-            echo "$KEYSTORE_DATA" | tr -d '\r\n ' | base64 -d > "${{ runner.temp }}/miku-release.jks"
-            if [ -s "${{ runner.temp }}/miku-release.jks" ]; then
-              echo "has_keystore=true" >> $GITHUB_OUTPUT
-              echo "keystore_path=${{ runner.temp }}/miku-release.jks" >> $GITHUB_OUTPUT
-              echo "[OK] Keystore decodificado correctamente en ${{ runner.temp }}/miku-release.jks"
-            else
-              echo "[WARN] El archivo decodificado esta vacio. Se usara debug.keystore por defecto."
-              echo "has_keystore=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "[INFO] KEYSTORE_BASE64 no configurado en secretos. Se usara debug.keystore por defecto."
-            echo "has_keystore=false" >> $GITHUB_OUTPUT
+            echo "$KEYSTORE_DATA" | tr -d '\r\n ' | base64 -d > "${{ runner.temp }}/miku-release.jks" 2>/dev/null || true
           fi
+
+          if [ ! -s "${{ runner.temp }}/miku-release.jks" ]; then
+            echo "[INFO] Generando keystore de firma de respaldo con keytool..."
+            keytool -genkey -v -keystore "${{ runner.temp }}/miku-release.jks" \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Miku Mobile,O=Miku,C=US"
+            echo "keystore_password=android" >> $GITHUB_OUTPUT
+            echo "key_alias=androiddebugkey" >> $GITHUB_OUTPUT
+            echo "key_password=android" >> $GITHUB_OUTPUT
+          else
+            echo "[OK] Keystore decodificado exitosamente de los secretos."
+            echo "keystore_password=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_OUTPUT
+            echo "key_alias=${{ secrets.KEY_ALIAS }}" >> $GITHUB_OUTPUT
+            echo "key_password=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_OUTPUT
+          fi
+          echo "keystore_path=${{ runner.temp }}/miku-release.jks" >> $GITHUB_OUTPUT
         env:
           KEYSTORE_DATA: ${{ secrets.KEYSTORE_BASE64 }}
 
@@ -77,9 +84,9 @@ jobs:
           fi
         env:
           KEYSTORE_PATH: ${{ steps.setup_keystore.outputs.keystore_path }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ steps.setup_keystore.outputs.keystore_password }}
+          KEY_ALIAS: ${{ steps.setup_keystore.outputs.key_alias }}
+          KEY_PASSWORD: ${{ steps.setup_keystore.outputs.key_password }}
 
       - name: Limpiar archivo de firma temporal
         if: always()

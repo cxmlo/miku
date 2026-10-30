@@ -16,8 +16,17 @@ import urllib.request
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Set, Tuple, Optional, Any
-from dotenv import load_dotenv
-import openai
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*_args, **_kwargs):  # type: ignore
+        return False
+
+try:
+    import openai
+except ImportError:
+    openai = None  # type: ignore
+
 from miku_paths import get_env_path, get_models_config_path
 
 load_dotenv(get_env_path())
@@ -32,18 +41,44 @@ _models_cache = {
     "available": {}
 }
 
-# Aliases de compatibilidad hacia atrás para modelos renombrados o ficticios
+# Aliases de compatibilidad hacia atrás para modelos renombrados o antiguos -> IDs oficiales reales
 MODEL_ALIASES = {
-    "gemini-1.5-flash-latest": "gemini-1.5-flash",
-    "gemini-1.5-pro-latest": "gemini-1.5-pro",
-    "gemini-2.5-flash": "gemini-1.5-flash",
-    "DeepSeek-V4.1-Flash": "deepseek-flash",
-    "deepseek-v4.1-flash": "deepseek-flash"
+    "gemini-1.5-flash-latest": "gemini-2.5-flash",
+    "gemini-1.5-pro-latest": "gemini-2.5-flash",
+    "gemini-1.5-flash": "gemini-2.5-flash",
+    "DeepSeek-V4.1-Flash": "gemini-2.5-flash",
+    "deepseek-v4.1-flash": "gemini-2.5-flash",
+    "deepseek-flash": "gemini-2.5-flash",
+    "deepseek-v4": "deepseek-chat",
+    "deepseek-v3.2": "deepseek-chat",
+    "deepseek-v4-pro": "deepseek-reasoner",
 }
+
+
+def sanitize_model_id(model_id: str) -> str:
+    """Resolves deprecated/fictitious model names to official verified IDs."""
+    clean = (model_id or "").strip()
+    return MODEL_ALIASES.get(clean, clean)
 
 # Catálogo curado de modelos 100% REALES con capacidades explícitas y origen "catalog"
 FALLBACK_CATALOG = {
     "google": [
+        {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash (Google AI Studio - Recomendado Multimodal y Puente Visual)",
+            "provider": "google",
+            "capabilities": ["chat", "pro", "computer_use", "text", "vision", "tools", "structured_output"],
+            "origin": "catalog",
+            "context_window": 1048576
+        },
+        {
+            "id": "gemini-2.5-flash-lite",
+            "name": "Gemini 2.5 Flash Lite (Google AI Studio - Ultra Rápido y Bajo Costo)",
+            "provider": "google",
+            "capabilities": ["chat", "text", "tools", "structured_output"],
+            "origin": "catalog",
+            "context_window": 1048576
+        },
         {
             "id": "gemini-1.5-flash",
             "name": "Gemini 1.5 Flash (Google AI Studio - Rápido y Multimodal)",
@@ -195,40 +230,8 @@ FALLBACK_CATALOG = {
     ],
     "deepseek": [
         {
-            "id": "deepseek-flash",
-            "name": "DeepSeek Flash (Multimodal con Visión)",
-            "provider": "deepseek",
-            "capabilities": ["chat", "computer_use", "text", "vision", "tools", "structured_output"],
-            "origin": "catalog",
-            "context_window": 128000
-        },
-        {
-            "id": "deepseek-v4.1-flash",
-            "name": "DeepSeek-V4.1-Flash (DeepSeek Oficial)",
-            "provider": "deepseek",
-            "capabilities": ["chat", "computer_use", "text", "vision", "tools", "structured_output"],
-            "origin": "catalog",
-            "context_window": 128000
-        },
-        {
-            "id": "deepseek-v4",
-            "name": "DeepSeek-V4 (Oficial - Siguiente Generación)",
-            "provider": "deepseek",
-            "capabilities": ["chat", "pro", "text", "tools", "structured_output"],
-            "origin": "catalog",
-            "context_window": 128000
-        },
-        {
-            "id": "deepseek-v4-pro",
-            "name": "DeepSeek-V4 Pro (Oficial - Razonamiento y Código)",
-            "provider": "deepseek",
-            "capabilities": ["chat", "pro", "text", "tools", "structured_output"],
-            "origin": "catalog",
-            "context_window": 128000
-        },
-        {
             "id": "deepseek-chat",
-            "name": "DeepSeek-V3 Chat (Oficial - Chat y Código)",
+            "name": "DeepSeek-V3.2 Chat (Oficial - Chat, Tools y Prefix-Caching)",
             "provider": "deepseek",
             "capabilities": ["chat", "pro", "text", "tools", "structured_output"],
             "origin": "catalog",
@@ -236,17 +239,9 @@ FALLBACK_CATALOG = {
         },
         {
             "id": "deepseek-reasoner",
-            "name": "DeepSeek-R1 Reasoner (Oficial - Pensamiento Profundo)",
+            "name": "DeepSeek-R1 Reasoner (Oficial - Razonamiento Profundo)",
             "provider": "deepseek",
-            "capabilities": ["chat", "pro", "text"],
-            "origin": "catalog",
-            "context_window": 64000
-        },
-        {
-            "id": "deepseek-coder",
-            "name": "DeepSeek Coder (Oficial - Programación)",
-            "provider": "deepseek",
-            "capabilities": ["chat", "pro", "text", "tools"],
+            "capabilities": ["chat", "pro", "text", "tools", "structured_output"],
             "origin": "catalog",
             "context_window": 64000
         },
@@ -372,11 +367,18 @@ def get_provider_env_var(provider: str) -> str:
 
 
 def get_provider_keys(provider: str) -> List[str]:
-    """Obtiene la lista de claves configuradas (separadas por coma) para un proveedor."""
+    """Obtiene la lista de claves configuradas en la Bóveda del SO (Vault) o entorno para un proveedor."""
     env_var = get_provider_env_var(provider)
     if not env_var:
         return []
-    val = os.getenv(env_var, "").strip()
+    val = ""
+    try:
+        from core.security.vault import get_secret
+        val = (get_secret(env_var) or "").strip()
+    except Exception:
+        pass
+    if not val:
+        val = os.getenv(env_var, "").strip()
     if not val:
         return []
     return [k.strip() for k in val.split(",") if k.strip()]
@@ -415,7 +417,7 @@ def rotate_groq_key() -> bool:
 
 
 def get_active_providers() -> Set[str]:
-    """Detecta qué proveedores tienen credenciales activas en .env o entorno."""
+    """Detecta qué proveedores tienen credenciales activas en el OS Credential Vault, .env o entorno."""
     env_path = get_env_path()
     env_keys = {}
     if os.path.exists(env_path):
@@ -429,22 +431,31 @@ def get_active_providers() -> Set[str]:
         except Exception as e:
             logger.warning(f"Error leyendo .env en get_active_providers: {e}")
 
+    def _has(k: str) -> bool:
+        try:
+            from core.security.vault import get_secret
+            if get_secret(k):
+                return True
+        except Exception:
+            pass
+        return bool(env_keys.get(k) or os.getenv(k))
+
     active = set()
-    if env_keys.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") or env_keys.get("GOOGLE_CLOUD_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT"):
+    if _has("GEMINI_API_KEY") or _has("GOOGLE_CLOUD_PROJECT"):
         active.add("google")
-    if env_keys.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY"):
+    if _has("GROQ_API_KEY"):
         active.add("groq")
-    if env_keys.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY"):
+    if _has("OPENAI_API_KEY"):
         active.add("openai")
-    if env_keys.get("DEEPSEEK_API_KEY") or os.getenv("DEEPSEEK_API_KEY"):
+    if _has("DEEPSEEK_API_KEY"):
         active.add("deepseek")
-    if env_keys.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY"):
+    if _has("ANTHROPIC_API_KEY"):
         active.add("anthropic")
-    if env_keys.get("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API_KEY"):
+    if _has("OPENROUTER_API_KEY"):
         active.add("openrouter")
-    if env_keys.get("NVIDIA_API_KEY") or os.getenv("NVIDIA_API_KEY"):
+    if _has("NVIDIA_API_KEY"):
         active.add("nvidia")
-        
+
     # Verificar si Ollama local está corriendo
     if is_ollama_running():
         active.add("ollama")
@@ -825,6 +836,61 @@ def get_client_and_model(
 # EJECUCIÓN CON RESILIENCIA Y MANEJO DE ERRORES TEMPORALES
 # =========================================================================
 
+def bridge_vision_messages_for_text_model(
+    messages: List[Dict[str, Any]],
+    model_id: str,
+    provider: str = "",
+) -> List[Dict[str, Any]]:
+    """
+    Si el modelo activo es de solo texto (ej. `deepseek-chat`, `deepseek-reasoner`) y los
+    mensajes contienen partes multimodales (`image_url`), utiliza `gemini-2.5-flash` como
+    puente visual automático para convertir la imagen en descripción estructurada y evitar
+    errores HTTP 400.
+    """
+    if supports_capability(model_id, "vision", provider):
+        return messages
+
+    import base64
+    from core.plugins.plugin_vision import describe_screenshot_via_gemini_bridge
+
+    bridged_messages: List[Dict[str, Any]] = []
+    for msg in messages:
+        content = msg.get("content")
+        if not isinstance(content, list):
+            bridged_messages.append(msg)
+            continue
+
+        text_segments: List[str] = []
+        for part in content:
+            if not isinstance(part, dict):
+                text_segments.append(str(part))
+                continue
+            ptype = part.get("type")
+            if ptype == "text":
+                text_segments.append(str(part.get("text", "")))
+            elif ptype == "image_url":
+                img_url = (part.get("image_url") or {}).get("url", "")
+                if img_url.startswith("data:image") and "," in img_url:
+                    try:
+                        raw_b64 = img_url.split(",", 1)[1]
+                        img_bytes = base64.b64decode(raw_b64)
+                        res = describe_screenshot_via_gemini_bridge(img_bytes)
+                        if res.get("ok") and res.get("description"):
+                            text_segments.append(f"[Puente Visual Gemini 2.5 Flash]:\n{res['description']}")
+                        else:
+                            text_segments.append(f"[Imagen adjunta - aviso puente visual: {res.get('error', 'no disponible')}]")
+                    except Exception as exc:
+                        text_segments.append(f"[Imagen adjunta no decodificable: {exc}]")
+                else:
+                    text_segments.append(f"[Imagen referenciada: {img_url[:120]}]")
+
+        new_msg = dict(msg)
+        new_msg["content"] = "\n\n".join([s for s in text_segments if s])
+        bridged_messages.append(new_msg)
+
+    return bridged_messages
+
+
 def execute_completion_with_resilience(
     client: Any,
     model: str,
@@ -838,23 +904,39 @@ def execute_completion_with_resilience(
 ) -> Any:
     """
     Ejecuta chat.completions.create con tolerancia a fallos transitorios (429/503),
-    rotación de claves múltiples y backoff breve.
+    rotación de claves múltiples, puente visual automático para modelos de texto (DeepSeek),
+    y orden determinista de herramientas (Blindaje #3) para 100% de acierto en Prefix-Caching.
     NUNCA enmascara errores de autenticación (401/403) ni modelos inexistentes (404).
     """
     current_client = client
-    current_model = model
+    current_model = MODEL_ALIASES.get(model, model)
     current_provider = provider
     last_exception = None
 
+    # BLINDAJE #3: Ordenar herramientas de forma determinista para Prefix-Caching
+    deterministic_tools = tools
+    if tools:
+        try:
+            from core.plugins import sort_tools_deterministically
+            deterministic_tools = sort_tools_deterministically(tools)
+        except Exception:
+            deterministic_tools = sorted(
+                tools,
+                key=lambda t: (t.get("function") or {}).get("name", "") if isinstance(t, dict) else "",
+            )
+
     for attempt in range(max_retries + 1):
         try:
+            effective_messages = bridge_vision_messages_for_text_model(
+                messages, current_model, current_provider
+            )
             call_kwargs = {
                 "model": current_model,
-                "messages": messages,
+                "messages": effective_messages,
                 **extra_kwargs
             }
-            if tools:
-                call_kwargs["tools"] = tools
+            if deterministic_tools:
+                call_kwargs["tools"] = deterministic_tools
 
             return current_client.chat.completions.create(**call_kwargs)
 

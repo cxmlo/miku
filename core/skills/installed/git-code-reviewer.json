@@ -1,0 +1,21 @@
+{
+  "id": "git-code-reviewer",
+  "name": "Revisor de Git y Codigo",
+  "category": "Desarrollo",
+  "description": "Analiza diffs de git, revisa calidad de codigo, sugiere refactorizaciones y detecta fallos de sintaxis.",
+  "triggers": [
+    "git diff",
+    "commit",
+    "revisar codigo",
+    "analizar codigo",
+    "pull request",
+    "refactorizar",
+    "branch"
+  ],
+  "tools_required": [
+    "ejecutar_comando_consola",
+    "solicitar_aprobacion_comando"
+  ],
+  "max_concurrent": 1,
+  "system_prompt_addon": "Especialidad activa: Revisor de Codigo. Analiza diffs con rigor, verifica impacto antes de commits y resume cambios de forma limpia."
+}

@@ -1,0 +1,20 @@
+{
+  "id": "desktop-automation",
+  "name": "Automatizacion de Escritorio y CLI",
+  "category": "Sistema",
+  "description": "Ejecuta tareas en terminal, manipula archivos locales y realiza acciones de sistema con prevencion de bloqueos.",
+  "triggers": [
+    "ejecuta en terminal",
+    "corre comando",
+    "instala dependencia",
+    "mover archivos",
+    "crea carpeta",
+    "script bash"
+  ],
+  "tools_required": [
+    "ejecutar_comando_consola",
+    "solicitar_aprobacion_comando"
+  ],
+  "max_concurrent": 1,
+  "system_prompt_addon": "Especialidad activa: Automatizacion de Escritorio. Usa siempre comandos no bloqueantes e inyecta banderas no interactivas como --yes."
+}

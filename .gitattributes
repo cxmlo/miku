@@ -1,4 +1,16 @@
 docs/** linguist-documentation
+*.md linguist-documentation
+
+# Classify static catalogs, UI bundles, and web preview files so GitHub language bar reflects Python/Rust core
+miku-catalogo.html linguist-documentation
+website/** linguist-documentation
+miku_ui/src/vendor/** linguist-vendored
+miku_ui/src/*.html linguist-vendored
+miku_ui/src/*.css linguist-vendored
+miku_ui/dist/** linguist-generated
+dev_server.js linguist-vendored
+*.json linguist-Language=JSON linguist-vendored
 
 miku_android/gradlew text eol=lf
 miku_android/**/*.sh text eol=lf
+

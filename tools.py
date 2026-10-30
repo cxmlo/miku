@@ -1186,28 +1186,71 @@ tools_schema.extend([{
             "required": ["pregunta", "opciones", "titulo"]
         }
     }
-}, {
-    "type": "function",
-    "function": {
-        "name": "preparar_correo",
-        "description": "Abre una tarjeta interactiva de borrador de correo para que el usuario pueda revisarlo y confirmar el envio. Usa esta herramienta en lugar de enviar un correo directamente para darle al usuario la ultima palabra. Si el usuario acepta, la herramienta retornara exito.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "destinatario": {
-                    "type": "string",
-                    "description": "El correo electronico del destinatario."
+},
+    {
+        "type": "function",
+        "function": {
+            "name": "preparar_correo",
+            "description": "Abre una tarjeta interactiva de borrador de correo para que el usuario pueda revisarlo y confirmar el envio. Usa esta herramienta en lugar de enviar un correo directamente para darle al usuario la ultima palabra. Si el usuario acepta, la herramienta retornara exito.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "destinatario": {
+                        "type": "string",
+                        "description": "El correo electronico del destinatario."
+                    },
+                    "asunto": {
+                        "type": "string",
+                        "description": "El asunto del correo."
+                    },
+                    "mensaje": {
+                        "type": "string",
+                        "description": "El cuerpo o contenido del correo electronico."
+                    }
                 },
-                "asunto": {
-                    "type": "string",
-                    "description": "El asunto del correo."
-                },
-                "mensaje": {
-                    "type": "string",
-                    "description": "El cuerpo o contenido del correo electronico."
-                }
-            },
-            "required": ["destinatario", "asunto", "mensaje"]
+                "required": ["destinatario", "asunto", "mensaje"]
+            }
         }
     }
-}])
+])
+
+# =========================================================================
+# INTEGRACIÓN MODULAR DE PLUGINS (`/core/plugins/`) Y ORDEN DETERMINISTA
+# BLINDAJE #3: Ordenamiento alfabético y serialización canónica para
+# garantizar 100% de acierto en el Prefix-Caching de DeepSeek y Gemini.
+# =========================================================================
+try:
+    from core.plugins import (
+        compute_tools_prefix_hash,
+        load_all_plugins,
+        sort_tools_deterministically,
+    )
+
+    _plugin_registry = load_all_plugins()
+    for _name, _handler in _plugin_registry._handlers.items():
+        available_tools[_name] = _handler
+
+    tools_schema = _plugin_registry.merge_with_legacy_tools(tools_schema, agent_profile="all")
+    TOOLS_PREFIX_HASH = compute_tools_prefix_hash(tools_schema)
+except Exception as _plugin_err:
+    # Fallback determinista incluso si algún submódulo opcional no carga
+    tools_schema = sorted(
+        tools_schema,
+        key=lambda item: item.get("function", {}).get("name", ""),
+    )
+    TOOLS_PREFIX_HASH = ""
+
+
+def get_deterministic_tools_for_agent(agent_profile: str = "all") -> list:
+    """
+    Devuelve la lista de herramientas ordenada determinísticamente por `function.name`
+    y con claves JSON normalizadas para mantener intacto el caché de prefijo (Prefix-Caching).
+    """
+    try:
+        from core.plugins import load_all_plugins
+
+        reg = load_all_plugins()
+        return reg.merge_with_legacy_tools(tools_schema, agent_profile=agent_profile)
+    except Exception:
+        return list(tools_schema)
+

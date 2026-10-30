@@ -238,7 +238,6 @@ def mostrar_widget_clima(ciudad: str, temperatura: str, estado: str, viento: str
     """Muestra un widget interactivo avanzado dedicado exclusivamente a la informaciÃ³n del clima."""
     try:
         import os
-        from ui import ui_comm
         
         # Mapeo a los SVGs locales. Si icono_nombre no coincide exactamente, usamos un fallback.
         base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "widget", "google-weather-icons-main", "icons", "weather", "v1", "light")

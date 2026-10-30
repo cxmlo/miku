@@ -38,9 +38,91 @@ const SoundFX = (() => {
     return 0.6;
   }
 
+  let isDucking = false;
+  let duckTimer = null;
+  const customSoundCache = new Map();
+
+  function duckMedia(durationMs = 2500) {
+    try {
+      if (!isDucking) {
+        isDucking = true;
+        // Signal audio ducking to media player
+        if (window.Bridge?.duckMedia) {
+          window.Bridge.duckMedia(0.2);
+        } else {
+          fetch('/api/media/duck', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ duck_factor: 0.2, duration_ms: durationMs })
+          }).catch(() => {});
+        }
+      }
+      if (duckTimer) clearTimeout(duckTimer);
+      duckTimer = setTimeout(() => {
+        isDucking = false;
+        if (window.Bridge?.restoreMedia) {
+          window.Bridge.restoreMedia();
+        } else {
+          fetch('/api/media/restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          }).catch(() => {});
+        }
+      }, durationMs);
+    } catch (_) {}
+  }
+
+  let availableCustomFiles = null;
+  fetch('/api/sounds/list')
+    .then(r => r.ok ? r.json() : { files: [] })
+    .then(d => { availableCustomFiles = new Set((d.files || []).map(f => String(f).toLowerCase())); })
+    .catch(() => { availableCustomFiles = new Set(); });
+
+  function tryCustomSound(type, vol) {
+    const customTypes = ['click', 'pop', 'notification', 'success', 'alert', 'update', 'chime', 'error'];
+    if (!customTypes.includes(type)) return false;
+
+    if (customSoundCache.has(type)) {
+      const audio = customSoundCache.get(type);
+      if (audio) {
+        audio.currentTime = 0;
+        audio.volume = vol;
+        audio.play().catch(() => {});
+        return true;
+      }
+      return false;
+    }
+
+    if (!availableCustomFiles) return false;
+    const mp3Name = `${type}.mp3`;
+    const wavName = `${type}.wav`;
+    const fileToLoad = availableCustomFiles.has(mp3Name) ? mp3Name : (availableCustomFiles.has(wavName) ? wavName : null);
+    if (!fileToLoad) {
+      customSoundCache.set(type, null);
+      return false;
+    }
+
+    const audio = new Audio(`/assets/sounds/${fileToLoad}`);
+    audio.volume = vol;
+    audio.oncanplaythrough = () => {
+      customSoundCache.set(type, audio);
+      audio.play().catch(() => {});
+    };
+    audio.onerror = () => {
+      customSoundCache.set(type, null);
+    };
+    return false;
+  }
+
   function play(type, opts = {}) {
     const vol = getVolume();
     if (vol <= 0.01) return;
+
+    if (['notification', 'alert', 'error', 'chime', 'update'].includes(type)) {
+      duckMedia(opts.duckMs || 2200);
+    }
+
+    if (tryCustomSound(type, vol)) return;
 
     const ac = getAudioContext();
     if (!ac) return;
@@ -291,6 +373,7 @@ const SoundFX = (() => {
     chime: () => play('chime'),
     hold: () => play('hold'),
     error: () => play('error'),
+    duckMedia,
     getAudioContext
   };
 })();

@@ -326,27 +326,6 @@ class ConnectionManager:
                     logger.error(f"Error enviando WebSocket: {e}")
 
     async def broadcast_message(self, message: dict):
-        if message.get("type") == "ui_command":
-            action = message.get("action")
-            args = message.get("args", [])
-            if action and args:
-                try:
-                    from ui import ui_comm
-                    if action == "show_weather":
-                        ui_comm.show_weather_signal.emit(*args)
-                    elif action == "show_clock":
-                        ui_comm.show_clock_signal.emit(*args)
-                    elif action == "show_info":
-                        ui_comm.show_info_signal.emit(*args)
-                    elif action == "show_card":
-                        ui_comm.show_card_signal.emit(*args)
-                    elif action == "show_quicklook":
-                        ui_comm.show_quicklook_signal.emit(*args)
-                    elif action == "modify_widget":
-                        ui_comm.modify_widget_state_signal.emit(*args)
-                except Exception:
-                    pass
-
         dead_connections = []
         mobile_status_changed = False
         async with self._lock:
@@ -1733,102 +1712,75 @@ def mask_key(value: str) -> str:
 
 @app.get("/api/config/keys")
 async def get_config_keys(api_key: str = Security(get_api_key)):
-    """Devuelve las API keys configuradas (enmascaradas por seguridad)."""
+    """Devuelve las API keys configuradas en la Bóveda de Credenciales del SO (enmascaradas por seguridad)."""
+    from core.security.vault import get_secret, get_vault, migrate_plaintext_env
+    try:
+        migrate_plaintext_env(Path(get_env_path()))
+    except Exception:
+        pass
+    vault = get_vault()
     keys = {}
     for key_name in MANAGED_KEYS:
-        value = os.getenv(key_name, "")
+        value = get_secret(key_name) or os.getenv(key_name, "")
         keys[key_name] = {
             "value_masked": mask_key(value) if value else "",
             "is_set": bool(value),
+            "backend": vault.backend_name,
         }
-    return {"keys": keys}
+    return {"keys": keys, "vault_backend": vault.backend_name}
 
 class UpdateKeysRequest(BaseModel):
     keys: dict  # {"GROQ_API_KEY": "new_value", ...}
 
 @app.post("/api/config/keys")
 async def update_config_keys(req: UpdateKeysRequest, api_key: str = Security(get_api_key)):
-    """Actualiza las API keys en el archivo .env y recarga las variables de entorno."""
-    env_path = get_env_path()
-    
-    existing_lines = []
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            existing_lines = f.readlines()
-    
+    """Almacena las API keys de forma cifrada en la Bóveda de Credenciales del SO (nunca en texto plano en .env)."""
+    from core.security.vault import get_vault, migrate_plaintext_env, set_secret
     try:
-        updated_keys = set()
-        new_lines = []
-        for line in existing_lines:
-            stripped = line.strip()
-            if stripped and not stripped.startswith("#") and "=" in stripped:
-                key_name = stripped.split("=", 1)[0].strip()
-                if key_name in req.keys:
-                    new_value = str(req.keys[key_name]).strip()
-                    if new_value and not new_value.startswith("*"):
-                        new_lines.append(f"{key_name}={new_value}\n")
-                        os.environ[key_name] = new_value
-                        updated_keys.add(key_name)
-                        continue
-            new_lines.append(line)
-        
-        for key_name, new_value in req.keys.items():
-            if key_name not in updated_keys:
-                clean_val = str(new_value).strip()
-                if clean_val and not clean_val.startswith("*"):
-                    new_lines.append(f"{key_name}={clean_val}\n")
-                    os.environ[key_name] = clean_val
-        
-        with open(env_path, "w", encoding="utf-8") as f:
-            f.writelines(new_lines)
-        sync_env_to_workspace(new_lines)
-        
+        saved_count = 0
+        for key_name, new_value in (req.keys or {}).items():
+            clean_val = str(new_value or "").strip()
+            if clean_val and not clean_val.startswith("*") and not clean_val.startswith("•"):
+                set_secret(key_name.strip(), clean_val)
+                os.environ[key_name.strip()] = clean_val
+                saved_count += 1
+
+        # Si existía un .env con secretos en texto plano, migrarlos y limpiarlos
         try:
-            import importlib
-            import config
-            importlib.reload(config)
-        except Exception as e:
-            logger.warning(f"Error recargando config: {e}")
-        
-        return {"status": "ok", "message": "Configuración de claves actualizada."}
+            migrate_plaintext_env(Path(get_env_path()))
+        except Exception:
+            pass
+
+        try:
+            import models_provider
+            models_provider.invalidate_available_models()
+        except Exception:
+            pass
+
+        return {
+            "status": "ok",
+            "saved_count": saved_count,
+            "vault_backend": get_vault().backend_name,
+            "message": "Claves cifradas y guardadas en la Bóveda de Credenciales del SO.",
+        }
     except Exception as e:
-        logger.error(f"Error guardando claves en .env: {e}")
+        logger.error(f"Error guardando claves en Vault: {e}")
         raise HTTPException(status_code=500, detail=f"Error guardando claves: {str(e)}")
 
 @app.delete("/api/config/keys/{key_name}")
 async def delete_config_key(key_name: str, api_key: str = Security(get_api_key)):
-    """Elimina una API key del archivo .env y del entorno de ejecución con confirmación."""
+    """Elimina una API key de la Bóveda de Credenciales del SO y del entorno en memoria."""
+    from core.security.vault import delete_secret
     try:
-        env_path = get_env_path()
-        existing_lines = []
-        if os.path.exists(env_path):
-            with open(env_path, "r", encoding="utf-8") as f:
-                existing_lines = f.readlines()
-                
-        new_lines = []
-        for line in existing_lines:
-            stripped = line.strip()
-            if stripped and not stripped.startswith("#") and "=" in stripped:
-                k = stripped.split("=", 1)[0].strip()
-                if k == key_name:
-                    continue
-            new_lines.append(line)
-            
-        with open(env_path, "w", encoding="utf-8") as f:
-            f.writelines(new_lines)
-        sync_env_to_workspace(new_lines)
-            
+        delete_secret(key_name)
         if key_name in os.environ:
             del os.environ[key_name]
-            
         try:
-            import importlib
-            import config
-            importlib.reload(config)
+            import models_provider
+            models_provider.invalidate_available_models()
         except Exception:
             pass
-            
-        logger.info(f"API key eliminada: {key_name}")
+        logger.info(f"API key eliminada del Vault: {key_name}")
         return {"status": "ok", "deleted": key_name, "message": f"Clave {key_name} eliminada con éxito."}
     except Exception as e:
         logger.error(f"Error eliminando clave {key_name}: {e}")
@@ -2366,19 +2318,27 @@ async def update_setting(req: SettingUpdateRequest):
     return {"status": "ok", "key": req.key, "value": req.value}
 
 @app.post("/api/hook")
+@app.post("/api/hooks/event")
 async def receive_agent_hook(request: Request):
-    """Recibe eventos de agentes CLI (Claude Code, Cursor, Codex, Antigravity, GitHub)."""
+    """Recibe eventos de agentes CLI/IDE (Claude Code, Cursor, Codex, Antigravity, GitHub) y sincroniza la Isla Dinámica."""
     try:
         payload = await request.json()
     except Exception:
         payload = {}
     event_name = payload.get("hook_event_name", payload.get("event", "Notification"))
-    agent_name = payload.get("miku_agent", payload.get("agent", payload.get("subagent", "antigravity")))
-    prompt = payload.get("prompt", payload.get("message", ""))
+    agent_name = payload.get("miku_agent", payload.get("agent", payload.get("subagent", payload.get("source", "antigravity"))))
+    prompt = payload.get("prompt", payload.get("message", payload.get("title", "")))
     tool_name = payload.get("tool_name", payload.get("tool", ""))
-    
+
     logger.info(f"[Hook] Agente '{agent_name}' -> Evento: {event_name}")
-    
+
+    hook_result = {}
+    try:
+        from core.plugins.plugin_hooks import process_hook_event
+        hook_result = process_hook_event(payload)
+    except Exception as exc:
+        logger.warning(f"Aviso procesando hook en plugin_hooks: {exc}")
+
     # Notificar a la Isla vía WebSocket
     await manager.broadcast_message({
         "type": "agent_hook",
@@ -2386,9 +2346,81 @@ async def receive_agent_hook(request: Request):
         "event": event_name,
         "prompt": prompt,
         "tool": tool_name,
-        "payload": payload
+        "payload": payload,
+        "hook": hook_result.get("hook"),
     })
-    return {"status": "ok", "received": event_name}
+    return {"status": "ok", "received": event_name, **hook_result}
+
+
+class UIChoiceRequest(BaseModel):
+    id: str = ""
+    decision: str
+    extra: Optional[Dict[str, Any]] = None
+
+
+@app.post("/api/ui/choice")
+async def resolve_island_ui_choice(req: UIChoiceRequest):
+    """Resuelve decisiones interactivas de ApprovalCard ([Y]/[N]/[A]) y QuestionCard desde la Isla Dinámica."""
+    from core.plugins.plugin_ui import resolve_ui_decision
+    res = resolve_ui_decision(req.id or "active", req.decision, req.extra)
+    try:
+        from ui_events import set_ui_event
+        set_ui_event(req.decision)
+    except Exception:
+        pass
+    await manager.broadcast_message({
+        "type": "ui_decision_resolved",
+        "id": req.id,
+        "decision": req.decision,
+    })
+    return {"status": "ok", **res}
+
+
+@app.get("/api/mcp/catalog")
+async def get_official_mcp_catalog():
+    """Devuelve el catálogo oficial de servidores MCP instalables en 1 clic."""
+    from core.plugins.plugin_mcp import get_mcp_catalog_with_status
+    return {"catalog": get_mcp_catalog_with_status()}
+
+
+class InstallMcpCatalogReq(BaseModel):
+    server_id: str
+
+
+@app.post("/api/mcp/catalog/install")
+async def install_official_mcp_catalog(req: InstallMcpCatalogReq):
+    """Instala y activa en 1 clic un servidor MCP del catálogo oficial con flags --yes no interactivos."""
+    from core.plugins.plugin_mcp import install_mcp_from_catalog
+    res = install_mcp_from_catalog(req.server_id)
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("error", "Error instalando MCP"))
+    return {"status": "ok", **res}
+
+
+@app.get("/api/google/oauth/status")
+async def get_google_oauth_status():
+    """Devuelve el estado y URL de autorización OAuth 2.0 de Google Workspace (Gmail, Calendar, Drive)."""
+    from core.plugins.plugin_google import build_google_oauth_url
+    return build_google_oauth_url()
+
+
+@app.get("/api/startup/metrics")
+async def get_runtime_startup_metrics():
+    """Devuelve métricas reales de velocidad de arranque (<1.5s) y módulos pesados diferidos (lazy_loader)."""
+    from core.engine.lazy_loader import get_startup_metrics
+    from core.plugins import load_all_plugins, compute_tools_prefix_hash
+    from core.plugins.plugin_media import get_smtc_worker
+    reg = load_all_plugins()
+    smtc = get_smtc_worker()
+    return {
+        "startup": get_startup_metrics(),
+        "plugins": reg.list_plugins_summary(),
+        "prefix_cache_hash": compute_tools_prefix_hash(reg.get_sorted_schemas()),
+        "smtc_sta_worker": {
+            "alive": smtc.is_alive,
+            "thread_name": smtc.thread_name,
+        },
+    }
 
 class FileDropRequest(BaseModel):
     path: Optional[str] = None
@@ -3475,6 +3507,32 @@ async def startup_event():
     loop = asyncio.get_running_loop()
     sys.stdout = StdoutHook(sys.stdout)
     sys.stdout.loop = loop
+
+    # Inicializar Bóveda de Credenciales del SO, Plugins Modulares y Broadcaster hacia la Isla Dinámica
+    try:
+        from core.engine.lazy_loader import mark_boot_complete
+        from core.security.vault import get_vault, migrate_plaintext_env
+        from core.plugins import load_all_plugins
+        from core.plugins.plugin_ui import set_ui_broadcaster
+        from core.plugins.plugin_media import get_smtc_worker
+
+        vault = get_vault()
+        vault.hydrate_environ()
+        migrate_plaintext_env(Path(get_env_path()))
+        load_all_plugins()
+        get_smtc_worker()  # Inicia hilo STA dedicado para Windows SMTC
+
+        def _island_broadcaster(payload: dict):
+            try:
+                asyncio.run_coroutine_threadsafe(manager.broadcast_message(payload), loop)
+            except Exception:
+                pass
+
+        set_ui_broadcaster(_island_broadcaster)
+        boot_ms = mark_boot_complete()
+        logger.info(f"[Startup] Miku Core modular listo en {boot_ms}ms (Vault: {vault.backend_name}).")
+    except Exception as e:
+        logger.warning(f"Aviso inicializando subsistema core: {e}")
     
     try:
         from activity_monitor import start_monitoring

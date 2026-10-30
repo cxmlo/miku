@@ -1,7 +1,44 @@
 {
-  "chat": "gemini-flash-lite-latest",
-  "pro": "deepseek-v4-pro",
-  "computer_use": "deepseek-flash",
-  "stt": "whisper-large-v3",
-  "custom_models": []
+  "active_provider": "gemini",
+  "low_cost_mode": false,
+  "prefix_caching_enabled": true,
+  "visual_bridge_model": "gemini-2.5-flash",
+  "providers": {
+    "gemini": {
+      "label": "Google Gemini (Recomendado)",
+      "fast": "gemini-2.5-flash-lite",
+      "pro": "gemini-2.5-flash",
+      "computer_use": "gemini-2.5-flash",
+      "supports_vision": true
+    },
+    "deepseek": {
+      "label": "DeepSeek Oficial (V3.2 / R1)",
+      "fast": "deepseek-chat",
+      "pro": "deepseek-reasoner",
+      "computer_use": "gemini-2.5-flash",
+      "supports_vision": false,
+      "visual_bridge": "gemini-2.5-flash"
+    },
+    "zhipu": {
+      "label": "Zhipu AI (GLM-4)",
+      "fast": "glm-4-flash",
+      "pro": "glm-4-plus",
+      "computer_use": "glm-4v-plus",
+      "supports_vision": true
+    },
+    "groq": {
+      "label": "Groq Cloud (Ultra Rápido)",
+      "fast": "llama-3.3-70b-versatile",
+      "pro": "llama-3.3-70b-versatile",
+      "computer_use": "meta-llama/llama-4-scout-17b-16e-instruct",
+      "supports_vision": true
+    },
+    "openrouter": {
+      "label": "OpenRouter (Multi-Modelo)",
+      "fast": "google/gemini-2.5-flash",
+      "pro": "deepseek/deepseek-r1",
+      "computer_use": "google/gemini-2.5-flash",
+      "supports_vision": true
+    }
+  }
 }

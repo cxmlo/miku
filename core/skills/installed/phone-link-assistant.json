@@ -1,0 +1,20 @@
+{
+  "id": "phone-link-assistant",
+  "name": "Controlador Miku-Link Celular",
+  "category": "Dispositivos",
+  "description": "Sincroniza portapapeles, envia archivos al telefono y gestiona comandos remotos para Android.",
+  "triggers": [
+    "celular",
+    "telefono",
+    "miku-link",
+    "portapapeles movil",
+    "enviar al telefono",
+    "alarma movil"
+  ],
+  "tools_required": [
+    "enviar_archivo_celular",
+    "sincronizar_portapapeles"
+  ],
+  "max_concurrent": 1,
+  "system_prompt_addon": "Especialidad activa: Miku-Link. Coordina ordenes con la aplicacion movil respetando la conexion en segundo plano."
+}

@@ -250,7 +250,7 @@ private fun MikuApp(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("MIKU-LINK", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = Color.White)
                     Text(
                         if (state.connected) "Enlace activo · ${state.pcName}" else "Sincroniza con Miku Desktop Suite",
@@ -258,18 +258,42 @@ private fun MikuApp(
                         color = Color.LightGray,
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (state.connected) Color(0x202DD4A0) else Color(0x20FF5252),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (state.connected) Color(0x602DD4A0) else Color(0x60FF5252))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        if (state.connected) "● EN LÍNEA" else "● DESCONECTADO",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = if (state.connected) Color(0xFF2DD4A0) else Color(0xFFFF5252),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    )
+                    TextButton(
+                        onClick = {
+                            if (state.connected) {
+                                onStopConnection()
+                                feedback = "Phone Link pausado manualmente."
+                            } else {
+                                onStartConnection()
+                                com.cxmlo.miku.android.security.BiometricAuthHelper.requestIgnoreBatteryOptimizations(context)
+                                feedback = "Phone Link activado (Persistente Anti-Doze)."
+                            }
+                            com.cxmlo.miku.android.widget.BaseMikuWidgetProvider.refreshAllWidgets(context)
+                        }
+                    ) {
+                        Text(
+                            if (state.connected) "PAUSAR" else "ACTIVAR",
+                            color = MikuPalette.Accent,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (state.connected) Color(0x202DD4A0) else Color(0x20FF5252),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (state.connected) Color(0x602DD4A0) else Color(0x60FF5252))
+                    ) {
+                        Text(
+                            if (state.connected) "● EN LÍNEA" else "● DESCONECTADO",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            color = if (state.connected) Color(0xFF2DD4A0) else Color(0xFFFF5252),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                    }
                 }
             }
             state.error?.let { Text(it, color = MikuPalette.Error) }

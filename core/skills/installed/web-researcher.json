@@ -1,0 +1,20 @@
+{
+  "id": "web-researcher",
+  "name": "Investigador Web y Grounding",
+  "category": "Investigacion",
+  "description": "Realiza busquedas web estructuradas, extrae fuentes confiables y sintetiza reportes actualizados.",
+  "triggers": [
+    "busca en internet",
+    "investiga",
+    "ultimas noticias",
+    "fuente web",
+    "documentacion oficial",
+    "grounding"
+  ],
+  "tools_required": [
+    "consultar_google_grounding",
+    "inspeccionar_url_rapido"
+  ],
+  "max_concurrent": 1,
+  "system_prompt_addon": "Especialidad activa: Investigador Web. Cita fuentes verificadas, sintetiza con datos concretos y reporta hechos recientes."
+}

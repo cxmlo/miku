@@ -92,7 +92,7 @@
 .sidebar::-webkit-scrollbar { width: 4px; }
 .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 99px; }
 
-/* ── Fila de Perfil Compacto (estilo Coucou libre sobre fondo negro) ── */
+/* ── Fila de Perfil Compacto (libre sobre fondo negro) ── */
 .sidebar-brand-row {
   display: flex;
   align-items: center;
@@ -218,7 +218,7 @@
   color: var(--er);
 }
 
-/* Indicador gelatina vertical en la barra lateral (píldora neutra oscura estilo Coucou) */
+/* Indicador gelatina vertical en la barra lateral (píldora neutra oscura) */
 .rail .ind {
   position: absolute;
   pointer-events: none;
@@ -1424,5 +1424,322 @@ body.dnd,body.dnd *{cursor:grabbing;user-select:none}
 }
 .hb[data-s="hold"] .f, .hb[data-s="done"] .f {
   opacity: 1;
+}
+
+/* ───────── FLOATING MULTI-VIEW SWITCHER (Port 3000 Web Preview) ───────── */
+.view-switcher-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #090c12;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 14px;
+  z-index: 100;
+  position: relative;
+}
+
+.vsb-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+}
+
+.vsb-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+}
+
+.vsb-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.vsb-btn.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+/* ───────── INTEGRACIONES DE SERVICIOS ───────── */
+.integrations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.integration-card {
+  background: #11141c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.integration-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.ic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ic-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ic-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.ic-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.ic-account {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ic-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.ic-status-badge.off {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ic-detail {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.ic-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ───────── COMPACT MCP DOWNLOAD BUTTON & REPO LINK ───────── */
+.mcp-compact-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mcp-btn-repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.mcp-btn-repo:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: #38bdf8;
+}
+
+.mcp-dl-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+  transition: all 0.18s;
+}
+
+.mcp-dl-icon-btn:hover {
+  background: #38bdf8;
+  color: #050811;
+  border-color: #38bdf8;
+  transform: scale(1.05);
+}
+
+.mcp-dl-icon-btn.is-installed {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+/* ───────── SKILLS NATIVAS DE MIKU ───────── */
+.skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skill-row-card {
+  background: #11141c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.src-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.src-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.src-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.src-category {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+}
+
+.src-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 3px;
+}
+
+.src-triggers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.src-tag {
+  font-size: 10.5px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ───────── TELEMETRIA DE USO DE API Y COSTES ───────── */
+.telemetry-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.tsc-card {
+  background: #11141c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.tsc-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.tsc-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 4px;
+  font-family: monospace;
+}
+
+.tsc-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 2px;
+}
+
+/* ───────── AGENT CREATOR FORM & VAULT ───────── */
+.agent-creator-box {
+  background: #0d1017;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.vault-var-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: 'Cascadia Code', monospace;
+  font-size: 11.5px;
+  color: #34d399;
 }
 

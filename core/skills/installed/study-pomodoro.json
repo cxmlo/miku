@@ -1,0 +1,19 @@
+{
+  "id": "study-pomodoro",
+  "name": "Asistente de Enfoque y Pomodoro",
+  "category": "Productividad",
+  "description": "Temporizadores de concentracion, bloques de estudio y registro de actividad productiva.",
+  "triggers": [
+    "pomodoro",
+    "temporizador",
+    "modo estudio",
+    "concentracion",
+    "bloque de trabajo",
+    "descanso"
+  ],
+  "tools_required": [
+    "gestionar_alerta_actividad"
+  ],
+  "max_concurrent": 1,
+  "system_prompt_addon": "Especialidad activa: Enfoque y Pomodoro. Administra pausas regulares y mantiene respuestas concisas sin distracciones."
+}

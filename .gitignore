@@ -95,5 +95,18 @@ miku_glow_preview.png
 build/
 miku_ui/src-tauri/binaries/
 
+# AI Studio & Browser Testing Artifacts (Do NOT commit)
+.aistudio/
+.playwright-cli/
+public/assets/aistudio/
+settings_*.png
+test_*.png
+agent_work.png
+.agent/mcp_config.json
+data/custom_agents.json
+data/telemetry.json
+data/agent_memory/
+
 archivos para que uses/
+
 

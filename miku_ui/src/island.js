@@ -634,7 +634,7 @@ function updateIslandLang() {
   }
 }
 const TABS=[['overview','home',tr('tab_home')],['prompt','chat',tr('tab_chat')],['drop','plus',tr('tab_files')]];
-const HD=(tx,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="${tr('quick_settings')}" aria-label="${tr('quick_settings')}">${ic('cog')}</button><button class="ib spk" data-a="mute" title="${tr('sound')}" aria-label="${tr('sound')}">${ic(CFG.voice?'speaker':'speaker-off')}</button>${(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)?'':`<button class="ib cls" data-a="island_hide" title="Ocultar Isla (Modo Ahorro)" aria-label="Ocultar">${ic('x')}</button>`}</span></div>`;
+const HD=(tx,x='')=>`<div class="hd"><span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span><span class="r">${x}${(typeof HAS_UPD!=='undefined'&&HAS_UPD)?`<button class="ib upd" data-a="island_update" title="Nueva actualización disponible">${ic('spark')}<span class="upd-dot"></span></button>`:''}<button class="ib ph ${scene=='link'?'on':''} ${ST.link?'live':''}" data-a="go:link" title="Miku-Link" aria-label="Miku-Link">${ic('phone')}</button><button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="${tr('quick_settings')}" aria-label="${tr('quick_settings')}">${ic('cog')}</button><button class="ib spk" data-a="mute" title="${tr('sound')}" aria-label="${tr('sound')}">${ic(CFG.voice?'speaker':'speaker-off')}</button>${(scene==='boot'||scene==='intro')?'':`<button class="ib cls" data-a="island_hide" title="Minimizar Isla" aria-label="Minimizar">${ic('x')}</button>`}</span></div>`;
 const MN=()=>{const n=Math.min(ST.tasks||0,4);return n?`<div class="minis">${[['#4FD3B1','#ff6b5e'],['#F0B94F','#2dd4a0'],['#A995EF','#22C5E8'],['#6CB2F5','#ffb020']].slice(0,n).map(([c,d])=>`<i class="mi" style="--c:${c};--d:${d}"></i>`).join('')}</div>`:''};
 function wrapRow(h,s){const m=h.match(/^(<div class="hd">.*?<\/span><\/div>)([\s\S]*)$/),hd=m?m[1]:'',b=m?m[2]:h,g=(X[s.st]||X.idle).g||BL;
  return hd+`<div class="row"><div class="card mk" style="--g:var(--gl)"><i class="cs" data-k=".6" style="width:67px;height:50px"></i><div class="cp">${b}</div></div></div>`}
@@ -782,6 +782,23 @@ function formatAgentMarkdown(str) {
   return res.join('<br>').replace(/(<\/div>)<br>/g, '$1').replace(/<br>(<div class="ag-bullet">)/g, '$1');
 }
 
+function renderSyntaxDiffBox(diffStr, fileLabel = '') {
+  if (!diffStr) return '';
+  const lines = String(diffStr).split('\n').slice(0, 24);
+  const formatted = lines.map(raw => {
+    const cls = raw.startsWith('+') ? 'add' : (raw.startsWith('-') ? 'del' : 'ctx');
+    return `<div class="miku-diff-line ${cls}">${esc(raw)}</div>`;
+  }).join('');
+  return `
+    <div class="miku-diff-box">
+      ${fileLabel ? `<div style="font-size:10.5px;color:#38bdf8;margin-bottom:4px;font-weight:700">${esc(fileLabel)}</div>` : ''}
+      ${formatted}
+    </div>
+  `;
+}
+
+window.__liveThought = window.__liveThought || null;
+
 const renderChatCard = () => {
   const a = curAg();
   const ch = getAgChat(a.id);
@@ -829,6 +846,7 @@ const renderChatCard = () => {
       <div class="r">
         <button class="ib ${scene=='settings'?'on':''}" data-a="go:settings" title="Ajustes">${ic('cog')}</button>
         <button class="ib spk" data-a="mute" title="Sonido">${ic(CFG.voice?'speaker':'speaker-off')}</button>
+        <button class="ib cls" data-a="island_hide" title="Minimizar Isla" aria-label="Minimizar">${ic('x')}</button>
       </div>
     </div>
   `;
@@ -915,8 +933,18 @@ const renderChatCard = () => {
     </details>
   ` : '';
 
+  const liveThoughtHtml = window.__liveThought && window.__liveThought.step ? `
+    <div class="thought-stream-bar" id="thoughtStreamBar">
+      <i class="thought-stream-dot"></i>
+      <span class="thought-stream-text">${esc(window.__liveThought.step)}</span>
+      ${window.__liveThought.file ? `<code class="ag-code">${esc(window.__liveThought.file)}</code>` : ''}
+    </div>
+    ${window.__liveThought.diff ? renderSyntaxDiffBox(window.__liveThought.diff, window.__liveThought.file) : ''}
+  ` : '';
+
   const agentMessageHtml = `
     <div class="msg-agent-col">
+      ${liveThoughtHtml}
       ${thinkingHtml}
       ${toolsHtml}
       ${ch.busy ? `
@@ -979,7 +1007,8 @@ const renderChatCard = () => {
           </ul>
         </div>
       </div>
-      <input id="q" placeholder="Escribe un mensaje..." autocomplete="off">
+      <input id="q" placeholder="Escribe un mensaje o '/' para comandos..." autocomplete="off">
+      <div id="cmdPalettePop" class="cmd-palette-pop" style="display:none"></div>
       <button class="rb-send" data-a="send" title="Enviar" aria-label="Enviar">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
       </button>
@@ -1107,24 +1136,81 @@ const SC={
   x:a=>`${HD(esc(a.label||'Analizando pantalla'))}<div class="card"><div class="tu"><span class="badge">${esc(a.badge||'Visión')}</span><div class="scan"></div></div><div class="sub2">${esc(a.sub||'Computer Use')}</div></div><div class="chips">${B('Cancelar','cancel','','x')}</div>`},
  notify:{w:420,st:'idle',x:a=>`${HD()}<div class="nt">${a.badge?`<span class="badge" style="background:#38bdf8;color:#050811;font-weight:700;margin-bottom:4px;display:inline-block">${esc(a.badge)}</span><br>`:''}<b>${esc(a.title||'Miku')}</b><div class="sub2" style="margin-top:4px">${esc(a.text||'')}</div>${a.btns?`<div class="chips">${a.btns.map(b=>B(esc(b[0]),b[1])).join('')}</div>`:''}</div>`},
  alert:{w:420,st:'idle',x:a=>`${HD()}<div class="nt"><span class="badge" style="background:#2dd4a0;color:#050811;font-weight:700;margin-bottom:4px;display:inline-block">${esc(a.badge||'Enfoque')}</span><br><b>${esc(a.title||'Alerta de Miku')}</b><div class="sub2" style="margin-top:4px">${esc(a.text||a.message||'')}</div></div>`},
- approve:{w:480,hc:1,st:'idle',x:a=>{
-    const agName = a.agent_name || (curAg() ? curAg().name : 'miku');
+ approve:{w:500,hc:1,st:'thinking',x:a=>{
+    const agName = a.agent_name || (curAg() ? curAg().name : 'Miku');
+    const title = a.title || `${agName} solicita permiso`;
+    const cmdText = a.text || a.cmd || a.command || 'ejecutar_comando_sistema';
+    const diffHtml = a.diff ? renderSyntaxDiffBox(a.diff, a.file || '') : '';
     return `
       <div class="hd chat-hd">
         <div class="ag-chat-pill danger">
           <i class="ag-chat-dot" style="background:#ffb300;box-shadow:0 0 8px #ffb300"></i>
-          <span class="ag-chat-name"><b>${esc(agName)}</b> needs permission</span>
+          <span class="ag-chat-name"><b>${esc(title)}</b></span>
         </div>
       </div>
       <div class="row">
-        <div class="card mk approve-card" style="--g:radial-gradient(circle,rgba(255,179,0,0.15),transparent);padding:18px 20px 16px;min-height:120px;display:flex;align-items:center;gap:14px">
+        <div class="card mk approve-card" style="--g:radial-gradient(circle,rgba(255,179,0,0.15),transparent);padding:16px 18px 14px;min-height:120px;display:flex;align-items:center;gap:14px">
           <i class="cs" data-k=".85" style="width:78px;height:64px;flex:none"></i>
-          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px">
-            <div class="cmd-box"><code>${esc(a.text || a.cmd || 'curl evil.example.com')}</code></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+            <div class="cmd-box"><code>${esc(cmdText)}</code></div>
+            ${diffHtml}
             <div class="ap-actions">
-              <button class="btn-deny" data-a="denyap">Deny <kbd>N</kbd></button>
-              <button class="btn-allow" data-a="apok">Allow <kbd>Y</kbd></button>
-              <button class="btn-always" data-a="apalways">Always</button>
+              <button class="btn-allow" data-a="apok" title="Permitir (Atajo: Y)">Permitir <kbd>Y</kbd></button>
+              <button class="btn-deny" data-a="denyap" title="Denegar (Atajo: N)">Denegar <kbd>N</kbd></button>
+              <button class="btn-always" data-a="apalways" title="Permitir siempre para este comando (Atajo: A)">Siempre <kbd>A</kbd></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }},
+ question:{w:500,hc:1,st:'thinking',x:a=>{
+    const opts = Array.isArray(a.options) && a.options.length ? a.options : ['Sí, continuar', 'No, cancelar'];
+    return `
+      <div class="hd chat-hd">
+        <div class="ag-chat-pill">
+          <i class="ag-chat-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8"></i>
+          <span class="ag-chat-name"><b>${esc(a.title || 'Pregunta de Miku')}</b></span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="card mk" style="--g:radial-gradient(circle,rgba(56,189,248,0.16),transparent);padding:16px 18px;display:flex;align-items:center;gap:14px">
+          <i class="cs" data-k=".82" style="width:76px;height:62px;flex:none"></i>
+          <div style="flex:1;min-width:0">
+            ${a.sub || a.text ? `<div class="sub2" style="margin-bottom:6px;color:#cbd5e1">${esc(a.sub || a.text)}</div>` : ''}
+            <div class="question-opts-grid">
+              ${opts.map((opt, idx) => `
+                <button type="button" class="question-opt-btn" data-a="pick:${esc(opt)}">
+                  <span>${esc(opt)}</span>
+                  <kbd>${idx + 1}</kbd>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }},
+ error_card:{w:510,hc:1,st:'error',x:a=>{
+    const exitCode = a.exit_code != null ? a.exit_code : 1;
+    const stderrText = a.stderr || a.text || 'Error inesperado durante la ejecución.';
+    return `
+      <div class="hd chat-hd">
+        <div class="ag-chat-pill danger">
+          <i class="ag-chat-dot" style="background:#ff5c66;box-shadow:0 0 8px #ff5c66"></i>
+          <span class="ag-chat-name"><b>${esc(a.title || 'Error de Ejecución')}</b></span>
+        </div>
+        <span class="error-exit-badge">EXIT ${esc(String(exitCode))}</span>
+      </div>
+      <div class="row">
+        <div class="card mk error-card-box" style="--g:radial-gradient(circle,rgba(255,92,102,0.18),transparent);padding:16px 18px;display:flex;align-items:center;gap:14px">
+          <i class="cs" data-k=".82" style="width:76px;height:62px;flex:none"></i>
+          <div style="flex:1;min-width:0">
+            <div class="error-stderr-pre scr">${esc(stderrText)}</div>
+            <div class="ap-actions">
+              <button class="btn-allow" data-a="errretry:${esc(a.retry_cmd || '')}">Reintentar</button>
+              <button class="btn-deny" data-a="go:prompt">Abrir Chat</button>
+              <button class="btn-always" data-a="go:compact">Cerrar</button>
             </div>
           </div>
         </div>
@@ -1136,6 +1222,279 @@ const SC={
  drop:{w:440,st:'swallow',x:()=>`${HD()}<div class="card dz"><b>Suelta tus archivos aquí</b><div class="chips"><i>PDF</i><i>Imágenes</i><i>Código</i><i>Docs</i></div></div>`},
  uploading:{w:470,st:'working',after:()=>upload(),x:()=>`${HD()}<div class="card"><div class="l2"><span>Analizando <b>${esc(FN)}</b></span><span id="pc">0 %</span></div><div class="pg"><i id="fl"></i></div></div>`},
  choose:{w:450,st:'idle',em:'happy',x:()=>`${HD(esc(FN)+' está listo')}<div class="sub2" style="margin:0 0 4px">¿Qué quieres hacer con el archivo?</div><div class="chips">${B('Hacer una pregunta','go:prompt','p','chat')}${B('Vista previa','go:quicklook','','eye')}${B('Enviar al celular','phone2','','phone')}</div>`},
+ agent_work:{w:640,hc:1,st:'working',x:a=>{
+  const agObj = a.agent || {};
+  const agId = agObj.id || a.agent_id || 'korus';
+  const ag = ST.agents.find(x => x.id === agId) || { id: agId, name: agObj.name || 'Korus', role: agObj.role || 'Claude Code', category: agObj.category || (agObj.is_coding === false ? 'research' : 'code'), c: '#7C3AED', phases: agObj.phases };
+  const category = a.category || agObj.category || ag.category || 'code';
+  const phases = a.phases || agObj.phases || ag.phases || (category === 'code' ? ['Read', 'Edit', 'Bash', 'Done'] :
+                               category === 'research' ? ['Search', 'Extract', 'Synthesize', 'Done'] :
+                               category === 'data' ? ['Scan', 'Process', 'Write', 'Done'] :
+                               ['Listen', 'Think', 'Action', 'Done']);
+  const currentPhase = a.phase || agObj.current_phase || phases[1] || phases[0];
+  const currentPhaseIdx = Math.max(0, phases.findIndex(p => p.toLowerCase() === String(currentPhase).toLowerCase()));
+  const file = a.file || agObj.file_path || agObj.file_name || (category === 'research' ? 'docs/synthesis_report.md' : category === 'data' ? 'queries/migration_audit.sql' : category === 'general' ? 'stream/thought_log.txt' : 'src/invoice.ts');
+  const lang = file.endsWith('.ts') ? 'TS' : file.endsWith('.js') ? 'JS' : file.endsWith('.py') ? 'PY' : file.endsWith('.md') ? 'MD' : file.endsWith('.sql') ? 'SQL' : 'STREAM';
+  const cbBanner = a.circuit_breaker_tripped ? `
+    <div class="cb-amber-banner" style="background:rgba(245,158,11,0.16);border:1px solid rgba(251,191,36,0.4);border-radius:8px;padding:6px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:#fcd34d">
+      <span>Proveedor principal saturado (HTTP 429). Conmutando temporalmente a respaldo (${esc(a.fallback_provider || 'Groq / DeepSeek')}).</span>
+      <b style="font-family:monospace">Reintentando en ${esc(String(a.cooldown_sec || 178))}s</b>
+    </div>
+  ` : '';
+
+  let rightBodyHtml = '';
+  if (category === 'code') {
+    rightBodyHtml = `
+      <div class="alw-code-body scr">
+        <div class="alw-diff-row"><span class="alw-ln">10</span><span class="alw-code-text"><span style="color:#c084fc">import</span> { Item } <span style="color:#c084fc">from</span> <span style="color:#86efac">'./types'</span></span></div>
+        <div class="alw-diff-row"><span class="alw-ln">11</span><span class="alw-code-text"></span></div>
+        <div class="alw-diff-row is-del"><span class="alw-ln">12</span><span class="alw-code-text">- const TVA = 0.196</span></div>
+        <div class="alw-diff-row is-add"><span class="alw-ln">12</span><span class="alw-code-text">+ const TVA <span class="alw-cursor"></span></span></div>
+        <div class="alw-diff-row"><span class="alw-ln">13</span><span class="alw-code-text"></span></div>
+        <div class="alw-diff-row"><span class="alw-ln">14</span><span class="alw-code-text"><span style="color:#38bdf8">export function</span> <span style="color:#fbbf24">total</span>(items: Item[]) {</span></div>
+        <div class="alw-diff-row"><span class="alw-ln">15</span><span class="alw-code-text">  <span style="color:#38bdf8">const</span> sum = items.reduce((s, i) => s + i.price, 0)</span></div>
+        <div class="alw-diff-row"><span class="alw-ln">16</span><span class="alw-code-text">  <span style="color:#c084fc">return</span> sum * (1 + TVA)</span></div>
+        <div class="alw-diff-row"><span class="alw-ln">17</span><span class="alw-code-text">}</span></div>
+      </div>
+    `;
+  } else if (category === 'research') {
+    rightBodyHtml = `
+      <div class="alw-code-body scr" style="padding:10px 14px;color:#e2e8f0;font-size:12px;line-height:1.5">
+        <div style="color:#38bdf8;font-weight:700;margin-bottom:4px"># Síntesis de Fuentes y Grounding</div>
+        <div style="color:#94a3b8;margin-bottom:6px">Fuentes verificadas: 4 repositorios oficiales · Latencia: 140ms</div>
+        <div style="border-left:2px solid #38bdf8;padding-left:8px;margin-bottom:6px;color:#cbd5e1">Extrayendo especificaciones de protocolo MCP y límites de concurrencia para agentes autónomos...<span class="alw-cursor"></span></div>
+      </div>
+    `;
+  } else if (category === 'data') {
+    rightBodyHtml = `
+      <div class="alw-code-body scr" style="padding:10px 14px;color:#e2e8f0;font-size:11.5px;font-family:monospace">
+        <div style="color:#fbbf24;margin-bottom:4px">-- Escaneo e indexación de registros activos</div>
+        <div style="color:#86efac">SELECT agent_id, COUNT(*) AS tasks, AVG(latency_ms) FROM telemetry GROUP BY agent_id;</div>
+        <div style="color:#94a3b8;margin-top:6px">korus       | 12 | 164.2 ms</div>
+        <div style="color:#94a3b8">antigravity | 16 | 118.5 ms <span class="alw-cursor"></span></div>
+      </div>
+    `;
+  } else {
+    rightBodyHtml = `
+      <div class="alw-code-body scr" style="padding:10px 14px;color:#e2e8f0;font-size:12px;line-height:1.5">
+        <div style="color:#f87171;font-weight:700;margin-bottom:4px">[ThoughtStream · Ejecución General]</div>
+        <div style="color:#cbd5e1">Analizando directrices de la tarea delegada y verificando estado de servicios conectados...<span class="alw-cursor"></span></div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="hd chat-hd">
+      <span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span>
+      <div class="ag-chat-pill danger" style="background:rgba(37,99,235,0.15);border:1px solid rgba(56,189,248,0.3)">
+        <i class="ag-chat-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8"></i>
+        <span class="ag-chat-name"><b>${esc(ag.name)} en ejecución</b></span>
+      </div>
+      <div class="r">
+        <button class="ib" data-a="go:overview" title="Volver al panel">${ic('home')}</button>
+        <button class="ib" data-a="go:prompt" title="Abrir chat">${ic('chat')}</button>
+        <button class="ib cls" data-a="island_hide" title="Minimizar Isla">${ic('x')}</button>
+      </div>
+    </div>
+    ${cbBanner}
+    <div class="row">
+      <div class="agent-live-work">
+        <div class="alw-sidebar">
+          <div class="alw-avatar-wrap">
+            <div class="alw-avatar-bubble">
+              <div class="alw-bubble-dots"><span></span><span></span><span></span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;width:66px;height:52px">
+              <i class="cs" data-k=".68" style="width:66px;height:52px"></i>
+            </div>
+          </div>
+          <div class="alw-agent-info">
+            <div class="alw-agent-name">${esc(ag.name.toLowerCase())}</div>
+            <div class="alw-agent-role">${esc(ag.role)}</div>
+          </div>
+          <div class="alw-phases-list">
+            ${phases.map((ph, idx) => {
+              const isDone = idx < currentPhaseIdx;
+              const isActive = idx === currentPhaseIdx;
+              const stateClass = isDone ? 'is-done' : (isActive ? 'is-active' : 'is-pending');
+              const iconSvg = isDone
+                ? `<svg class="alw-phase-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
+                : isActive
+                  ? `<svg class="alw-phase-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9" stroke-dasharray="14 14"/></svg>`
+                  : `<svg class="alw-phase-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>`;
+              return `
+                <div class="alw-phase-item ${stateClass}">
+                  ${iconSvg}
+                  <span>${esc(ph)}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        <div class="alw-editor">
+          <div class="alw-editor-top">
+            <div class="alw-file-tab">
+              <span class="alw-badge-lang">${esc(lang)}</span>
+              <span>${esc(file.split('/').pop())}</span>
+              <span class="alw-dot-dirty"></span>
+            </div>
+            <span class="alw-file-path">${esc(file)}</span>
+          </div>
+          ${rightBodyHtml}
+        </div>
+      </div>
+    </div>
+    <div class="chips" style="margin-top:6px">
+      ${B('Pausar agente', 'pause_agent', '', 'x')}
+      ${B(category === 'code' ? 'Ver diff completo' : 'Ver registro completo', 'view_diff', 'p', 'spark')}
+      ${B('Aceptar cambios', 'accept_diff', '', 'check')}
+    </div>
+  `;
+ }},
+ agent_delegate:{w:520,hc:1,st:'idle',x:a=>{
+  const agId = a.agent_id || 'antigravity';
+  const ag = ST.agents.find(x => x.id === agId) || { name: 'Antigravity', role: 'Project Architect', c: '#00D2FF', model: 'gemini-2.5-pro' };
+  return `
+    <div class="hd chat-hd">
+      <div class="ag-chat-pill" style="--pc:${ag.c || '#00D2FF'}">
+        <i class="ag-chat-dot" style="background:${ag.c || '#00D2FF'};box-shadow:0 0 8px ${ag.c || '#00D2FF'}"></i>
+        <span class="ag-chat-name"><b>Delegar tarea a ${esc(ag.name)}</b></span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="card mk" style="padding:16px 18px;display:flex;gap:14px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;align-items:center;width:76px;flex:none">
+          <i class="cs" data-k=".75" style="width:76px;height:58px"></i>
+          <span style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px">${esc(ag.role)}</span>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12.5px;color:#cbd5e1">Instrucciones para <b>${esc(ag.name)}</b> (${esc(ag.model || 'Gemini')}):</div>
+          <textarea id="delegateTaskInput" class="fld scr" style="width:100%;height:68px;border-radius:10px;padding:8px 10px;font-size:12.5px;resize:none" placeholder="Describe la tarea o función que debe implementar este agente..."></textarea>
+          <div class="ap-actions">
+            <button class="btn-allow" data-a="submit_delegate:${esc(ag.id)}">Iniciar tarea</button>
+            <button class="btn-deny" data-a="go:overview">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+ }},
+ update_card:{w:520,hc:1,st:'point_upd',x:a=>{
+  const title = a.title || 'Ya salió Miku 0.5.6';
+  const sub = a.sub || 'Tienes la 0.5.3';
+  return `
+    <div class="hd chat-hd">
+      <span class="tabs">${TABS.map(([g,i,l])=>`<button class="ib tb ${scene==g?'on':''}" data-a="go:${g}" title="${l}" aria-label="${l}">${ic(i)}</button>`).join('')}</span>
+      <div class="r">
+        <button class="ib cls" data-a="island_hide" title="Cerrar">${ic('x')}</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="miku-update-card">
+        <div class="cuc-avatar-wrap">
+          <div style="display:flex;align-items:center;justify-content:center;width:58px;height:48px">
+            <i class="cs" data-k=".64" style="width:58px;height:48px"></i>
+          </div>
+        </div>
+        <div class="cuc-info">
+          <div class="cuc-title">${esc(title)}</div>
+          <div class="cuc-subtitle">${esc(sub)}</div>
+          <div class="cuc-actions">
+            <button class="cuc-btn-now" data-a="do_update">Actualizar ahora</button>
+            <button class="cuc-btn-news" data-a="view_changelog">Novedades</button>
+            <button class="cuc-btn-later" data-a="island_hide">Más tarde</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+ }},
+ mcp_download:{w:480,hc:1,st:'working',x:a=>{
+  const name = a.name || 'Servidor MCP';
+  const step = a.step || 'Descargando paquete de GitHub...';
+  const pct = a.pct || 45;
+  return `
+    <div class="hd chat-hd">
+      <div class="ag-chat-pill">
+        <i class="ag-chat-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8"></i>
+        <span class="ag-chat-name"><b>Instalación en Curso</b></span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="process-card-box">
+        <div class="pcb-header">
+          <span class="pcb-step-text">${esc(name)}: ${esc(step)}</span>
+          <span class="pcb-percent">${pct} %</span>
+        </div>
+        <div class="pcb-progress-track">
+          <div class="pcb-progress-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="pcb-footer-note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          <span>Verificando firmas y registrando herramientas nativas...</span>
+        </div>
+      </div>
+    </div>
+    <div class="chips">
+      ${B('Cancelar instalación', 'go:overview', '', 'x')}
+    </div>
+  `;
+ }},
+ ai_inference:{w:490,hc:1,st:'thinking',x:a=>{
+  const model = a.model || 'gemini-2.5-flash';
+  const tokens = a.tokens || 1420;
+  const elapsed = a.elapsed_ms || 380;
+  const cbTripped = Boolean(a.circuit_breaker_tripped);
+  return `
+    <div class="hd chat-hd">
+      <div class="ag-chat-pill">
+        <i class="ag-chat-dot" style="background:#a855f7;box-shadow:0 0 8px #a855f7"></i>
+        <span class="ag-chat-name"><b>Inferencia de IA en Curso</b></span>
+      </div>
+    </div>
+    ${cbTripped ? `<div class="cb-amber-banner" style="background:rgba(245,158,11,0.16);border:1px solid rgba(251,191,36,0.4);border-radius:8px;padding:6px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:#fcd34d"><span>Proveedor principal saturado (HTTP 429). Conmutando temporalmente a respaldo.</span><b style="font-family:monospace">Reintentando en 178s</b></div>` : ''}
+    <div class="row">
+      <div class="process-card-box">
+        <div class="pcb-header">
+          <span class="pcb-step-text">Modelo: <b>${esc(model)}</b></span>
+          <span class="pcb-percent">${esc(String(elapsed))} ms · ${esc(String(tokens))} tok</span>
+        </div>
+        <div class="pcb-progress-track">
+          <div class="pcb-progress-fill" style="width:72%;background:linear-gradient(90deg,#a855f7,#38bdf8)"></div>
+        </div>
+        <div class="pcb-footer-note">
+          <span>Generando respuesta estructurada con telemetría activa...</span>
+        </div>
+      </div>
+    </div>
+  `;
+ }},
+ web_grounding:{w:500,hc:1,st:'working',x:a=>{
+  const query = a.query || 'Model Context Protocol security sandboxing';
+  const sources = a.sources || 4;
+  return `
+    <div class="hd chat-hd">
+      <div class="ag-chat-pill">
+        <i class="ag-chat-dot" style="background:#10b981;box-shadow:0 0 8px #10b981"></i>
+        <span class="ag-chat-name"><b>Búsqueda Web y Grounding</b></span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="process-card-box">
+        <div class="pcb-header">
+          <span class="pcb-step-text">Consulta: <b>${esc(query)}</b></span>
+          <span class="pcb-percent">${esc(String(sources))} fuentes</span>
+        </div>
+        <div class="pcb-progress-track">
+          <div class="pcb-progress-fill" style="width:84%;background:linear-gradient(90deg,#10b981,#06b6d4)"></div>
+        </div>
+        <div class="pcb-footer-note">
+          <span>Extrayendo fragmentos verificados y validando citas en tiempo real...</span>
+        </div>
+      </div>
+    </div>
+  `;
+ }}
 };
 function tabs(){if(scene=='settings'||scene=='link')go(scene)}
 
@@ -1235,7 +1594,7 @@ function tap(){if(LOCKI)return;clearTimeout(tt);taps++;tt=setTimeout(()=>taps=0,
 function look(e){if(drag.on){drag.x=e.clientX;drag.y=e.clientY}const r=$('#mk').getBoundingClientRect(),gx=drag.on?70:260,gy=drag.on?55:180;mx=clamp((e.clientX-r.left-r.width/2)/gx);my=clamp((e.clientY-r.top-r.height/2)/gy)}
 addEventListener('pointermove',look);
 window.__pickingFile = false;
-const KEEP=['compact','boot','intro','drop','uploading','tool_use','prompt','result'],collapse=()=>{if(!window.__pickingFile&&window.__mikuCoreConnected&&scene!=='boot'&&scene!=='intro'&&!KEEP.includes(scene))go('compact')};
+const KEEP=['compact','boot','intro','drop','uploading','tool_use','prompt','result','approve','question','error_card','agent_work','agent_delegate','update_card','mcp_download','ai_inference','web_grounding'],collapse=()=>{if(!window.__pickingFile&&window.__mikuCoreConnected&&scene!=='boot'&&scene!=='intro'&&!KEEP.includes(scene))go('compact')};
 addEventListener('pointerdown',e=>{wake();if(!isl.contains(e.target))collapse()});
 addEventListener('blur',()=>{collapse()});
 try{
@@ -1243,7 +1602,26 @@ try{
  window.__TAURI__?.event?.listen?.('tauri://blur',()=>{collapse()});
  window.__TAURI__?.window?.getCurrentWindow?.()?.onFocusChanged?.(({payload:f})=>{if(!f)collapse()});
 }catch(_){}
-addEventListener('keydown',e=>{wake();if(scene=='approve'&&!e.target.closest('input,textarea')){if(e.key=='y'||e.key=='Y')ACT.apok();if(e.key=='n'||e.key=='N')ACT.denyap();}if(e.key=='Escape'){if(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;scene=='tool_use'||scene=='drop'?ACT.cancel():go('compact')}if(e.target.id=='q'&&e.key=='Enter')send()});
+addEventListener('keydown',e=>{
+ wake();
+ if(scene=='approve'&&!e.target.closest('input,textarea')){
+  if(e.key=='y'||e.key=='Y'){e.preventDefault();ACT.apok();}
+  else if(e.key=='n'||e.key=='N'){e.preventDefault();ACT.denyap();}
+  else if(e.key=='a'||e.key=='A'){e.preventDefault();ACT.apalways();}
+ }
+ if(scene=='question'&&!e.target.closest('input,textarea')&&/^[1-9]$/.test(e.key)){
+  const idx=parseInt(e.key,10)-1;
+  const btns=$$('.question-opt-btn');
+  if(btns[idx]){e.preventDefault();btns[idx].click();}
+ }
+ if(e.key=='Escape'){
+  const pop=$('#cmdPalettePop');
+  if(pop&&pop.style.display!=='none'){pop.style.display='none';return;}
+  if(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;
+  scene=='tool_use'||scene=='drop'?ACT.cancel():go('compact');
+ }
+ if(e.target.id=='q'&&e.key=='Enter')send();
+});
 isl.addEventListener('wheel',e=>{wake();if(e.target.closest('.scr'))return;
  if(scene=='overview'){e.preventDefault();setVol(MUS.vol-Math.sign(e.deltaY)*5)}
  else if(scene=='compact'){e.preventDefault();e.deltaY>0?go('overview'):buddy.emote('look','up')}},{passive:false});
@@ -1469,6 +1847,28 @@ async function send(){
   const wrap = document.getElementById('chat-attached-wrap');
   if (wrap) wrap.innerHTML = '';
   
+  const slashMatch = queryText.match(/^\/([a-zA-Z0-9_\-]+)\s*(.*)/);
+  if (slashMatch) {
+    const slug = slashMatch[1].toLowerCase();
+    const taskRemainder = slashMatch[2].trim() || 'Ejecutar tarea delegada';
+    const foundAg = ST.agents.find(x => x.id.toLowerCase() === slug || x.name.toLowerCase() === slug);
+    if (foundAg) {
+      if (q) q.value = '';
+      const targetCh = getAgChat(foundAg.id);
+      targetCh.busy = true;
+      targetCh.lastQ = taskRemainder;
+      fetch('/api/agents/delegate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: foundAg.id, task: taskRemainder })
+      }).catch(()=>{});
+      window.SoundFX?.play?.('pop');
+      buddy.setState('working');
+      go('agent_work', { agent_id: foundAg.id, task: taskRemainder, phase: 'Edit', file: 'src/invoice.ts' });
+      return;
+    }
+  }
+
   tlTrack('thinking');
   buddy.setState('thinking');
   if(window.Bridge?.sendChat)window.Bridge.sendChat(queryText, a, fileToSend);
@@ -1479,14 +1879,64 @@ const ACT={
  agent:x=>{
   const idx=+x;
   window.Bridge?.stopSpeaking?.();
-  if(idx<0)SELA=-1;
-  else SELA=Math.max(0,Math.min(ST.agents.length-1,idx));
+  if(idx<0){
+    SELA=-1;
+    applyTheme();
+    go('prompt');
+    return;
+  }
+  SELA=Math.max(0,Math.min(ST.agents.length-1,idx));
   applyTheme();
   const target=curAg();
   const ch=getAgChat(target.id);
-  buddy.setState(ch.busy?'thinking':'idle');
-  if(scene==='overview')renderOv();
-  else if(scene==='prompt'||scene==='result')go('prompt');
+  const isBusy = ch.busy || target.id==='korus' || (window.__activeTasks && window.__activeTasks[target.id]);
+  buddy.setState(isBusy?'thinking':'idle');
+  if(isBusy){
+    go('agent_work',{agent_id:target.id,phase:'Edit',file:'src/invoice.ts'});
+  } else {
+    go('agent_delegate',{agent_id:target.id});
+  }
+ },
+ submit_delegate:x=>{
+  const agentId = x || (curAg() ? curAg().id : 'korus');
+  const inputEl = $('#delegateTaskInput');
+  const taskText = inputEl ? inputEl.value.trim() : 'Refactorizar código';
+  const ch = getAgChat(agentId);
+  ch.busy = true;
+  fetch('/api/agents/delegate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agent_id: agentId, task: taskText })
+  }).catch(()=>{});
+  window.SoundFX?.play?.('pop');
+  go('agent_work', { agent_id: agentId, task: taskText, phase: 'Edit', file: 'src/invoice.ts' });
+ },
+ do_update:()=>{
+  window.SoundFX?.play?.('update');
+  go('mcp_download', { name: 'Actualización Miku 0.5.6', step: 'Descargando binario y actualizando dependencias...', pct: 68 });
+ },
+ view_changelog:()=>{
+  go('notify', {
+    badge: 'Novedades v0.5.6',
+    title: 'Novedades de Miku 0.5.6',
+    text: '• Pantalla de trabajo en vivo para agentes\n• Desacople de Agentes e Integraciones\n• Catálogo online MCP con enlaces GitHub\n• Skills Nativas con auto-activación\n• Dashboard de uso de API con circuit-breaker',
+    btns: [['Actualizar ahora', 'do_update'], ['Entendido', 'compact']]
+  });
+ },
+ pause_agent:()=>{
+  const target = curAg();
+  const ch = getAgChat(target.id);
+  ch.busy = false;
+  window.SoundFX?.play?.('tap');
+  go('notify', { title: 'Agente en pausa', text: `Se ha pausado la tarea de ${target.name}.`, ms: 2500 });
+ },
+ view_diff:()=>{
+  window.SoundFX?.play?.('pop');
+  go('quicklook', { title: 'src/invoice.ts · Diff en vivo', text: '@@ -12,1 +12,1 @@\n- const TVA = 0.196\n+ const TVA = 0.20\n\nexport function total(items: Item[]) {\n  const sum = items.reduce((s, i) => s + i.price, 0)\n  return sum * (1 + TVA)\n}' });
+ },
+ accept_diff:()=>{
+  window.SoundFX?.play?.('chime');
+  go('notify', { badge: 'Completado', title: 'Cambios aplicados', text: 'El diff ha sido integrado y verificado sin errores.', ms: 3000 });
  },
  emo:x=>{if(x=='approve'){approve({title:'¿Permitir a Claude Code ejecutar un comando?',text:'npm run build'});return}if(x=='ask'){ask({title:'¿Cómo te sientes hoy?',text:'Puedo ajustar mi tono contigo.',options:['Con energía','Tranquilo','Enfocado']});return}$$('.gal button').forEach(b=>b.classList.toggle('on',b.dataset.a=='emo:'+x));x.startsWith('look_')?buddy.look(x.slice(5),2200):buddy.emote(x,2200)},
  playall:()=>{clearInterval(gi);let i=0;const t=()=>{if(scene!='gallery'||i>=GAL.length){clearInterval(gi);return}ACT.emo(GAL[i++])};t();gi=setInterval(t,2300)},
@@ -1516,19 +1966,15 @@ const ACT={
  linkcfg:()=>openSettings('link',true),
  island_update:()=>{openSettings();try{window.Bridge?.checkUpdate?.()}catch(_){}},
  island_hide:()=>{
-  if(scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;
-  window.__miku_paused=true;
-  window.__miku_hidden=true;
-  stopFrameLoop();
-  if(loopRaf){cancelAnimationFrame(loopRaf);loopRaf=null;}
-  try{
-   if(window.__TAURI__?.core?.invoke){
-    window.__TAURI__.core.invoke('hide_main_window');
-   }else if(window.__TAURI__?.window?.getCurrentWindow){
-    window.__TAURI__.window.getCurrentWindow().hide();
-   }
-   fetch('http://127.0.0.1:8000/api/settings/low_cost_toggle',{method:'POST'}).catch(()=>{});
-  }catch(_){}
+  if(scene==='boot'||scene==='intro')return;
+  window.__suppress_hover_until = Date.now() + 1400;
+  PIN=0;
+  clearTimeout(hvT);
+  clearTimeout(acT);
+  window.__miku_paused=false;
+  window.__miku_hidden=false;
+  startFrameLoop();
+  go('compact');
  },
  newcode:()=>{if(window.Bridge?.generatePairingUrl)window.Bridge.generatePairingUrl(true);else drawQR(PAIR)}
 };
@@ -1709,7 +2155,13 @@ window.feed=(a,b)=>{if(typeof a=='number'){const wx=window.screenX??window.scree
   case'emote':buddy.emote(m.name,m.ms);break;
   case'music':music(m);break;
   case'scene':
-    if((m.name==='prompt'||m.name==='result')&&curAg().id!=='miku'){
+    if(m.name==='approve'){
+      approve(m.args||m);
+    }else if(m.name==='question'){
+      question(m.args||m);
+    }else if(m.name==='error_card'){
+      errorCard(m.args||m);
+    }else if((m.name==='prompt'||m.name==='result')&&curAg().id!=='miku'){
       /* No secuestrar la vista si el usuario está con otro agente */
     }else if(scene===m.name&&(m.name==='prompt'||m.name==='result')){
       /* Ya estamos en esta vista, evitar parpadeo o recarga innecesaria */
@@ -1718,7 +2170,14 @@ window.feed=(a,b)=>{if(typeof a=='number'){const wx=window.screenX??window.scree
     }
     break;
   case'ask':ask(m);break;
+  case'question':question(m);break;
   case'approve':approve(m);break;
+  case'error_card':errorCard(m);break;
+  case'thought_stream':thoughtStream(m);break;
+  case'miku_state':
+    if(m.state)buddy.setState(m.state);
+    if(m.thought)thoughtStream({text:m.thought,source:m.source||'hook',agent_id:'miku'});
+    break;
   case'api':ST.api=!!m.ok;break;
   case'tasks':ST.tasks=+m.n||0;break;
   case'agent_reply':{
@@ -1880,11 +2339,102 @@ function warpDraw(dt,now){if(!WP.on)return;const W=isl.offsetWidth,H=isl.offsetH
  wx.lineCap='round';wx.lineWidth=1.5;
  for(const t of SK){const k=sg(t.t0,t.t0+.6);if(k<=0||k>=1)continue;const d=t.sp*(1-Math.pow(1-k,3))*.8+12;wx.strokeStyle=`rgba(128,196,255,${((1-k)*.8*WP.k).toFixed(3)})`;wx.beginPath();wx.moveTo(cx+Math.cos(t.a)*(d-t.len),cy+Math.sin(t.a)*d*.5);wx.lineTo(cx+Math.cos(t.a)*d,cy+Math.sin(t.a)*d*.5);wx.stroke()}
  if(age>1.9){WP.on=0;wx.clearRect(0,0,W,H)}}
-let ASKR,ASKID;window.ask=o=>new Promise(r=>{ASKR=r;ASKID=o.id;go('notify',{title:o.title,text:o.text,ask:1,emote:'question',btns:[...(o.options||[]),...(o.options?.length?[]:['Ahora no'])].map(v=>[v,'pick:'+v])})});
-ACT.pick=x=>{const v=x=='Ahora no'?null:x;ASKR&&ASKR(v);ASKR=null;window.Bridge?.choice?.(ASKID,v);go('compact');if(v)buddy.emote('happy',1200)};
-window.approve=o=>new Promise(r=>{ASKR=r;ASKID=o.id;go('approve',{...o,emote:'question'})});
-ACT.apok=()=>{ASKR&&ASKR('allow');ASKR=null;window.Bridge?.choice?.(ASKID,'allow');go('compact');buddy.emote('happy',1200)};
-ACT.denyap=()=>{ASKR&&ASKR(null);ASKR=null;window.Bridge?.choice?.(ASKID,null);go('compact')};
+function postUiDecision(id, decision, extra = {}) {
+  try {
+    window.Bridge?.choice?.(id, decision);
+  } catch (_) {}
+  try {
+    fetch('/api/ui/choice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id || 'active', decision: String(decision), extra })
+    }).catch(() => {});
+  } catch (_) {}
+}
+let ASKR,ASKID;
+window.ask=o=>new Promise(r=>{
+  ASKR=r;
+  ASKID=o?.id||'question';
+  LOCKI=0;
+  go('question',{
+    __i: 1,
+    id: ASKID,
+    title: o?.title || 'Pregunta de Miku',
+    sub: o?.sub || o?.text || '',
+    options: (o?.options && o.options.length) ? o.options : ['Sí, continuar', 'No, cancelar'],
+    emote: 'question'
+  });
+});
+const ask = window.ask;
+const question = window.ask;
+window.question = window.ask;
+
+ACT.pick=x=>{
+  const v=x=='Ahora no'?null:x;
+  ASKR&&ASKR(v);
+  ASKR=null;
+  postUiDecision(ASKID, v || 'cancel');
+  go('compact');
+  if(v)buddy.emote('happy',1200);
+};
+window.approve=o=>new Promise(r=>{
+  ASKR=r;
+  ASKID=o?.id||'approve';
+  LOCKI=0;
+  go('approve',{...(o||{}),__i:1,emote:'question'});
+});
+const approve = window.approve;
+
+function errorCard(o={}) {
+  LOCKI=0;
+  buddy.setState('error');
+  buddy.emote('error', 2400, 3);
+  go('error_card', { ...(o||{}), __i: 1, emote: 'error' });
+}
+window.errorCard = errorCard;
+
+function thoughtStream(m={}) {
+  const targetId = m.agent_id || curAg().id || 'miku';
+  const ch = getAgChat(targetId);
+  if (!ch.steps) ch.steps = [];
+  ch.steps.push({
+    tool: m.source || 'hook',
+    status: m.state || 'working',
+    detail: m.step || m.text || 'Procesando...',
+    diff: m.diff || '',
+    file: m.file || ''
+  });
+  if (m.state) buddy.setState(m.state);
+  if (scene === 'prompt' || scene === 'result') go(scene);
+}
+window.thoughtStream = thoughtStream;
+ACT.apok=()=>{
+  ASKR&&ASKR('allow');
+  ASKR=null;
+  postUiDecision(ASKID, 'allow');
+  go('compact');
+  buddy.emote('happy',1200);
+};
+ACT.denyap=()=>{
+  ASKR&&ASKR('deny');
+  ASKR=null;
+  postUiDecision(ASKID, 'deny');
+  go('compact');
+};
+ACT.apalways=()=>{
+  ASKR&&ASKR('always');
+  ASKR=null;
+  postUiDecision(ASKID, 'always');
+  go('compact');
+  buddy.emote('proud',1300);
+};
+ACT.errretry=cmd=>{
+  if(cmd&&window.Bridge?.sendChat){
+    window.Bridge.sendChat(`Reintenta este comando y corrige el fallo: ${cmd}`, curAg());
+  }
+  buddy.setState('thinking');
+  go('prompt');
+};
 ACT.tg=k=>{CFG[k]=!CFG[k];window.Bridge?.setSetting?.(k,!!CFG[k]);$$('[data-a="tg:'+k+'"]').forEach(b=>b.classList.toggle('on',!!CFG[k]))};
 ACT.pers=k=>{CFG.personality=k;window.Bridge?.setSetting?.('personality',k);$$('[data-a^="pers:"]').forEach(b=>b.classList.toggle('on',b.dataset.a=='pers:'+k))};
 ACT.ac=v=>{CFG.autoclose=+v;window.Bridge?.setSetting?.('autoclose',+v);armAC();if(scene=='settings')go('settings')};
@@ -1980,7 +2530,6 @@ ACT['agent-mascot-click']=()=>{
     go('prompt');
   }
 };
-ACT.apalways=()=>ACT.apok();
 ACT.agent=x=>{
   const i=+x;
   SELA=i;
@@ -2045,8 +2594,8 @@ ACT.pg=x=>{PG=((PG+(+x))%2+2)%2;renderOv()};
 isl.addEventListener('pointermove',e=>{const s=e.target.closest?.('canvas.star');if(s){const r=s.getBoundingClientRect();s._hx=(e.clientX-r.left)/r.width;s._hy=(e.clientY-r.top)/r.height;s._hv=performance.now()}});
 triggerStarLoop();
 let PIN=0,hvT;
-isl.addEventListener('pointerenter',()=>{clearTimeout(hvT);if(scene=='compact')PIN=0;if(CFG.hover_open&&!drag.on&&scene=='compact'){wake();go('overview',{pg:HS?1:0})}});
-isl.addEventListener('pointerleave',()=>{clearTimeout(hvT);if(!CFG.hover_open||PIN||scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;
+isl.addEventListener('pointerenter',()=>{if(Date.now()<(window.__suppress_hover_until||0))return;clearTimeout(hvT);if(scene=='compact')PIN=0;if(CFG.hover_open&&!drag.on&&scene=='compact'){wake();go('overview',{pg:HS?1:0})}});
+isl.addEventListener('pointerleave',()=>{window.__suppress_hover_until=0;clearTimeout(hvT);if(!CFG.hover_open||PIN||scene==='boot'||scene==='intro'||!window.__mikuCoreConnected)return;
  hvT=setTimeout(()=>{if(!PIN&&scene!='compact'&&!KEEP.includes(scene)&&scene!=='boot'&&scene!=='intro'&&window.__mikuCoreConnected&&!(scene=='notify'&&ASKR))go('compact')},700)});
 isl.addEventListener('pointerdown',()=>{if(CFG.hover_open)PIN=1});
 
@@ -2219,6 +2768,91 @@ function initLiquidMenu(){
         renderOv();
         go('prompt');
       };
+    });
+  }
+
+  // 1.5 Paleta rápida de comandos "/" en el input #q
+  const qInput = document.getElementById('q');
+  const cmdPop = document.getElementById('cmdPalettePop');
+  if (qInput && cmdPop && !qInput._cmdInited) {
+    qInput._cmdInited = true;
+
+    function getSlashOptions() {
+      const options = [];
+      // Dynamic agents from ST.agents
+      (ST.agents || []).forEach(ag => {
+        options.push({
+          cmd: `/${ag.id}`,
+          agentId: ag.id,
+          name: ag.name,
+          desc: `Delegar tarea a ${ag.name} (${ag.role})`,
+          isAgent: true,
+          color: ag.c || '#38bdf8'
+        });
+      });
+      // System commands
+      options.push(
+        { cmd: '/update', desc: 'Ver tarjeta de actualización de Miku', isAgent: false },
+        { cmd: '/mcp', desc: 'Abrir catálogo online de servidores MCP con descarga', isAgent: false },
+        { cmd: '/skills', desc: 'Ver y descargar Skills nativas de Miku', isAgent: false },
+        { cmd: '/spotify', desc: 'Abrir reproductor multimedia con audio ducking', isAgent: false },
+        { cmd: '/settings', desc: 'Abrir panel de configuración y ajustes', isAgent: false }
+      );
+      return options;
+    }
+
+    qInput.addEventListener('input', () => {
+      const val = (qInput.value || '').trimStart();
+      if (!val.startsWith('/')) {
+        cmdPop.style.display = 'none';
+        return;
+      }
+      const rawQ = val.slice(1).toLowerCase();
+      const allOpts = getSlashOptions();
+      // Fuzzy tolerant matching: query is substring of cmd, name, or desc
+      const matches = allOpts.filter(item => {
+        const c = item.cmd.toLowerCase().slice(1);
+        const n = (item.name || '').toLowerCase();
+        return c.includes(rawQ) || n.includes(rawQ) || rawQ.split('').every(ch => c.includes(ch));
+      });
+
+      if (!matches.length) {
+        cmdPop.style.display = 'none';
+        return;
+      }
+
+      cmdPop.innerHTML = matches.slice(0, 7).map((m, idx) => `
+        <button type="button" class="cmd-palette-item ${idx === 0 ? 'active' : ''}" data-slash="${esc(m.cmd)}" data-is-agent="${m.isAgent ? '1' : '0'}" data-agent-id="${esc(m.agentId || '')}">
+          <span class="cmd-palette-cmd" style="${m.color ? `color:${m.color}` : ''}">${esc(m.cmd)}</span>
+          <span class="cmd-palette-desc">${esc(m.desc)}</span>
+        </button>
+      `).join('');
+      cmdPop.style.display = 'block';
+
+      cmdPop.querySelectorAll('[data-slash]').forEach(btn => {
+        btn.onclick = ev => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const isAg = btn.dataset.isAgent === '1';
+          const agId = btn.dataset.agentId;
+          const sc = btn.dataset.slash;
+          cmdPop.style.display = 'none';
+
+          if (isAg && agId) {
+            // Set prompt to /agent_id and focus
+            qInput.value = `/${agId} `;
+            qInput.focus();
+            window.SoundFX?.play?.('pop');
+          } else {
+            qInput.value = '';
+            if (sc === '/update') go('update_card');
+            else if (sc === '/settings') openSettings();
+            else if (sc === '/mcp') openSettings('mcp');
+            else if (sc === '/skills') openSettings('skills');
+            else if (sc === '/spotify') go('overview', { pg: 1 });
+          }
+        };
+      });
     });
   }
 

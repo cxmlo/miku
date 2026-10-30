@@ -71,7 +71,7 @@ graph TD
 - **Arranque Escalonado**:
   - Al iniciar, se muestra primero Miku en el centro ejecutando su animación de saludo y burst de partículas.
   - Tras 650ms, la tarjeta de información y estado del Core se expande suavemente hacia la derecha con una transición fluida.
-- **Visor e Instalador de Hooks de Agentes en Ajustes (Estilo Coucou)**:
+- **Visor e Instalador de Hooks de Agentes en Ajustes**:
   - Pestaña Agentes con selector de entornos (*Antigravity*, *Claude Code*, *Cursor*, *Gemini CLI*).
   - Tarjeta oscura con diff interactivo (`+`) que muestra exactamente la inyección del hook para el agente seleccionado.
   - Botón de instalación en 1 clic con leyenda de seguridad que certifica que no se modifica ninguna otra clave ni configuración personal.

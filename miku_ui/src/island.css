@@ -1016,4 +1016,730 @@ details[open] > .atb-summary .atb-chev { transform: rotate(180deg); }
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
+/* ── Miku Interactive Cards (ApprovalCard, QuestionCard, ErrorCard, ThoughtStream, Diff & Command Palette) ── */
+.btn-always kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 10.5px;
+  font-family: inherit;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #d1d5db;
+}
 
+.miku-diff-box {
+  background: #0d0f16;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+.miku-diff-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.miku-diff-line.add {
+  background: rgba(45, 212, 160, 0.14);
+  color: #6ee7b7;
+}
+.miku-diff-line.del {
+  background: rgba(255, 92, 102, 0.15);
+  color: #fca5a5;
+}
+.miku-diff-line.ctx {
+  color: #94a3b8;
+}
+
+.question-opts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.question-opt-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.question-opt-btn:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.45);
+  transform: translateX(2px);
+}
+.question-opt-btn kbd {
+  background: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-family: 'Cascadia Code', monospace;
+}
+
+.error-card-box {
+  border-color: rgba(255, 92, 102, 0.4) !important;
+  box-shadow: 0 0 26px rgba(255, 92, 102, 0.18) !important;
+}
+.error-exit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(255, 92, 102, 0.18);
+  border: 1px solid rgba(255, 92, 102, 0.45);
+  color: #fda4af;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: 'Cascadia Code', monospace;
+}
+.error-stderr-pre {
+  background: #111218;
+  border: 1px solid rgba(255, 92, 102, 0.25);
+  border-radius: 10px;
+  padding: 8px 11px;
+  color: #fecdd3;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 11.5px;
+  max-height: 110px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 6px 0 10px;
+}
+
+.thought-stream-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.09);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  font-size: 11.5px;
+  color: #e0f2fe;
+  margin-bottom: 6px;
+}
+.thought-stream-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: pulse-vision 1.2s infinite alternate;
+  flex: none;
+}
+.thought-stream-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+}
+
+.cmd-palette-pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  background: #13151e;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+  z-index: 90;
+  max-height: 190px;
+  overflow-y: auto;
+}
+.cmd-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #f1f5f9;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.cmd-palette-item:hover, .cmd-palette-item.active {
+  background: rgba(56, 189, 248, 0.18);
+}
+.cmd-palette-cmd {
+  font-family: 'Cascadia Code', monospace;
+  font-weight: 700;
+  color: #38bdf8;
+}
+.cmd-palette-desc {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+}
+
+
+/* ── Miku Interactive Cards (ApprovalCard, QuestionCard, ErrorCard, ThoughtStream, Diff & Command Palette) ── */
+.btn-always kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 10.5px;
+  font-family: inherit;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #d1d5db;
+}
+
+.miku-diff-box {
+  background: #0d0f16;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+.miku-diff-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.miku-diff-line.add {
+  background: rgba(45, 212, 160, 0.14);
+  color: #6ee7b7;
+}
+.miku-diff-line.del {
+  background: rgba(255, 92, 102, 0.15);
+  color: #fca5a5;
+}
+.miku-diff-line.ctx {
+  color: #94a3b8;
+}
+
+.question-opts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.question-opt-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.question-opt-btn:hover {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.45);
+  transform: translateX(2px);
+}
+.question-opt-btn kbd {
+  background: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-family: 'Cascadia Code', monospace;
+}
+
+.error-card-box {
+  border-color: rgba(255, 92, 102, 0.4) !important;
+  box-shadow: 0 0 26px rgba(255, 92, 102, 0.18) !important;
+}
+.error-exit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(255, 92, 102, 0.18);
+  border: 1px solid rgba(255, 92, 102, 0.45);
+  color: #fda4af;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: 'Cascadia Code', monospace;
+}
+.error-stderr-pre {
+  background: #111218;
+  border: 1px solid rgba(255, 92, 102, 0.25);
+  border-radius: 10px;
+  padding: 8px 11px;
+  color: #fecdd3;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 11.5px;
+  max-height: 110px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 6px 0 10px;
+}
+
+.thought-stream-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.09);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  font-size: 11.5px;
+  color: #e0f2fe;
+  margin-bottom: 6px;
+}
+.thought-stream-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: pulse-vision 1.2s infinite alternate;
+  flex: none;
+}
+.thought-stream-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+}
+
+.cmd-palette-pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  background: #13151e;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+  z-index: 90;
+  max-height: 190px;
+  overflow-y: auto;
+}
+.cmd-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #f1f5f9;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.cmd-palette-item:hover, .cmd-palette-item.active {
+  background: rgba(56, 189, 248, 0.18);
+}
+.cmd-palette-cmd {
+  font-family: 'Cascadia Code', monospace;
+  font-weight: 700;
+  color: #38bdf8;
+}
+.cmd-palette-desc {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+}
+
+/* ───────── LIVE CODE & NON-CODE WORK SCREEN (Ref: image_787d5bf0 / image_0adeb3ed) ───────── */
+.agent-live-work {
+  display: flex;
+  width: 100%;
+  min-height: 230px;
+  background: #0b0e14;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+
+.alw-sidebar {
+  width: 155px;
+  background: #090c12;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+}
+
+.alw-avatar-wrap {
+  position: relative;
+  width: 68px;
+  height: 60px;
+  margin-bottom: 12px;
+}
+
+.alw-avatar-bubble {
+  position: absolute;
+  top: -4px;
+  left: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid #090c12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.6);
+  z-index: 2;
+}
+
+.alw-bubble-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.alw-bubble-dots span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffffff;
+  animation: pulse-vision 1s infinite alternate;
+}
+.alw-bubble-dots span:nth-child(2) { animation-delay: 0.2s; }
+.alw-bubble-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.alw-agent-info {
+  margin-bottom: 16px;
+}
+
+.alw-agent-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.alw-agent-role {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+}
+
+.alw-phases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.alw-phase-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  transition: all 0.2s ease;
+}
+
+.alw-phase-item.is-done {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.alw-phase-item.is-done .alw-phase-icon {
+  color: #10b981;
+}
+
+.alw-phase-item.is-active {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.alw-phase-item.is-active .alw-phase-icon {
+  color: #38bdf8;
+  animation: spin 2s linear infinite;
+}
+
+.alw-phase-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alw-editor {
+  flex: 1;
+  background: #0d1117;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.alw-editor-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #090c12;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.alw-file-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.alw-badge-lang {
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.alw-dot-dirty {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.alw-file-path {
+  font-family: 'Cascadia Code', monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.alw-code-body {
+  flex: 1;
+  padding: 12px 0;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-y: auto;
+}
+
+.alw-diff-row {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.alw-diff-row.is-del {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  text-decoration: line-through;
+}
+
+.alw-diff-row.is-del .alw-ln {
+  color: #ef4444;
+}
+
+.alw-diff-row.is-add {
+  background: rgba(16, 185, 129, 0.15);
+  color: #86efac;
+}
+
+.alw-diff-row.is-add .alw-ln {
+  color: #10b981;
+}
+
+.alw-ln {
+  width: 32px;
+  text-align: right;
+  padding-right: 14px;
+  color: rgba(255, 255, 255, 0.25);
+  user-select: none;
+  flex: none;
+}
+
+.alw-code-text {
+  flex: 1;
+  white-space: pre;
+}
+
+.alw-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 13px;
+  background: #38bdf8;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: pulse-vision 0.8s infinite;
+}
+
+/* ───────── MIKU UPDATE CARD (Ref: image_2897af29.png) ───────── */
+.miku-update-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  background: radial-gradient(circle at right, rgba(16, 185, 129, 0.22), #070a0e 70%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 20px;
+  padding: 16px 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+}
+
+.cuc-avatar-wrap {
+  position: relative;
+  width: 58px;
+  height: 48px;
+  flex: none;
+}
+
+.cuc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cuc-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.cuc-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 3px;
+  margin-bottom: 10px;
+}
+
+.cuc-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cuc-btn-now {
+  background: #ffffff;
+  color: #050811;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.cuc-btn-now:hover {
+  transform: scale(1.04);
+}
+
+.cuc-btn-news {
+  background: rgba(16, 185, 129, 0.22);
+  color: #a7f3d0;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  cursor: pointer;
+}
+
+.cuc-btn-later {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 0;
+  cursor: pointer;
+}
+
+/* ───────── PROCESS MODAL CARDS (4 States) ───────── */
+.process-card-box {
+  width: 100%;
+  background: #090d14;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pcb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pcb-step-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.pcb-percent {
+  font-family: monospace;
+  font-size: 13px;
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.pcb-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pcb-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #38bdf8, #34d399);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.pcb-footer-note {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
